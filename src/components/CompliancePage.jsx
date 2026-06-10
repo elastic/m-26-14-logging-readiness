@@ -1,361 +1,354 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { ASSET_FILES, ASSET_TYPE_META, ASSET_FILE_MAP } from '../data/assets.js'
+import { ASSET_TYPE_META, ASSET_FILE_MAP } from '../data/assets.js'
+import { OverviewContent } from './Overview.jsx'
+import AssetViewer from './AssetViewer.jsx'
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
 
 const TABS = [
+  { label: 'Requirements' },
   { label: 'Achieve Compliance in Days' },
-  { label: 'Coverage Matrix' },
-  { label: 'Deployment-Ready Assets' },
+  { label: 'Compliance Coverage Matrix' },
   { label: "What's Not Covered?" },
 ]
 
+const CheckIcon = ({ size = 16, className = '' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 16 16" className={className} aria-hidden="true" fill="currentColor">
+    <path fillRule="evenodd" d="M15.354 4.354 6.5 13.207 1.646 8.354l.708-.708L6.5 11.793l8.146-8.147.708.708Z" clipRule="evenodd"/>
+  </svg>
+)
+
+const InspectIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor">
+    <path d="M2 2h11v4c.379.284.716.62 1 1V2a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h5a5.029 5.029 0 0 1-1-1H2V2Z"/>
+    <path d="M3.5 4a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1Zm0 2a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1ZM4 7.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0ZM3.5 10a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1Zm.5 1.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0ZM5.5 4a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1ZM6 5.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0ZM7.5 4a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1Zm2.5-.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0Zm1.5.5a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1Z"/>
+    <path fillRule="evenodd" d="M6 10a4 4 0 1 1 7.16 2.453l2.194 2.193-.707.707-2.194-2.193A4 4 0 0 1 6 10Zm4-3a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" clipRule="evenodd"/>
+  </svg>
+)
+
 // EUI Borealis vis color pairs — [active, light] per tab
 const TAB_COLORS = [
+  { active: '#7B5EA7', light: '#C9B9E3' },
+  { active: '#16C5C0', light: '#A6EDEA' },
+  { active: '#61A2FF', light: '#BFDBFF' },
+  { active: '#F6726A', light: '#FFC9C2' },
+]
+
+// Colors for the 4 compliance-in-days phase columns (decoupled from tab count)
+const PHASE_COLORS = [
   { active: '#16C5C0', light: '#A6EDEA' },
   { active: '#61A2FF', light: '#BFDBFF' },
   { active: '#EE72A6', light: '#FFC7DB' },
   { active: '#F6726A', light: '#FFC9C2' },
 ]
 
-// Level badge colors
-const LEVEL_BADGE = {
-  L1: 'bg-accent-teal/10 text-accent-teal border-accent-teal/40',
-  L2: 'bg-accent-blue/10 text-accent-blue border-accent-blue/40',
-  L3: 'bg-accent-purple/10 text-accent-purple border-accent-purple/40',
-  L4: 'bg-accent-coral/10 text-accent-coral border-accent-coral/40',
-}
-
-// ─── Capability areas (Tab 0) ─────────────────────────────────────────────────
-
-const CAPABILITIES = {
-  'day1-deploy': {
-    title: 'Deploy Elastic + Configure Storage',
-    subtitle: 'Elasticsearch, Kibana, Fleet Server, and ILM retention — all up on Day 1',
-    color: 'teal',
-    what: [
-      'Elasticsearch cluster — self-managed, ECE, ECK, or Elastic Cloud (Enterprise license for ML)',
-      'Kibana with SIEM app, Fleet Server, and Osquery Manager; all compliance pack assets loaded at init',
-      'Hot/warm/cold/frozen ILM policies active from the start — data tiers automatically as it ages',
-      'Snapshot policies to S3/GCS/Azure Blob provide THIRF-compliant retrievable retention at every level',
-      'BYOK integration with agency KMS configurable for L4 encryption-at-rest without cluster changes',
-    ],
-    covers: ['Platform foundation', 'L1 — 6-month retrievable (THIRF)', 'L2 — 12-month retrievable', 'L3 — 3-month searchable + PII protections', 'L4 — 6-month searchable + BYOK'],
-  },
-  'agent-fleet': {
-    title: 'Elastic Agent + Fleet',
-    subtitle: 'Universal log collection and asset inventory — Appendix B complete from day one',
-    color: 'blue',
-    what: [
-      'Agent integrations cover all 11 Appendix B event categories — identity, network, endpoint, DNS, cloud — without custom parser work',
-      'Fleet Server enrollment auto-builds the Agency Logging Plan asset inventory and keeps it current as systems change',
-      'Logstash bridges legacy syslog, Windows Event Forwarding, and OT/ICS sources that can\'t run native agents',
-      'Osquery pack captures hardware (HWAM), software (SWAM), network interface, and user account inventory on every endpoint',
-    ],
-    covers: ['L1 — Complete Appendix B log collection', 'L2 — Full agency asset inventory in Fleet'],
-  },
-  'kibana-siem': {
-    title: 'Elastic Security (SIEM + Detection Rules)',
-    subtitle: 'Active monitoring, evidence dashboards, and ATO attestation — deployed in days',
-    color: 'blue',
-    what: [
-      '11 detection rule sets (A–K) map one-to-one to every required Appendix B event category — no category goes undetected',
-      'Elasticsearch Transform aggregates alert coverage into per-category compliance metrics, refreshed every hour',
-      'Compliance Attestation Dashboard answers the AO\'s question in real time: "Is your detection layer working, and can you prove it?"',
-      'Asset Coverage, Alert Coverage, Appendix B Log Coverage, Retention Compliance, and Log Management dashboards form a complete ATO evidence package',
-    ],
-    covers: ['L3 — Automated threat detection across all Appendix B categories', 'L3 — Real-time compliance evidence for ATO submissions'],
-  },
-  'elastic-ml': {
-    title: 'Elastic ML + Enrichment',
-    subtitle: 'Behavioral detection and IoC matching — the L3 differentiators',
-    color: 'pink',
-    what: [
-      'ML anomaly detection jobs run continuously against a 6-month baseline, surfacing behavioral outliers that rule-based detection misses',
-      'IoC matching checks live event streams against STIX/TAXII threat feeds and the CISA Known Exploited Vulnerabilities catalog in real time',
-      'Risk-score transforms aggregate ML signals and rule alerts into prioritized, correlated findings before SOC triage',
-      'Datafeed jobs refresh model state continuously so the anomaly baseline adapts to seasonal and organizational changes automatically',
-    ],
-    covers: ['L3 — Automated anomaly and behavioral detection (CEM)', 'L3 — Real-time IoC matching (STIX/TAXII/CISA KEV)', 'L4 — Risk-scored correlated alert feed'],
-  },
-  'cross-cluster': {
-    title: 'Cross-Cluster Search + Federated Architecture',
-    subtitle: 'Enterprise-scale and multi-agency logging for Level 4',
-    color: 'coral',
-    what: [
-      'Cross-Cluster Search lets a top-level SOC query all distributed agency log stores from a single Kibana — no data movement required',
-      'USNO/NIST-traceable NTP timestamps enforced across all agents and nodes produce tamper-evident forensic timelines',
-      'On-prem, cloud cold, and object storage tiers compose into hybrid L4 architectures without re-deploying existing clusters',
-      'Documented log-sharing configuration satisfies the annual CISA/FBI drill requirement with a tested, reproducible runbook',
-    ],
-    covers: ['L4 — Federated distributed logging architecture', 'L4 — Tamper-evident log integrity (NTP-synchronized timestamps)', 'L4 — Documented CISA/FBI log sharing procedure'],
-  },
-}
-
-const PHASES = [
-  { label: 'Day 1',      capIds: ['day1-deploy'] },
-  { label: 'Days 2–7',   capIds: ['agent-fleet', 'kibana-siem'] },
-  { label: 'Days 7–30',  capIds: ['elastic-ml'] },
-  { label: 'Ongoing',    capIds: ['cross-cluster'] },
+const PHASE_LABELS = [
+  { label: 'Day 1',      title: 'Deploy Elastic'        },
+  { label: 'Days 2–7',   title: 'Deploy Fleet & Agent'  },
+  { label: 'Days 7–30',  title: 'Expand Coverage'       },
+  { label: 'Ongoing',    title: 'Maintain & Extend'     },
 ]
 
-const COLOR = {
-  teal:   { text: 'text-accent-teal',   border: 'border-accent-teal/40',   badge: 'bg-accent-teal/15 text-accent-teal border-accent-teal/40',     dot: 'bg-accent-teal',   bar: 'bg-accent-teal'   },
-  blue:   { text: 'text-accent-blue',   border: 'border-accent-blue/40',   badge: 'bg-accent-blue/15 text-accent-blue border-accent-blue/40',     dot: 'bg-accent-blue',   bar: 'bg-accent-blue'   },
-  yellow: { text: 'text-accent-yellow', border: 'border-accent-yellow/40', badge: 'bg-accent-yellow/15 text-accent-yellow border-accent-yellow/40', dot: 'bg-accent-yellow', bar: 'bg-accent-yellow' },
-  purple: { text: 'text-accent-purple', border: 'border-accent-purple/40', badge: 'bg-accent-purple/15 text-accent-purple border-accent-purple/40', dot: 'bg-accent-purple', bar: 'bg-accent-purple' },
-  coral:  { text: 'text-accent-coral',  border: 'border-accent-coral/40',  badge: 'bg-accent-coral/15 text-accent-coral border-accent-coral/40',   dot: 'bg-accent-coral',  bar: 'bg-accent-coral'  },
-  gray:   { text: 'text-text-muted',    border: 'border-line',             badge: 'bg-ink-700 text-text-muted border-line',                        dot: 'bg-text-muted',    bar: 'bg-line'          },
-  green:  { text: 'text-accent-green',  border: 'border-accent-green/40',  badge: 'bg-accent-green/15 text-accent-green border-accent-green/40',   dot: 'bg-accent-green',  bar: 'bg-accent-green'  },
-  pink:   { text: 'text-accent-purple',     border: 'border-accent-purple/40',     badge: 'bg-accent-purple/15 text-accent-purple border-accent-purple/40',            dot: 'bg-accent-purple',     bar: 'bg-accent-purple'     },
+const LEVEL_COLORS = {
+  1: { text: 'text-accent-teal',   bg: 'bg-accent-teal/10 border-accent-teal/30'   },
+  2: { text: 'text-accent-blue',   bg: 'bg-accent-blue/10 border-accent-blue/30'   },
+  3: { text: 'text-accent-purple', bg: 'bg-accent-purple/10 border-accent-purple/30' },
+  4: { text: 'text-accent-coral',  bg: 'bg-accent-coral/10 border-accent-coral/30' },
 }
 
-// ─── Coverage matrix data (Tab 1) ─────────────────────────────────────────────
+// ─── ACID phase content (Tab 1) ───────────────────────────────────────────────
 
-const MATRIX_ROWS = [
+const ACID_PHASES = [
   {
-    req: 'Appendix B — complete event collection',
-    reqDesc: 'All 11 required event categories must be actively collected from every applicable system in scope, with no coverage gaps.',
-    cap: 'Elastic Agent integrations',
-    capDesc: '20+ pre-built integrations cover all required source types. Fleet auto-enrols new systems as they appear.',
-    l: [1,1,1,1],
-    subs: [
-      { id: 'A', name: 'Category A — Identity Events', desc: 'Auth successes/failures, MFA, SSO federation, account lifecycle (create/disable/delete)' },
-      { id: 'B', name: 'Category B — Network Sessions', desc: 'IP flow records, VPN session logs, proxy logs, DNS query/response' },
-      { id: 'C', name: 'Category C — Object/Resource Access', desc: 'File access, cloud storage objects, database queries, API calls to sensitive resources' },
-      { id: 'D', name: 'Category D — Privilege Changes', desc: 'sudo/su, role assignment changes, group membership changes, permission escalation' },
-      { id: 'E', name: 'Category E — Infrastructure Changes', desc: 'Cloud config changes, firewall rule edits, routing changes, new device enrollment' },
-      { id: 'F', name: 'Category F — Security Tool Alerts', desc: 'EDR/EPP detections, IDS/IPS alerts, DLP violations, vulnerability scanner findings' },
-      { id: 'G', name: 'Category G — IoC Events', desc: 'Matches against known-bad IPs, domains, file hashes, and URLs from threat intelligence feeds' },
-      { id: 'H', name: 'Category H — Automated Alerts', desc: 'SIEM rule-based detections, behavioral anomaly alerts, compliance degradation alerts' },
-      { id: 'I', name: 'Category I — Anomalous Activity', desc: 'ML-detected behavioral outliers, deviations from user/host baselines' },
-      { id: 'J', name: 'Category J — Error/Crash Events', desc: 'Application error logs, service crash reports, process termination events' },
-      { id: 'K', name: 'Category K — DNS Activity', desc: 'Full DNS query/response logs, DNS-over-HTTPS, DNS tunneling indicators' },
+    label: 'Day 1',
+    title: 'Deploy Elastic',
+    desc: 'Deploy Elasticsearch, Kibana, and Fleet Server, then load the M-26-14 Compliance Pack. ILM retention policies are configured from day one, satisfying data retention requirements across all maturity levels.',
+    items: [
+      'Configure ILM policies for hot/cold/frozen tiering and snapshot-based retrievable retention — data retention compliance achieved ✓',
+      'Install compliance pack assets: index templates, ingest pipelines, and data stream policies',
+      'Enable Kibana with the SIEM app and Fleet Server — platform ready to begin collecting',
     ],
   },
   {
-    req: 'Asset inventory in Agency Logging Plan',
-    reqDesc: 'A complete, documented inventory of all log-producing systems must be maintained and reflected in the Agency Logging Plan.',
-    cap: 'Fleet Server + osquery pack',
-    capDesc: 'Fleet enrollment auto-builds and maintains an up-to-date asset inventory. Osquery captures hardware, software, and network state per endpoint.',
-    l: [0,1,1,1],
+    label: 'Days 2–7',
+    title: 'Deploy Fleet & Agent',
+    desc: 'Enroll endpoints and systems with Elastic Agent via Fleet, covering all Appendix B log categories. Adding the Osquery integration immediately begins building the asset inventory required by the Agency Logging Plan.',
+    items: [
+      'Enroll endpoints with Elastic Agent via Fleet — Appendix B log collection begins immediately across all 11 required categories',
+      'Add the Osquery integration from the compliance pack to begin hardware, software, and network asset inventory (HWAM/SWAM)',
+      'Install and enable Appendix B detection rules, ML anomaly jobs, and compliance attestation dashboards',
+    ],
   },
   {
-    req: '6-month retrievable log retention (THIRF)',
-    reqDesc: 'All collected logs must be retrievable — not necessarily immediately searchable — for a minimum of 6 months from collection.',
+    label: 'Days 7–30',
+    title: 'Expand Coverage',
+    desc: 'With collection and detection foundations in place, focus shifts to broadening coverage and validating compliance posture. Attestation dashboards surface remaining gaps against each maturity level.',
+    items: [
+      'Add Threat Intelligence integrations (STIX/TAXII, CISA KEV) for real-time IoC matching across all log streams',
+      'Monitor ML anomaly detection jobs and tune detection rules against your environment\'s baseline',
+      'Expand collection and detection coverage across all Appendix B categories; use the Asset Coverage dashboard to identify enrollment gaps',
+      'Review maturity attestation dashboards to validate current compliance level and track progress toward the next',
+    ],
+  },
+  {
+    label: 'Ongoing',
+    title: 'Maintain & Extend',
+    desc: 'Sustain and continuously improve coverage as the environment evolves. Level 4 requirements — federated architecture, advanced encryption, and CISA/FBI log sharing — are built out and exercised during this phase.',
+    items: [
+      'Monitor and maintain inventory, collection, and detection coverage as systems and data sources change',
+      'Build out cross-cluster search and federated architecture components to meet Level 4 requirements',
+      'Establish and test external log-sharing connections required for CISA and FBI investigation requests',
+      'Conduct annual log-sharing drills and keep the Agency Logging Plan current with the latest environment changes',
+    ],
+  },
+]
+
+// ─── Coverage matrix data (Tab 2) ─────────────────────────────────────────────
+// Ordered by ACID phase: phase 1 = Day 1, phase 2 = Days 2-7, phase 3 = Days 7-30, phase 4 = Ongoing
+
+const MATRIX_ROWS = [
+
+  // ── Phase 1: Day 1 ─────────────────────────────────────────────────────────
+  {
+    phase: 1,
+    firstLevel: 1,
+    req: '6-month retrievable log retention',
+    reqDesc: 'All collected logs must be retrievable — not necessarily immediately searchable — for a minimum of 6 months from collection, satisfying the THIRF floor at Level 1.',
     cap: 'ILM policies + S3 snapshots',
     capDesc: 'Pre-configured ILM policies roll data from hot to frozen, then snapshot to S3-compatible object storage with a configurable retention floor.',
-    l: [1,1,1,1],
+    modalHow: 'Elastic ILM (Index Lifecycle Management) is configured at platform deployment, automatically rolling log data from hot through frozen tier, then snapshotting to S3-compatible object storage. The Level 1 ILM variant maintains snapshots for 180 days before expiry. Frozen-tier data is recoverable on demand via Elasticsearch Searchable Snapshots, satisfying the M-26-14 definition of "retrievable" — accessible after one or more intermediary steps. Because ILM is configured on Day 1, this requirement is addressed before any data is collected.',
+    modalAssetIds: ['ilm-logs-l3-hot-frozen', 'ilm-logs-l3-no-delete', 'dash-log-management', 'dash-retention-compliance'],
+    modalCapabilities: [
+      { name: 'Index Lifecycle Management (ILM)', type: 'platform', desc: 'Automated hot → cold → frozen tier transitions and snapshot scheduling.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/index-lifecycle-management.html' },
+      { name: 'Elasticsearch Snapshot & Restore', type: 'platform', desc: 'Point-in-time backups to S3-compatible storage. Frozen-tier snapshots satisfy THIRF retrievable retention.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/snapshot-restore.html' },
+      { name: 'Searchable Snapshots', type: 'platform', desc: 'Mount snapshot data as read-only indices for ad-hoc search without full restoration — satisfies on-demand THIRF retrieval.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/searchable-snapshots.html' },
+    ],
   },
   {
-    req: '12-month retrievable log retention (THIRF)',
-    reqDesc: 'The retrievable window expands to 12 months at L2, supporting longer-horizon incident investigations and forensic reviews.',
+    phase: 1,
+    firstLevel: 2,
+    req: '12-month retrievable log retention',
+    reqDesc: 'The retrievable window expands to 12 months at Level 2, supporting longer-horizon incident investigations and forensic reviews.',
     cap: 'ILM policies + S3 snapshots (L2+ variant)',
     capDesc: 'L2/L3/L4 ILM variants extend the frozen/snapshot tier to 12 months before deletion. No-delete variants available for NARA-scoped agencies.',
-    l: [0,1,1,1],
+    modalHow: 'The same ILM + snapshot architecture used for Level 1 satisfies Levels 2 through 4 by adjusting the snapshot retention window. The L2/L3/L4 policy variants extend frozen-tier snapshots to 365 days before deletion. For agencies with NARA obligations, no-delete policy variants disable automatic expiry entirely, maintaining an indefinite retrievable window without changing the underlying ILM mechanism. Configured on Day 1 — no follow-on action needed when the agency achieves Level 2.',
+    modalAssetIds: ['ilm-logs-l3-no-delete', 'ilm-logs-l4-hot-frozen', 'ilm-logs-l4-no-delete'],
+    modalCapabilities: [
+      { name: 'ILM Snapshot Retention Policies', type: 'platform', desc: 'Configurable retention schedules on snapshot repositories — L2+ variants extend to 12 months, no-delete variants for NARA-scoped agencies.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/snapshot-lifecycle-management.html' },
+    ],
   },
   {
+    phase: 1,
+    firstLevel: 3,
     req: '3-month searchable retention (CEM)',
-    reqDesc: 'L3 introduces the first CEM requirement: 3 months of immediately searchable log data, queryable without retrieval delays, across all Appendix B categories.',
+    reqDesc: 'Level 3 introduces the first CEM requirement: 3 months of immediately searchable log data, queryable without retrieval delays, across all Appendix B categories.',
     cap: 'Hot/frozen ILM policy — L3 variant',
-    capDesc: 'The L3 ILM policy keeps data on hot/warm nodes for 90+ days before tiering, maintaining a 3-month search-available window.',
-    l: [0,0,1,1],
+    capDesc: 'The L3 ILM policy keeps data on hot nodes for 90+ days before tiering, maintaining a 3-month search-available window.',
+    modalHow: 'The Level 3 ILM policy variant delays the hot → frozen tier transition until day 90+, keeping 3 months of data on high-performance hot nodes where it is immediately queryable with no restore latency. This satisfies the M-26-14 "searchable" definition and enables real-time CEM alerting and dashboard queries across the full 90-day window. The policy is configured on Day 1 and automatically satisfies the searchable retention requirement once the agency reaches Level 3 attestation — no reconfiguration needed.',
+    modalAssetIds: ['ilm-logs-l3-hot-frozen', 'ilm-logs-l3-no-delete'],
+    modalCapabilities: [
+      { name: 'Elasticsearch Hot Tier', type: 'platform', desc: 'High-performance, immediately queryable storage — no restore step. Used for the CEM searchable retention window.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/data-tiers.html' },
+    ],
   },
   {
+    phase: 1,
+    firstLevel: 4,
     req: '6-month searchable retention (CEM)',
-    reqDesc: 'L4 doubles the searchable window to 6 months, enabling cross-event correlation and threat hunting across longer timeframes.',
+    reqDesc: 'Level 4 doubles the searchable window to 6 months, enabling cross-event correlation and threat hunting across longer timeframes.',
     cap: 'Hot/frozen ILM policy — L4 variant',
-    capDesc: 'The L4 ILM policy extends the hot/warm retention to 180+ days. Extended frozen-tier window satisfies the full L4 THIRF requirement simultaneously.',
-    l: [0,0,0,1],
+    capDesc: 'The L4 ILM policy extends the hot retention to 180+ days. The extended frozen-tier window satisfies the full L4 THIRF requirement simultaneously.',
+    modalHow: 'The Level 4 ILM variant extends the hot tier retention floor to 180 days, doubling the searchable window from Level 3. This enables 6-month behavioral correlation, cross-event investigation, and threat hunting — all without snapshot restore latency. The same policy simultaneously satisfies the L4 THIRF requirement by keeping the frozen snapshot window at 12+ months, ensuring both CEM and THIRF obligations are met by a single ILM policy configuration already deployed on Day 1.',
+    modalAssetIds: ['ilm-logs-l4-hot-frozen', 'ilm-logs-l4-no-delete'],
+    modalCapabilities: [
+      { name: 'ILM — L4 Hot Tier Floor', type: 'platform', desc: 'Hot retention extended to 180 days — satisfies both L4 CEM searchable and THIRF retrievable requirements from a single policy.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/index-lifecycle-management.html' },
+    ],
+  },
+
+  // ── Phase 2: Days 2–7 ──────────────────────────────────────────────────────
+  {
+    phase: 2,
+    firstLevel: 1,
+    req: 'Appendix B — complete event collection',
+    reqDesc: 'All 11 required event categories must be actively collected from every applicable system in scope, with no coverage gaps.',
+    cap: 'Fleet + Agent + Beats + Logstash',
+    capDesc: 'Collection for A–F, J, K: 20+ Agent integrations and Beats modules. Categories G–I require Threat Intel, Detection Engine, and ML assets respectively.',
+    subsLabel: 'Appendix B Log Categories',
+    subs: [
+      { id: 'A', name: 'Category A — Identity Events',         desc: 'Auth successes/failures, MFA, SSO federation, account lifecycle (create/disable/delete)',          cap: 'Windows Event Log · Okta · Microsoft Entra ID · Elastic Defend',      capDesc: 'Windows Security event IDs (4624/4625/4688), Okta and Azure AD integrations, Elastic Defend process telemetry.' },
+      { id: 'B', name: 'Category B — Network Sessions',        desc: 'IP flow records, VPN session logs, proxy logs, DNS query/response',                                 cap: 'Zeek · Packetbeat · Filebeat Cisco/PANW',                              capDesc: 'Full network session metadata via Zeek, wire-level protocol analysis via Packetbeat, Cisco ASA/FTD and Palo Alto NGFW logs via Filebeat modules.' },
+      { id: 'C', name: 'Category C — Object/Resource Access',  desc: 'File access, cloud storage objects, database queries, API calls to sensitive resources',            cap: 'Auditbeat · Linux auditd · AWS/Azure/GCP · Logstash JDBC',            capDesc: 'Linux kernel file and syscall events via Auditbeat, cloud resource access via AWS CloudTrail/Azure Monitor/GCP Audit, database audit via Logstash JDBC input.' },
+      { id: 'D', name: 'Category D — Privilege Changes',       desc: 'sudo/su, role assignment changes, group membership changes, permission escalation',                 cap: 'Windows Event Log · Auditbeat · Elastic Defend',                      capDesc: 'Windows privilege escalation events (4672/4673/4728), Linux sudoers and PAM events via Auditbeat, Elastic Defend process and token telemetry.' },
+      { id: 'E', name: 'Category E — Infrastructure Changes',  desc: 'Cloud config changes, firewall rule edits, routing changes, new device enrollment',                cap: 'AWS CloudTrail · Azure Activity Log · Osquery Manager',              capDesc: 'Cloud management-plane changes via AWS/Azure/GCP integrations; Osquery Manager tracks device enrollment state and network interface changes.' },
+      { id: 'F', name: 'Category F — Security Tool Alerts',    desc: 'EDR/EPP detections, IDS/IPS alerts, DLP violations, vulnerability scanner findings',               cap: 'Elastic Defend · CrowdStrike · SentinelOne · Suricata',               capDesc: 'Native EDR via Elastic Defend; third-party EDR integrations for CrowdStrike Falcon, SentinelOne, and Microsoft Defender; Suricata IDS/IPS network alerts.' },
+      { id: 'G', name: 'Category G — IoC Events',              desc: 'Matches against known-bad IPs, domains, file hashes, and URLs from threat intelligence feeds',     cap: 'Threat Intel (STIX/TAXII/MISP) + AppB-G detection rules',            capDesc: 'MISP/STIX/TAXII Threat Intel integration populates the indicator index; four AppB-G Detection Engine rules match live event streams against CISA KEV and threat feeds.' },
+      { id: 'H', name: 'Category H — Automated Alerts',        desc: 'SIEM rule-based detections, behavioral anomaly alerts, compliance degradation alerts',             cap: 'Detection Engine alert index · Winlogbeat',                           capDesc: 'Detection Engine rule execution writes to .alerts-security.*. Category H events are generated by Elastic — not collected from external sources.' },
+      { id: 'I', name: 'Category I — Anomalous Activity',      desc: 'ML-detected behavioral outliers, deviations from user/host baselines',                            cap: 'Elastic ML jobs (6 jobs + datafeeds)',                                capDesc: 'Category I events are produced by Elastic ML anomaly detection, not collected from external sources. Requires L3 ML jobs running against behavioral baselines.' },
+      { id: 'J', name: 'Category J — Error/Crash Events',      desc: 'Application error logs, service crash reports, process termination events',                        cap: 'Filebeat System · Windows Event Log · Elastic APM',                  capDesc: 'Linux auth.log/syslog via Filebeat System module, Windows Application and System event channels, Elastic APM for service crash and error telemetry.' },
+      { id: 'K', name: 'Category K — DNS Activity',            desc: 'Full DNS query/response logs, DNS-over-HTTPS, DNS tunneling indicators',                          cap: 'Packetbeat · Zeek · Elastic Defend · network syslog',                capDesc: 'DNS query/response via Packetbeat and Zeek; DNS-over-HTTPS and DNS-over-TLS detection via Elastic Defend; legacy DNS appliance logs via Logstash syslog input.' },
+    ],
+    modalHow: 'Elastic Agent, managed through Fleet Server, provides a single enrollment point covering all 11 Appendix B log source categories. A single agent on an endpoint simultaneously activates Categories A, D, F, J, and K via Elastic Defend. Zeek handles Categories B and K for network infrastructure. Cloud integrations (AWS, Azure, GCP) cover Categories C and E. Categories G, H, and I are not collected from external sources — they are produced by Elastic\'s Threat Intel rules, Detection Engine, and ML jobs respectively, which are installed as part of the compliance pack. Logstash inputs bridge legacy OT/ICS sources and mainframes that cannot run native agents.',
+    modalAssetIds: ['fleet-osquery-pack', 'template-logs-data-streams'],
+    modalCapabilities: [
+      { name: 'Elastic Agent + Fleet Server', type: 'platform', desc: 'Central enrollment and policy management for all Appendix B log sources. Single agent binary covers Categories A, D, F, J, K via Elastic Defend.', href: 'https://www.elastic.co/guide/en/fleet/current/fleet-overview.html' },
+      { name: 'Elastic Integrations (20+)', type: 'platform', desc: 'Pre-built integrations for Okta, Azure AD, AWS, Zeek, Suricata, CrowdStrike, SentinelOne, and more — all mapped to Appendix B categories.', href: 'https://www.elastic.co/integrations' },
+      { name: 'Logstash (syslog / Beats / Kafka / JDBC / S3)', type: 'platform', desc: 'Bridges legacy sources — OT/ICS systems, mainframes, WEF-forwarded events — to Elasticsearch for full Appendix B coverage.', href: 'https://www.elastic.co/guide/en/logstash/current/index.html' },
+    ],
   },
   {
-    req: 'Sensitive data protections (PII masking)',
-    reqDesc: 'Agencies must apply masking, redaction, or encryption to sensitive fields (PII, PHI, credentials) before logs reach searchable storage.',
-    cap: 'Ingest pipeline processors',
-    capDesc: 'The alert category enrichment pipeline includes configurable redact/hash processors. Agencies configure which fields are sensitive per their data classification policy.',
-    l: [0,0,1,1],
+    phase: 2,
+    firstLevel: 2,
+    req: 'Asset inventory in Agency Logging Plan',
+    reqDesc: 'A complete, documented inventory of all log-producing systems must be maintained and reflected in the Agency Logging Plan submitted to CISA.',
+    cap: 'Fleet Server + osquery pack',
+    capDesc: 'Fleet enrollment auto-builds an up-to-date asset inventory. Osquery captures hardware, software, and network state per endpoint for HWAM/SWAM.',
+    modalHow: 'Every Elastic Agent enrollment writes an inventory record to the Fleet-managed asset index. The compliance pack\'s osquery Fleet pack then continuously queries each enrolled endpoint for hardware identity (HWAM), installed software (SWAM), network interfaces, and local user accounts. This data populates the Asset Coverage dashboard, which provides the evidence export format needed for the Agency Logging Plan submission to CISA within 90 days of LRA publication. The inventory updates in real time as agents enroll or go offline.',
+    modalAssetIds: ['fleet-osquery-pack', 'dash-asset-coverage', 'template-osquery-hardware', 'template-osquery-network', 'template-osquery-software', 'pipeline-osquery-normalize', 'ilm-asset-inventory'],
+    modalCapabilities: [
+      { name: 'Fleet Server Enrollment', type: 'platform', desc: 'Every agent enrollment writes a host inventory record including identity, OS, and network state — auto-builds the asset inventory.', href: 'https://www.elastic.co/guide/en/fleet/current/install-fleet-managed-elastic-agent.html' },
+      { name: 'Osquery Manager Integration', type: 'platform', desc: 'Scheduled SQL-like queries against endpoint hardware, software, user account, and network state — populates HWAM/SWAM inventory.', href: 'https://docs.elastic.co/integrations/osquery_manager' },
+    ],
   },
   {
+    phase: 2,
+    firstLevel: 3,
     req: 'Automated threat detection — all Appendix B categories',
     reqDesc: 'Agencies must deploy and operate automated detection rules covering every required Appendix B event category — not just ingest, but active monitoring for adversarial behavior.',
     cap: 'Detection Rules A–K',
     capDesc: '11 Appendix B detection rule sets (A–K) containing 20+ individual rules, each mapped to a specific category and MITRE ATT&CK technique.',
-    l: [0,0,1,1],
+    subsLabel: 'Detection Rules by Appendix B Category',
     subs: [
-      { id: 'A', name: 'AppB-A — Identity Events (4 rules)', desc: 'Credential stuffing (Windows/Okta), Azure auth failure chain, Linux SSH brute force' },
-      { id: 'B', name: 'AppB-B — C2 Beaconing (1 rule)', desc: 'Periodic outbound connection pattern consistent with command-and-control beaconing' },
-      { id: 'C', name: 'AppB-C — Mass File Access (1 rule)', desc: 'High-volume file access events consistent with ransomware staging or bulk exfiltration' },
-      { id: 'D', name: 'AppB-D — Privilege Escalation (1 rule)', desc: 'Token manipulation and local privilege escalation sequences' },
-      { id: 'E', name: 'AppB-E — Infrastructure Changes (3 rules)', desc: 'Rogue device detection + unexpected OT/ICS engineering workstation activity' },
-      { id: 'F', name: 'AppB-F — EDR Tamper (1 rule)', desc: 'Elastic Agent process termination or service disable — indicates defense evasion' },
-      { id: 'G', name: 'AppB-G — IoC Monitoring (4 rules)', desc: 'STIX/TAXII and CISA KEV indicator matches against network, file, URL, and process events' },
-      { id: 'H', name: 'AppB-H — Off-Hours Execution (1 rule)', desc: 'Privileged process execution during non-business hours on sensitive hosts' },
-      { id: 'I', name: 'AppB-I — Exfiltration Volume (1 rule)', desc: 'Anomalous outbound data volume spike above rolling 30-day baseline' },
-      { id: 'J', name: 'AppB-J — APT Kill Chain (2 rules)', desc: 'Multi-stage attack correlating recon, initial access, and lateral movement events' },
-      { id: 'K', name: 'AppB-K — Coverage Gap Meta (2 rules)', desc: 'Fires when any Appendix B log category stops receiving events — compliance degradation early warning' },
+      { id: 'A', name: 'Identity Events (4 rules)',           desc: 'Credential stuffing (Windows/Okta), Azure auth failure chain, Linux SSH brute force',                         cap: 'rule-appendixb-a' },
+      { id: 'B', name: 'C2 Beaconing (1 rule)',               desc: 'Periodic outbound connection pattern consistent with command-and-control beaconing',                           cap: 'rule-appendixb-b' },
+      { id: 'C', name: 'Mass File Access (1 rule)',            desc: 'High-volume file access events consistent with ransomware staging or bulk exfiltration',                       cap: 'rule-appendixb-c' },
+      { id: 'D', name: 'Privilege Escalation (1 rule)',        desc: 'Token manipulation and local privilege escalation sequences',                                                   cap: 'rule-appendixb-d' },
+      { id: 'E', name: 'Infrastructure Changes (3 rules)',     desc: 'Rogue device detection + unexpected OT/ICS engineering workstation activity',                                  cap: 'rule-appendixb-e-ot' },
+      { id: 'F', name: 'EDR Tamper (1 rule)',                  desc: 'Elastic Agent process termination or service disable — indicates defense evasion',                             cap: 'rule-appendixb-f' },
+      { id: 'G', name: 'IoC Monitoring (4 rules)',             desc: 'STIX/TAXII and CISA KEV indicator matches against network, file, URL, and process events',                    cap: 'rule-appendixb-g' },
+      { id: 'H', name: 'Off-Hours Execution (1 rule)',         desc: 'Privileged process execution during non-business hours on sensitive hosts',                                    cap: 'rule-appendixb-h' },
+      { id: 'I', name: 'Exfiltration Volume (1 rule)',         desc: 'Anomalous outbound data volume spike above rolling 30-day baseline',                                          cap: 'rule-appendixb-i' },
+      { id: 'J', name: 'APT Kill Chain (2 rules)',             desc: 'Multi-stage attack correlating recon, initial access, and lateral movement events',                           cap: 'rule-appendixb-j' },
+      { id: 'K', name: 'Coverage Gap Meta-Rule (2 rules)',     desc: 'Fires when any Appendix B log category stops receiving events — compliance degradation early warning',        cap: 'rule-appendixb-k' },
+    ],
+    modalHow: 'The compliance pack installs 20+ pre-built Kibana Security detection rules organized into 11 category-specific rule sets (A–K). Each rule set maps to a specific Appendix B event category and MITRE ATT&CK technique, enabling immediate CEM coverage from the moment rules are enabled. Rules are ECS-normalized and work across all Appendix B log sources out of the box. The Category K meta-rules provide automated compliance monitoring — alerting when any category stops receiving events, giving teams early warning before CEM attestation breaks.',
+    modalAssetIds: ['dash-alert-coverage', 'dash-appendix-b-coverage', 'template-alert-coverage'],
+    modalCapabilities: [
+      { name: 'Kibana Security Detection Engine', type: 'platform', desc: 'Rule evaluation engine for KQL, EQL, ML, and threshold-based detection. Writes to .alerts-security.* index for dashboard consumption.', href: 'https://www.elastic.co/guide/en/security/current/detection-engine-overview.html' },
+      { name: 'MITRE ATT&CK Framework Mapping', type: 'platform', desc: 'All compliance pack rules include MITRE ATT&CK tactic and technique metadata for threat framework alignment and audit evidence.', href: 'https://www.elastic.co/guide/en/security/current/prebuilt-rules.html' },
     ],
   },
   {
+    phase: 2,
+    firstLevel: 3,
     req: 'Anomaly and behavioral detection (ML)',
-    reqDesc: 'L3 requires ML-driven behavioral analysis running against historical baselines — not just signature-based rules, but detection of novel patterns.',
-    cap: 'Elastic ML anomaly jobs + datafeeds',
-    capDesc: '6 ML anomaly detection jobs with corresponding datafeeds: DNS entropy, auth anomalies, rare processes, rare network destinations, and compliance metric drift.',
-    l: [0,0,1,1],
+    reqDesc: 'Level 3 requires ML-driven behavioral analysis running against historical baselines — not just signature-based rules, but detection of novel patterns producing Appendix B Category I events.',
+    cap: 'Elastic ML anomaly jobs (6)',
+    capDesc: '6 ML anomaly detection jobs: DNS entropy, auth anomalies, rare processes, rare network destinations, and compliance metric drift.',
+    modalHow: 'The compliance pack deploys 6 pre-configured ML anomaly detection jobs. Each job includes its datafeed configuration — ML jobs build behavioral baselines automatically from historical log data with no manual tuning required at deployment. Jobs cover: DNS entropy anomalies (Category K), authentication anomalies and rare IP access patterns (Category A), rare process execution on Linux and Windows hosts, rare destination countries (Category B), and compliance metric drift detection for maturity monitoring. ML-generated anomaly records constitute Appendix B Category I events.',
+    modalAssetIds: ['ml-job-catb-dns', 'ml-job-element1', 'ml-job-element2', 'ml-job-element3', 'ml-job-element4', 'ml-job-element5'],
+    modalCapabilities: [
+      { name: 'Elastic Machine Learning — Anomaly Detection', type: 'platform', desc: 'Unsupervised behavioral baselines with automatic scoring — no labeled training data required. Covers auth, network, process, and compliance metrics.', href: 'https://www.elastic.co/guide/en/machine-learning/current/ml-ad-overview.html' },
+    ],
   },
   {
+    phase: 2,
+    firstLevel: 3,
     req: 'IoC matching (STIX/TAXII/CISA KEV)',
-    reqDesc: 'Live event streams must be continuously matched against known indicators of compromise from authoritative threat intelligence sources including CISA KEV.',
+    reqDesc: 'Live event streams must be continuously matched against known indicators of compromise from authoritative threat intelligence sources including the CISA Known Exploited Vulnerabilities catalog.',
     cap: 'Threat Intel rules (AppB-G, 4 rules)',
-    capDesc: 'Four IoC matching rules covering STIX/TAXII indicator feeds and the CISA Known Exploited Vulnerabilities catalog across network, file, URL, and process events.',
-    l: [0,0,1,1],
+    capDesc: 'Four IoC matching rules covering STIX/TAXII indicator feeds and the CISA KEV catalog across network, file, URL, and process events.',
+    modalHow: 'Elastic\'s Threat Intelligence integration ingests STIX/TAXII feeds and the CISA KEV catalog into the Elasticsearch threat-indicator index. Four AppB-G detection rules then continuously match this indicator index against live event streams — network connections against IP/domain IoCs, file events against hash IoCs, URL events against malicious URL IoCs, and process events against known malware hashes. New indicators from STIX/TAXII or CISA KEV automatically apply to historical and future events without rule changes. This produces the Category G events required by Appendix B.',
+    modalAssetIds: ['rule-appendixb-g'],
+    modalCapabilities: [
+      { name: 'Threat Intelligence Integration (MISP/STIX/TAXII)', type: 'platform', desc: 'Ingests STIX/TAXII indicator feeds and MISP events into the Elasticsearch threat-indicator index for real-time matching.', href: 'https://docs.elastic.co/integrations/ti_misp' },
+      { name: 'CISA KEV Integration', type: 'platform', desc: 'Pulls the CISA Known Exploited Vulnerabilities catalog for continuous indicator matching against all log streams.', href: 'https://www.elastic.co/guide/en/security/current/threat-intelligence-integrations.html' },
+    ],
   },
   {
+    phase: 2,
+    firstLevel: 3,
+    req: 'CEM compliance attestation dashboards',
+    reqDesc: 'Agencies need real-time, exportable evidence that detection rules are active and generating alerts across all 11 Appendix B categories — the primary AO attestation artifact.',
+    cap: 'Kibana dashboards (5) + transforms',
+    capDesc: '5 pre-built dashboards: Maturity Overview, Asset Coverage, Alert Coverage (Appendix B), Appendix B Log Coverage, and Compliance Attestation.',
+    modalHow: 'The compliance pack installs five pre-built Kibana dashboards providing real-time visibility into all M-26-14 compliance dimensions. The Compliance Attestation dashboard is the primary ATO evidence artifact — it summarizes coverage percentages, retention windows, and detection status across all required Appendix B categories in an exportable format. Alert Coverage and Appendix B Log Coverage dashboards give granular per-category visibility for gap identification. All dashboards are export-ready via Kibana\'s built-in PDF/PNG reporting for inclusion in audit submissions and ATO packages.',
+    modalAssetIds: ['dash-maturity-overview', 'dash-asset-coverage', 'dash-alert-coverage', 'dash-appendix-b-coverage', 'dash-compliance-attestation'],
+    modalCapabilities: [
+      { name: 'Kibana Reporting (PDF/PNG)', type: 'platform', desc: 'Export dashboards as formatted PDFs or PNGs for ATO evidence packages and audit submissions.', href: 'https://www.elastic.co/guide/en/kibana/current/reporting-getting-started.html' },
+    ],
+  },
+
+  // ── Phase 3: Days 7–30 ─────────────────────────────────────────────────────
+  {
+    phase: 3,
+    firstLevel: 3,
+    req: 'Sensitive data protections (PII masking)',
+    reqDesc: 'Agencies must apply masking, redaction, or encryption to sensitive fields (PII, PHI, credentials) before logs reach searchable storage.',
+    cap: 'Ingest pipeline processors',
+    capDesc: 'The alert category enrichment pipeline includes configurable redact/hash processors. Agencies configure which fields are sensitive per their data classification policy.',
+    modalHow: 'Elastic ingest pipelines are deployed with the compliance pack and include pre-configured redact, hash, and drop processors that apply at indexing time — before data reaches searchable storage. Agencies configure which fields are classified as sensitive per their data classification policy, which is typically defined before Level 3 attestation. Field-level security in Elasticsearch then enforces role-based access to any residual sensitive fields post-index. The sensitive data configuration can be updated without redeploying the pipeline, only changing which fields the existing processors target.',
+    modalAssetIds: ['pipeline-alert-category', 'pipeline-osquery-normalize', 'pipeline-log-integrity-hash'],
+    modalCapabilities: [
+      { name: 'Elasticsearch Ingest Pipelines', type: 'platform', desc: 'Pipeline processors: redact (field removal), hash (SHA-256 masking), and drop (record suppression) applied before indexing.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/ingest.html' },
+      { name: 'Elasticsearch Field-Level Security', type: 'platform', desc: 'Role-based access control at the field level — restricts which users and roles can read sensitive fields post-index.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/field-level-security.html' },
+    ],
+  },
+  {
+    phase: 3,
+    firstLevel: 3,
     req: 'Alert correlation and risk scoring',
     reqDesc: 'Individual rule alerts must be aggregated into higher-confidence, risk-scored findings to reduce SOC false-positive burden before triage.',
     cap: 'Risk-score transforms (2)',
     capDesc: 'Two Elasticsearch Transforms — daily rollup and latest-value — compute per-category coverage scores and compliance posture metrics in real time.',
-    l: [0,0,1,1],
+    modalHow: 'The compliance pack deploys two Elasticsearch Transforms that continuously aggregate individual detection rule alerts into risk-scored, per-entity summaries. The daily rollup transform computes coverage percentage scores per Appendix B category, tracking posture over time. The latest-value transform maintains current compliance state for the Maturity Overview dashboard. These transforms feed Kibana Security\'s entity risk scoring mechanism, enabling SOC analysts to triage high-confidence multi-alert entities before working low-signal individual alerts.',
+    modalAssetIds: ['transform-alert-coverage-daily', 'transform-alert-coverage-latest'],
+    modalCapabilities: [
+      { name: 'Elasticsearch Transforms', type: 'platform', desc: 'Continuous aggregation pipelines summarizing alert index data into pivot tables and risk-scored entity summaries.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/transforms.html' },
+      { name: 'Kibana Security Entity Risk Scoring', type: 'platform', desc: 'Aggregates detection rule alerts into per-host and per-user risk scores for analyst triage prioritization.', href: 'https://www.elastic.co/guide/en/security/current/entity-risk-scoring.html' },
+    ],
   },
+
+  // ── Phase 4: Ongoing ───────────────────────────────────────────────────────
   {
-    req: 'CEM compliance attestation dashboard',
-    reqDesc: 'Agencies need real-time, exportable evidence that detection rules are active and generating alerts across all 11 Appendix B categories — the core AO attestation artifact.',
-    cap: 'Kibana dashboards + transforms',
-    capDesc: '5 pre-built dashboards: Maturity Overview, Asset Coverage, Alert Coverage (Appendix B), Appendix B Log Coverage, and Compliance Attestation.',
-    l: [0,0,1,1],
-  },
-  {
+    phase: 4,
+    firstLevel: 4,
     req: 'Federated cross-agency log query',
-    reqDesc: 'L4 requires a top-level SOC to query all distributed agency log stores from a single interface without replicating data to a central repository.',
+    reqDesc: 'Level 4 requires a top-level SOC to query all distributed agency log stores from a single interface without replicating data to a central repository.',
     cap: 'Cross-Cluster Search (CCS)',
     capDesc: 'Elasticsearch CCS enables a central Kibana to query remote clusters across any network topology — no data movement, full Kibana query support.',
-    l: [0,0,0,1],
+    modalHow: 'Elasticsearch Cross-Cluster Search (CCS) allows a central Kibana instance to issue federated queries across any number of remote Elasticsearch clusters — without copying data to a central repository. Each agency log store remains in-place under the agency\'s control; the central SOC cluster issues queries that fan out to remote clusters and aggregate results. CCS supports full Kibana query syntax including KQL, EQL, and ML scoring, enabling the federal-level SIEM console required at Level 4. No data movement occurs; only query results transit the network.',
+    modalAssetIds: [],
+    modalCapabilities: [
+      { name: 'Cross-Cluster Search (CCS)', type: 'platform', desc: 'Federated query across multiple Elasticsearch clusters — no data movement, full Kibana and KQL/EQL support.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-cross-cluster-search.html' },
+      { name: 'Cross-Cluster Replication (CCR)', type: 'platform', desc: 'Optional active replication for geo-redundancy or disaster recovery — not required for M-26-14 federated query compliance.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/xpack-ccr.html' },
+    ],
   },
   {
+    phase: 4,
+    firstLevel: 4,
     req: 'Encryption at rest (BYOK / agency KMS)',
-    reqDesc: 'L4 requires cryptographic protection of stored log data using agency-controlled key material — not platform-managed encryption alone.',
+    reqDesc: 'Level 4 requires cryptographic protection of stored log data using agency-controlled key material — not platform-managed encryption alone.',
     cap: 'Elastic BYOK / KMS integration',
     capDesc: 'Elastic supports BYOK via AWS KMS, Azure Key Vault, and GCP KMS integration, giving agencies full key custody over indexed log data.',
-    l: [0,0,0,1],
+    modalHow: 'Elasticsearch integrates with external KMS providers — AWS KMS, Azure Key Vault, and GCP Cloud KMS — to support bring-your-own-key (BYOK) encryption at rest. Agency key material never leaves the agency KMS; Elasticsearch uses DEK (Data Encryption Key) wrapping via the KMS API. This satisfies the Level 4 requirement that stored log data be cryptographically protected under agency-controlled key custody, not solely reliant on cloud provider-managed encryption. TLS 1.2/1.3 is enforced for all inter-node and client-node communication within the cluster.',
+    modalAssetIds: [],
+    modalCapabilities: [
+      { name: 'Elasticsearch BYOK Encryption at Rest', type: 'platform', desc: 'DEK wrapping via AWS KMS, Azure Key Vault, or GCP KMS — agency holds key custody, not the platform.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/security-basic-setup-https.html' },
+      { name: 'TLS Encryption in Transit', type: 'platform', desc: 'TLS 1.2/1.3 enforced for all inter-node and client communication within the Elastic cluster.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/security-basic-setup.html' },
+    ],
   },
   {
+    phase: 4,
+    firstLevel: 4,
     req: 'Tamper-evident NTP-synchronized timestamps',
     reqDesc: 'All log events must carry timestamps traceable to USNO or NIST time sources, producing a legally admissible forensic timeline resistant to backdating.',
     cap: 'Log integrity pipeline + NTP agent config',
-    capDesc: 'Log integrity hash pipeline computes SHA-256 event fingerprints at ingest time. NTP configuration is applied via Fleet agent policy to all enrolled hosts.',
-    l: [0,0,0,1],
-  },
-]
-
-// ─── Architecture layers for Assets tab (Tab 2) ───────────────────────────────
-
-const ARCH_LAYERS = [
-  {
-    id: 'sources',
-    label: 'Sources',
-    color: 'gray',
-    desc: 'Log-producing systems — endpoints, servers, network devices, cloud workloads, SaaS. Enrolled via Fleet; legacy and OT sources bridged via Logstash.',
-    assetIds: [],
-  },
-  {
-    id: 'collection',
-    label: 'Collection',
-    color: 'teal',
-    desc: 'Fleet-managed Elastic Agent with osquery pack for endpoint inventory. Collects hardware, software, network, and user account state across all enrolled endpoints.',
-    assetIds: ['fleet-osquery-pack'],
-  },
-  {
-    id: 'ingest',
-    label: 'Ingest',
-    color: 'blue',
-    desc: 'Elasticsearch ingest pipelines that enrich, normalize, and hash log data before indexing — Appendix B category tagging, ECS normalization, SHA-256 integrity fingerprints.',
-    assetIds: ['pipeline-alert-category', 'pipeline-osquery-normalize', 'pipeline-log-integrity-hash'],
-  },
-  {
-    id: 'retention',
-    label: 'Retention',
-    color: 'green',
-    desc: 'ILM policies, index templates, and transforms governing hot/frozen tiering, snapshot schedules, and data stream layout — the foundation of THIRF compliance.',
-    assetIds: [
-      'ilm-asset-inventory', 'ilm-logs-l3-hot-frozen', 'ilm-logs-l3-no-delete', 'ilm-logs-l4-hot-frozen', 'ilm-logs-l4-no-delete',
-      'template-alert-coverage', 'template-osquery-hardware', 'template-osquery-network', 'template-osquery-software', 'template-log-integrity', 'template-logs-data-streams',
-      'transform-alert-coverage-daily', 'transform-alert-coverage-latest',
-      'dash-log-management',
-    ],
-  },
-  {
-    id: 'cem',
-    label: 'CEM',
-    color: 'purple',
-    desc: 'Continuous Event Monitoring — compliance dashboards, Appendix B detection rules, ML anomaly detection jobs, and datafeeds providing real-time threat visibility.',
-    assetIds: [
-      'dash-maturity-overview', 'dash-asset-coverage', 'dash-alert-coverage', 'dash-appendix-b-coverage', 'dash-compliance-attestation',
-      'rule-appendixb-a', 'rule-appendixb-b', 'rule-appendixb-c', 'rule-appendixb-d',
-      'rule-appendixb-e-ot', 'rule-appendixb-e-rogue', 'rule-appendixb-f', 'rule-appendixb-g',
-      'rule-appendixb-h', 'rule-appendixb-i', 'rule-appendixb-j', 'rule-appendixb-k',
-      'rule-ml-cata-auth', 'rule-ml-cata-rare-ip', 'rule-ml-cata-ueba', 'rule-ml-catb-dns',
-      'rule-ml-catb-country', 'rule-ml-cath-linux', 'rule-ml-cath-windows', 'rule-ml-compliance',
-      'rule-ml-e1', 'rule-ml-e2', 'rule-ml-e3', 'rule-ml-e4', 'rule-ml-e5',
-      'ml-job-catb-dns', 'ml-job-element1', 'ml-job-element2', 'ml-job-element3', 'ml-job-element4', 'ml-job-element5',
-      'datafeed-catb-dns', 'datafeed-element1', 'datafeed-element2', 'datafeed-element3', 'datafeed-element4', 'datafeed-element5',
-      'datafeed-auth-high-fails', 'datafeed-suspicious-login', 'datafeed-auth-rare-ip', 'datafeed-rare-country',
-      'datafeed-rare-process-linux', 'datafeed-rare-process-windows', 'datafeed-rare-process-v3',
-    ],
-  },
-  {
-    id: 'thirf',
-    label: 'THIRF',
-    color: 'coral',
-    desc: 'Threat Hunting, Investigation, Response & Forensics — retention evidence dashboards showing searchable/retrievable coverage windows for ATO submissions.',
-    assetIds: ['dash-retention-compliance'],
-  },
-]
-
-// ─── Source integration references (Sources layer) ────────────────────────────
-
-const SOURCE_REFS = [
-  {
-    group: 'Elastic Agent Integrations',
-    groupHref: 'https://www.elastic.co/integrations',
-    items: [
-      { name: 'Elastic Defend',                   cats: 'A–K',     desc: 'Native EDR — endpoint process, file, network, and registry telemetry covering all Appendix B categories', href: 'https://docs.elastic.co/integrations/endpoint' },
-      { name: 'Okta',                              cats: 'A',       desc: 'Identity events, SSO federation, MFA events, account lifecycle', href: 'https://docs.elastic.co/integrations/okta' },
-      { name: 'Microsoft Entra ID (Azure AD)',      cats: 'A',       desc: 'Azure AD auth events, conditional access logs, identity lifecycle', href: 'https://docs.elastic.co/integrations/azure' },
-      { name: 'Windows Event Log',                 cats: 'A, D',    desc: 'Auth success/failure, privilege escalation, process creation (Event ID 4688)', href: 'https://docs.elastic.co/integrations/windows' },
-      { name: 'Linux auditd',                      cats: 'C, D',    desc: 'System call auditing, file access events, privilege changes', href: 'https://docs.elastic.co/integrations/auditd' },
-      { name: 'Osquery Manager',                   cats: 'E, Plan', desc: 'HWAM/SWAM asset inventory, network interface state, local user accounts — populates Agency Logging Plan', href: 'https://docs.elastic.co/integrations/osquery_manager' },
-      { name: 'Zeek',                              cats: 'B, K',    desc: 'Full network session metadata, DNS query/response logs, protocol analysis', href: 'https://docs.elastic.co/integrations/zeek' },
-      { name: 'Suricata',                          cats: 'F, G',    desc: 'IDS/IPS alerts, network-based IoC detection, protocol anomalies', href: 'https://docs.elastic.co/integrations/suricata' },
-      { name: 'AWS (CloudTrail, VPC Flow, S3)',     cats: 'C, E',    desc: 'Cloud resource access, infrastructure change events, VPC network flow logs', href: 'https://docs.elastic.co/integrations/aws' },
-      { name: 'Microsoft Azure (Activity, Monitor)', cats: 'C, E',  desc: 'Azure management plane events, resource changes, activity audit trail', href: 'https://docs.elastic.co/integrations/azure' },
-      { name: 'Google Cloud (Audit, VPC)',          cats: 'C, E',    desc: 'GCP audit logs, VPC flow logs, cloud infrastructure access events', href: 'https://docs.elastic.co/integrations/gcp' },
-      { name: 'CrowdStrike Falcon',                cats: 'F',       desc: 'EDR process behavioral detections, threat intelligence, device events', href: 'https://docs.elastic.co/integrations/crowdstrike' },
-      { name: 'SentinelOne',                       cats: 'F',       desc: 'Endpoint protection alerts, behavioral detections, response actions', href: 'https://docs.elastic.co/integrations/sentinel_one' },
-      { name: 'Microsoft Defender',                cats: 'F',       desc: 'M365 Defender endpoint and identity protection alerts', href: 'https://docs.elastic.co/integrations/microsoft_defender_endpoint' },
-      { name: 'Threat Intel (MISP / STIX / TAXII)', cats: 'G',      desc: 'IoC indicator feeds — IP, domain, hash, URL for real-time matching against event streams', href: 'https://docs.elastic.co/integrations/ti_misp' },
-    ],
-  },
-  {
-    group: 'Beats Modules',
-    groupHref: 'https://www.elastic.co/guide/en/beats/filebeat/current/filebeat-modules.html',
-    items: [
-      { name: 'Filebeat — System',           cats: 'A, J',    desc: 'Linux syslog, auth.log, application error and crash events', href: 'https://www.elastic.co/guide/en/beats/filebeat/current/filebeat-module-system.html' },
-      { name: 'Filebeat — Cisco ASA / FTD',  cats: 'B',       desc: 'Firewall session logs, VPN events from Cisco ASA and Firepower appliances', href: 'https://www.elastic.co/guide/en/beats/filebeat/current/filebeat-module-cisco.html' },
-      { name: 'Filebeat — Palo Alto Networks', cats: 'B, F',  desc: 'NGFW traffic, threat, and URL filtering event logs', href: 'https://www.elastic.co/guide/en/beats/filebeat/current/filebeat-module-panw.html' },
-      { name: 'Winlogbeat',                  cats: 'A, D, H', desc: 'Windows Security, System, and Application event channels; supports WEF-forwarded events', href: 'https://www.elastic.co/guide/en/beats/winlogbeat/current/index.html' },
-      { name: 'Packetbeat',                  cats: 'B, K',    desc: 'Wire-level DNS, HTTP, TLS, and database protocol analysis', href: 'https://www.elastic.co/guide/en/beats/packetbeat/current/index.html' },
-      { name: 'Auditbeat',                   cats: 'C, D',    desc: 'Linux auditd kernel events, file integrity monitoring, process and user tracking', href: 'https://www.elastic.co/guide/en/beats/auditbeat/current/index.html' },
-    ],
-  },
-  {
-    group: 'Logstash Input Plugins',
-    groupHref: 'https://www.elastic.co/guide/en/logstash/current/input-plugins.html',
-    items: [
-      { name: 'logstash-input-syslog', cats: 'A–K', desc: 'RFC 5424/3164 receiver — bridges legacy network devices, OT/ICS sources, and mainframes that cannot run native agents', href: 'https://www.elastic.co/guide/en/logstash/current/plugins-inputs-syslog.html' },
-      { name: 'logstash-input-beats',  cats: 'A–K', desc: 'Receives events from any Beats shipper; enables WEF-forwarded Winlogbeat and legacy pipeline migration', href: 'https://www.elastic.co/guide/en/logstash/current/plugins-inputs-beats.html' },
-      { name: 'logstash-input-kafka',  cats: 'A–K', desc: 'High-throughput ingest from existing Kafka-based log pipelines (SIEM migrations, multi-tenant environments)', href: 'https://www.elastic.co/guide/en/logstash/current/plugins-inputs-kafka.html' },
-      { name: 'logstash-input-jdbc',   cats: 'C',   desc: 'Polls SQL databases for object/resource access audit events (Category C)', href: 'https://www.elastic.co/guide/en/logstash/current/plugins-inputs-jdbc.html' },
-      { name: 'logstash-input-s3',     cats: 'C, E', desc: 'Pulls CloudTrail, VPC flow, and S3 access logs from S3-compatible object storage', href: 'https://www.elastic.co/guide/en/logstash/current/plugins-inputs-s3.html' },
+    capDesc: 'Log integrity hash pipeline computes SHA-256 event fingerprints at ingest time. NTP configuration applied via Fleet agent policy to all enrolled hosts.',
+    modalHow: 'The log integrity ingest pipeline computes a SHA-256 fingerprint of each event at indexing time, creating a tamper-evident record independently verifiable against the original source. Fleet agent policies enforce NTP synchronization to USNO/NIST time servers on all enrolled endpoints, ensuring event timestamps are authoritatively traceable. These two controls together satisfy the Level 4 forensic-quality audit trail requirement: immutable integrity fingerprints paired with verifiable, USNO-synchronized timestamp provenance on every log record.',
+    modalAssetIds: ['pipeline-log-integrity-hash', 'template-log-integrity'],
+    modalCapabilities: [
+      { name: 'Elasticsearch Fingerprint Processor', type: 'platform', desc: 'Computes SHA-256 hash of event records at ingest time — stored alongside the event for independent tamper-evidence verification.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/fingerprint-processor.html' },
+      { name: 'Fleet NTP Policy Configuration', type: 'platform', desc: 'Enforces NTP sync to USNO/NIST time servers across all Fleet-enrolled endpoints via agent policy — USNO-traceable timestamps.', href: 'https://www.elastic.co/guide/en/fleet/current/agent-policy.html' },
     ],
   },
 ]
@@ -407,10 +400,6 @@ const OBLIGATIONS = [
   },
 ]
 
-// ─── Shared level colors ───────────────────────────────────────────────────────
-
-const LEVEL_HEAD_COLORS = ['text-accent-teal', 'text-accent-blue', 'text-accent-purple', 'text-accent-coral']
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CompliancePage() {
@@ -427,8 +416,8 @@ export default function CompliancePage() {
 
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <section>
-        <span className="inline-block text-xs font-bold uppercase tracking-widest text-accent-teal px-3 py-1 rounded-full bg-accent-teal/10 border border-accent-teal/30 mb-5"
-          style={{ borderStyle: 'solid' }}>
+        <span className="inline-block text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-5"
+          style={{ borderStyle: 'solid', border: '1px solid #F86B2F55', color: '#F86B2F', backgroundColor: '#F86B2F18' }}>
           M-26-14 Compliance Accelerator
         </span>
         <div className="flex items-start justify-between gap-8 flex-wrap">
@@ -457,7 +446,7 @@ export default function CompliancePage() {
               className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-accent-blue/50 bg-accent-blue/10 text-accent-blue font-semibold hover:bg-accent-blue/20 transition-colors text-sm whitespace-nowrap"
               style={{ borderStyle: 'solid' }}
             >
-              Browse deployment-ready assets →
+              Browse compliance pack assets →
             </Link>
           </div>
         </div>
@@ -480,7 +469,7 @@ export default function CompliancePage() {
               className="rounded-lg px-4 py-3 text-center font-medium text-lg transition-all text-text-primary"
               style={{ backgroundColor: bgColor, border: 'none', ...(isActive && { color: '#FFFFFF' }) }}
             >
-              {tab.label}
+              {i === 3 ? <span>What's <em>Not</em> Covered?</span> : tab.label}
             </button>
           )
         })}
@@ -492,19 +481,19 @@ export default function CompliancePage() {
         className="overflow-y-auto rounded-lg"
         style={{ height: 'calc(100vh - 380px)', minHeight: 460 }}
       >
-        {/* Tab 0 — Compliance in Days */}
-        <div className={activeTab === 0 ? 'p-1 pb-10' : 'hidden'}>
+        {/* Tab 0 — Requirements */}
+        <div className={activeTab === 0 ? 'p-6 pb-10' : 'hidden'}>
+          <OverviewContent />
+        </div>
+
+        {/* Tab 1 — Compliance in Days */}
+        <div className={activeTab === 1 ? 'p-1 pb-10' : 'hidden'}>
           <ComplianceInDaysTab />
         </div>
 
-        {/* Tab 1 — Coverage Matrix */}
-        <div className={activeTab === 1 ? 'h-full' : 'hidden'}>
-          <CoverageMatrixTab />
-        </div>
-
-        {/* Tab 2 — Deployment-Ready Assets */}
-        <div className={activeTab === 2 ? '' : 'hidden'}>
-          <AssetsTab scrollRef={scrollRef} active={activeTab === 2} />
+        {/* Tab 2 — Compliance Coverage Matrix */}
+        <div className={activeTab === 2 ? 'h-full' : 'hidden'}>
+          <CoverageAssetsTab />
         </div>
 
         {/* Tab 3 — Obligations */}
@@ -517,216 +506,155 @@ export default function CompliancePage() {
   )
 }
 
-// ─── Tab 0: Compliance in Days ─────────────────────────────────────────────────
+// ─── Tab 1: Achieve Compliance in Days ────────────────────────────────────────
 
 function ComplianceInDaysTab() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4" style={{ minHeight: 'calc(100vh - 420px)' }}>
-      {PHASES.map((phase, pi) => {
-        const tc = TAB_COLORS[pi]
-        const caps = phase.capIds.map(id => CAPABILITIES[id]).filter(Boolean)
-        return (
-          <div key={phase.label} className="flex flex-col gap-3 h-full">
-            {/* Phase header */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold uppercase tracking-widest px-3 py-1.5 rounded-full border-2"
-                style={{ borderColor: tc.active, color: tc.active, borderStyle: 'solid' }}>
-                {phase.label}
-              </span>
-              <div className="flex-1 h-px opacity-30" style={{ backgroundColor: tc.active }} />
-            </div>
+    <div className="flex flex-col gap-6" style={{ minHeight: 'calc(100vh - 420px)' }}>
 
-            {/* Cards fill column height equally */}
-            <div className="flex flex-col gap-3 flex-1">
-              {caps.length === 1 ? (
-                (() => {
-                  const cap = caps[0]
-                  const c = COLOR[cap.color]
-                  return (
-                    <div className={`rounded-lg bg-ink-800 border ${c.border} flex flex-col overflow-hidden flex-1`}
-                      style={{ borderStyle: 'solid' }}>
-                      <div className={`h-1 w-full ${c.bar}`} />
-                      <div className="p-5 flex flex-col gap-4 flex-1">
-                        <div>
-                          <p className={`text-base font-bold ${c.text}`}>{cap.title}</p>
-                          <p className="text-sm text-text-muted mt-1 leading-snug">{cap.subtitle}</p>
-                        </div>
-                        <ul className="space-y-2 flex-1">
-                          {cap.what.map((w, i) => (
-                            <li key={i} className="flex gap-2.5 text-sm text-text-primary leading-relaxed">
-                              <span className={`mt-2 w-1.5 h-1.5 rounded-full shrink-0 ${c.dot}`} />
-                              {w}
-                            </li>
-                          ))}
-                        </ul>
-                        <div className="flex gap-1.5 flex-wrap pt-1">
-                          {cap.covers.map((cv, i) => {
-                            const lvl = cv.substring(0, 2)
-                            const lc = LEVEL_BADGE[lvl] ?? 'bg-ink-700 text-text-muted border-line'
-                            return (
-                              <span key={i}
-                                className={`text-xs px-2 py-0.5 rounded border font-medium ${lc}`}
-                                style={{ borderStyle: 'solid' }}>
-                                ✓ {cv}
-                              </span>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })()
-              ) : (
-                (() => {
-                  const c = COLOR[caps[0].color]
-                  return (
-                    <div className={`rounded-lg bg-ink-800 border ${c.border} flex flex-col overflow-hidden flex-1`}
-                      style={{ borderStyle: 'solid' }}>
-                      <div className={`h-1 w-full ${c.bar}`} />
-                      {caps.map((cap, ci) => (
-                        <React.Fragment key={cap.title}>
-                          {ci > 0 && <div className="border-t border-line/40 mx-5" />}
-                          <div className="p-5 flex flex-col gap-4 flex-1">
-                            <div>
-                              <p className={`text-base font-bold ${c.text}`}>{cap.title}</p>
-                              <p className="text-sm text-text-muted mt-1 leading-snug">{cap.subtitle}</p>
-                            </div>
-                            <ul className="space-y-2 flex-1">
-                              {cap.what.map((w, i) => (
-                                <li key={i} className="flex gap-2.5 text-sm text-text-primary leading-relaxed">
-                                  <span className={`mt-2 w-1.5 h-1.5 rounded-full shrink-0 ${c.dot}`} />
-                                  {w}
-                                </li>
-                              ))}
-                            </ul>
-                            <div className="flex gap-1.5 flex-wrap pt-1">
-                              {cap.covers.map((cv, i) => {
-                                const lvl = cv.substring(0, 2)
-                                const lc = LEVEL_BADGE[lvl] ?? 'bg-ink-700 text-text-muted border-line'
-                                return (
-                                  <span key={i}
-                                    className={`text-xs px-2 py-0.5 rounded border font-medium ${lc}`}
-                                    style={{ borderStyle: 'solid' }}>
-                                    ✓ {cv}
-                                  </span>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        </React.Fragment>
-                      ))}
-                    </div>
-                  )
-                })()
-              )}
+      <h2 className="font-semibold text-text-primary" style={{ fontSize: 26 }}>
+        Achieve Compliance in Days
+      </h2>
+
+      {/* Conops blurb */}
+      <p className="text-sm leading-relaxed text-text-muted" style={{ fontSize: 14 }}>
+        Deploying the Elastic Search AI Platform and M-26-14 Compliance Pack delivers full data
+        retention compliance on Day 1 — the technical foundation for all four maturity levels.
+        Progression through Initial, Intermediate, Advanced, and Optimal then proceeds as data
+        sources, detections, and operational coverage are layered in over days and weeks.
+      </p>
+
+      {/* 4 phase columns */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1">
+        {ACID_PHASES.map((phase, pi) => {
+          const tc = PHASE_COLORS[pi]
+          return (
+            <div key={phase.label} className="flex flex-col gap-3 h-full">
+              {/* Phase header pill */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold uppercase tracking-widest px-3 py-1.5 rounded-full border-2"
+                  style={{ borderColor: tc.active, color: tc.active, borderStyle: 'solid' }}>
+                  {phase.label}
+                </span>
+                <div className="flex-1 h-px opacity-30" style={{ backgroundColor: tc.active }} />
+              </div>
+
+              {/* Card */}
+              <div className="rounded-lg bg-ink-800 flex flex-col overflow-hidden flex-1"
+                style={{ border: `1px solid ${tc.active}55` }}>
+                <div className="h-0.5 w-full" style={{ backgroundColor: tc.active }} />
+                <div className="p-7 flex flex-col gap-5 flex-1">
+                  <p className="font-semibold text-text-primary" style={{ fontSize: 16 }}>
+                    {phase.title}
+                  </p>
+                  <p className="text-text-muted leading-relaxed" style={{ fontSize: 14 }}>
+                    {phase.desc}
+                  </p>
+                  <ul className="space-y-3 flex-1">
+                    {phase.items.map((item, i) => (
+                      <li key={i} className="flex gap-2.5 text-text-primary leading-relaxed"
+                        style={{ fontSize: 14 }}>
+                        <span className="mt-1 text-text-muted shrink-0 select-none">•</span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             </div>
-          </div>
-        )
-      })}
+          )
+        })}
+      </div>
     </div>
   )
 }
 
-// ─── Tab 1: Coverage Matrix ────────────────────────────────────────────────────
+// ─── Tab 2: Compliance Coverage Matrix ─────────────────────────────────────────────
 
-const Chevron = ({ open }) => (
-  <svg className={`w-4 h-4 text-accent-blue transition-transform duration-150 ${open ? 'rotate-90' : ''}`}
-    fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-  </svg>
-)
-
-function CoverageMatrixTab() {
-  const [expanded, setExpanded] = useState(new Set())
-  const toggle = (i) => setExpanded(prev => {
-    const next = new Set(prev)
-    next.has(i) ? next.delete(i) : next.add(i)
-    return next
-  })
+function CoverageAssetsTab() {
+  const [selectedRow, setSelectedRow] = useState(null)
 
   return (
     <div className="rounded-lg border border-line bg-ink-800 overflow-hidden flex flex-col"
          style={{ height: 'calc(100vh - 380px)', minHeight: 440, borderStyle: 'solid' }}>
+
       {/* Panel header */}
-      <div className="px-5 py-5 border-b border-line shrink-0">
-        <h2 className="text-xl font-semibold text-text-primary">Compliance Coverage Matrix</h2>
-        <p className="text-base text-text-muted mt-1.5 leading-relaxed">
-          Each row is an M-26-14 technical requirement. ✓ = Elastic capability satisfies it when the asset is deployed.
-          Rows with a <span className="inline-flex items-center align-middle mx-0.5"><Chevron open={false} /></span> expand to show sub-items.
+      <div className="px-8 py-6 border-b border-line shrink-0">
+        <h2 className="font-semibold text-text-primary" style={{ fontSize: 26 }}>Compliance Coverage Matrix</h2>
+        <p className="text-text-muted mt-2 leading-relaxed" style={{ fontSize: 14 }}>
+          M-26-14 requirements in the order achieved by the Elastic concept of operations. Click a row to view details about the requirement and the Elastic capability and assets available to achieve it.
         </p>
       </div>
 
       {/* Scrollable table area */}
       <div className="overflow-auto flex-1">
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
+          <colgroup>
+            <col style={{ width: '58%' }} />
+            <col style={{ width: '42%' }} />
+          </colgroup>
           <thead className="sticky top-0 z-10">
             <tr className="text-sm text-text-muted bg-ink-700 border-b border-line">
-              <th className="py-3 pl-5 pr-4 text-left font-semibold w-10" />
-              <th className="py-3 pr-4 text-left font-semibold">Requirement</th>
-              <th className="py-3 pr-4 text-left font-semibold">Elastic Capability</th>
-              {['L1','L2','L3','L4'].map((l, i) => (
-                <th key={l} className={`py-3 px-4 text-center font-bold text-base ${LEVEL_HEAD_COLORS[i]}`}>{l}</th>
-              ))}
+              <th className="py-3.5 pl-8 pr-14 text-left font-semibold">M-26-14 Requirement</th>
+              <th className="py-3.5 pl-10 pr-8 text-left font-semibold">Elastic Capability / Assets</th>
             </tr>
           </thead>
           <tbody>
-            {MATRIX_ROWS.map((row, i) => {
-              const isOpen = expanded.has(i)
-              const hasExpand = row.subs?.length > 0
-              const stripe = i % 2 !== 0
+            {[1, 2, 3, 4].map(phase => {
+              const rows = MATRIX_ROWS.filter(r => r.phase === phase)
+              const phaseInfo = PHASE_LABELS[phase - 1]
+              const pc = PHASE_COLORS[phase - 1]
               return (
-                <React.Fragment key={i}>
-                  <tr
-                    className={`border-b border-line/40 transition-colors ${stripe ? 'bg-ink-900/50' : ''} ${
-                      hasExpand
-                        ? 'cursor-pointer hover:bg-accent-blue/[0.10]'
-                        : 'hover:bg-accent-blue/[0.07]'
-                    }`}
-                    onClick={hasExpand ? () => toggle(i) : undefined}
-                  >
-                    {/* Chevron */}
-                    <td className="py-4 pl-5 pr-2 w-10 align-top pt-5">
-                      {hasExpand && <Chevron open={isOpen} />}
+                <React.Fragment key={phase}>
+                  {/* Phase group header */}
+                  <tr>
+                    <td colSpan={2} className="pt-3 pb-0 pl-5">
+                      <div className="flex items-center gap-3 py-2">
+                        <span className="text-[11px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border-2"
+                          style={{ borderColor: pc.active, color: pc.active, borderStyle: 'solid' }}>
+                          {phaseInfo.label}
+                        </span>
+                        <span className="text-base font-semibold text-text-primary">{phaseInfo.title}</span>
+                        <div className="flex-1 h-px opacity-20" style={{ backgroundColor: pc.active }} />
+                      </div>
                     </td>
-                    {/* Requirement */}
-                    <td className="py-4 pr-4 align-top">
-                      <p className="text-base font-semibold text-text-primary leading-snug">{row.req}</p>
-                      <p className="text-sm text-text-muted mt-1 leading-relaxed">{row.reqDesc}</p>
-                    </td>
-                    {/* Capability */}
-                    <td className="py-4 pr-4 align-top">
-                      <p className="text-base font-mono font-semibold text-text-primary leading-snug">{row.cap}</p>
-                      <p className="text-sm text-text-muted mt-1 leading-relaxed">{row.capDesc}</p>
-                    </td>
-                    {/* Level checkmarks */}
-                    {row.l.map((covered, li) => (
-                      <td key={li} className="py-4 px-4 text-center align-middle">
-                        {covered
-                          ? <span className="text-accent-green font-bold text-lg">✓</span>
-                          : <span className="text-text-muted/20 text-lg">—</span>}
-                      </td>
-                    ))}
                   </tr>
 
-                  {/* Sub-rows */}
-                  {isOpen && row.subs?.map((sub) => (
-                    <tr key={sub.id} className="border-b border-line/20 bg-accent-blue/5">
-                      <td className="py-2.5 pl-5 pr-2" />
-                      <td colSpan={2} className="py-2.5 pr-4 pl-4">
-                        <div className="flex gap-2.5 items-start">
-                          <span className="text-[10px] font-bold text-accent-blue bg-accent-blue/10 border border-accent-blue/30 px-1.5 py-0.5 rounded shrink-0 mt-0.5"
-                            style={{ borderStyle: 'solid' }}>
-                            {sub.id}
-                          </span>
-                          <div>
-                            <p className="text-sm font-semibold text-text-primary leading-snug">{sub.name.replace(/^[A-K]\s—\s/, '')}</p>
-                            <p className="text-sm text-text-muted leading-relaxed">{sub.desc}</p>
+                  {/* Requirement rows */}
+                  {rows.map((row, ri) => {
+                    const stripe = ri % 2 !== 0
+                    return (
+                      <tr
+                        key={row.req}
+                        className={`border-b border-line/40 cursor-pointer transition-colors group
+                          ${stripe ? 'bg-ink-700/55' : 'bg-transparent'}
+                          hover:bg-accent-blue/[0.10]`}
+                        onClick={() => setSelectedRow(row)}
+                      >
+                        {/* Requirement */}
+                        <td className="py-5 pl-8 pr-14 align-top">
+                          <div className="flex items-start gap-3">
+                            <CheckIcon size={18} className="shrink-0 mt-1 text-accent-green" />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-text-primary leading-snug dark:group-hover:text-white transition-colors" style={{ fontSize: 16 }}>
+                                {row.req}
+                              </p>
+                              <p className="text-text-muted mt-1.5 leading-relaxed" style={{ fontSize: 14 }}>{row.reqDesc}</p>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td colSpan={4} />
-                    </tr>
-                  ))}
+                        </td>
+
+                        {/* Elastic Capability */}
+                        <td className="py-5 pl-10 pr-8 align-top">
+                          <p className="font-semibold text-text-primary leading-snug" style={{ fontSize: 16 }}>{row.cap}</p>
+                          <p className="text-text-muted mt-1.5 leading-relaxed" style={{ fontSize: 14 }}>{row.capDesc}</p>
+                          <span className="mt-3 inline-flex items-center text-xs text-accent-blue opacity-0 group-hover:opacity-100 transition-opacity">
+                            View details →
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </React.Fragment>
               )
             })}
@@ -735,253 +663,223 @@ function CoverageMatrixTab() {
       </div>
 
       {/* Footer */}
-      <div className="px-5 py-3 border-t border-line/50 shrink-0">
+      <div className="px-8 py-3 border-t border-line/50 shrink-0">
         <p className="text-xs text-text-muted italic">
-          ✓ = Requirement satisfied when the corresponding Elastic asset is deployed and configured. Requirements at higher levels also apply to all preceding levels.
+          Requirements listed in ACID phase order. Click any row for capability breakdown and compliance pack assets.
         </p>
       </div>
+
+      {/* Requirement detail modal */}
+      {selectedRow && (
+        <RequirementModal row={selectedRow} onClose={() => setSelectedRow(null)} />
+      )}
     </div>
   )
 }
 
-// ─── Tab 2: Deployment-Ready Assets ───────────────────────────────────────────
+// ─── Requirement detail modal ──────────────────────────────────────────────────
 
-function AssetsTab({ scrollRef, active }) {
-  const [activeLayer, setActiveLayer] = useState('collection')
-  const [openSections, setOpenSections] = useState(() =>
-    Object.fromEntries(ARCH_LAYERS.map(l => [l.id, true]))
-  )
-  const sectionRefs = useRef({})
-
-  const toggleSection = useCallback((id) => {
-    setOpenSections(prev => ({ ...prev, [id]: !prev[id] }))
-  }, [])
+function RequirementModal({ row, onClose }) {
+  const [viewerAssetId, setViewerAssetId] = useState(null)
 
   useEffect(() => {
-    if (!active || !scrollRef.current) return
-    const root = scrollRef.current
-    const observers = []
-    ARCH_LAYERS.forEach(layer => {
-      const el = sectionRefs.current[layer.id]
-      if (!el) return
-      const obs = new IntersectionObserver(
-        ([entry]) => { if (entry.isIntersecting) setActiveLayer(layer.id) },
-        { root, rootMargin: '-15% 0px -70% 0px', threshold: 0 }
-      )
-      obs.observe(el)
-      observers.push(obs)
-    })
-    return () => observers.forEach(obs => obs.disconnect())
-  }, [active, scrollRef])
-
-  const scrollToLayer = useCallback((layer) => {
-    const el = sectionRefs.current[layer.id]
-    if (el && scrollRef.current) {
-      const containerTop = scrollRef.current.getBoundingClientRect().top
-      const elTop = el.getBoundingClientRect().top
-      scrollRef.current.scrollBy({ top: elTop - containerTop - 120, behavior: 'smooth' })
+    const handler = (e) => {
+      if (e.key === 'Escape') {
+        if (viewerAssetId) setViewerAssetId(null)
+        else onClose()
+      }
     }
-  }, [scrollRef])
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [onClose, viewerAssetId])
+
+  const packAssets = (row.modalAssetIds || []).map(id => ASSET_FILE_MAP[id]).filter(Boolean)
 
   return (
-    <div>
-      {/* Sticky arch layer nav */}
-      <div className="sticky top-0 z-10 bg-ink-900 pt-1 pb-3 px-6 border-b border-line">
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-          {ARCH_LAYERS.map(layer => {
-            const c = COLOR[layer.color]
-            const isActive = activeLayer === layer.id
-            const itemCount = layer.id === 'sources'
-              ? SOURCE_REFS.reduce((n, g) => n + g.items.length, 0)
-              : layer.assetIds.length
-            return (
-              <button
-                key={layer.id}
-                onClick={() => scrollToLayer(layer)}
-                className={`rounded-lg border px-4 py-4 text-left transition-all ${
-                  isActive
-                    ? `${c.border} ${c.badge} shadow-sm`
-                    : 'border-line bg-ink-800 text-text-muted hover:border-line hover:bg-ink-700'
-                }`}
-                style={{ borderStyle: 'solid' }}
-              >
-                <div className="flex items-center justify-between gap-1 mb-1.5">
-                  <span className={`text-sm font-bold ${isActive ? c.text : 'text-text-primary'}`}>{layer.label}</span>
-                  {itemCount > 0 && (
-                    <span className={`text-xs font-mono ${isActive ? c.text : 'text-text-muted'}`}>{itemCount}</span>
-                  )}
-                </div>
-                <p className="text-xs text-text-muted leading-snug line-clamp-2">{layer.desc.split(' — ')[0]}</p>
-              </button>
-            )
-          })}
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center p-6"
+      onClick={onClose}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" />
+
+      {/* Asset viewer — rendered inside this stacking context so it layers above the modal */}
+      <AssetViewer assetId={viewerAssetId} onClose={() => setViewerAssetId(null)} />
+
+      {/* Panel */}
+      <div
+        className="relative w-full max-w-4xl flex flex-col rounded-xl bg-ink-900 border border-line shadow-2xl overflow-hidden"
+        style={{ maxHeight: '88vh', borderStyle: 'solid' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header — title + close only */}
+        <div className="flex items-start gap-4 px-9 pt-8 pb-6 border-b border-line/60 shrink-0">
+          <h2 className="flex-1 text-2xl font-bold text-text-primary leading-tight">{row.req}</h2>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-ink-700 text-text-muted hover:text-text-primary transition-colors shrink-0 mt-0.5"
+            aria-label="Close"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M2.293 2.293a1 1 0 0 1 1.414 0L8 6.586l4.293-4.293a1 1 0 1 1 1.414 1.414L9.414 8l4.293 4.293a1 1 0 0 1-1.414 1.414L8 9.414l-4.293 4.293a1 1 0 0 1-1.414-1.414L6.586 8 2.293 3.707a1 1 0 0 1 0-1.414Z"/>
+            </svg>
+          </button>
         </div>
-      </div>
 
-      {/* Accordion sections */}
-      <div className="px-6 pt-4 pb-12 space-y-1">
-        {ARCH_LAYERS.map(layer => {
-          const assets = layer.id === 'sources' ? [] : layer.assetIds.map(id => ASSET_FILE_MAP[id]).filter(Boolean)
-          const itemCount = layer.id === 'sources'
-            ? SOURCE_REFS.reduce((n, g) => n + g.items.length, 0)
-            : assets.length
-          const isOpen = openSections[layer.id]
+        {/* Scrollable content */}
+        <div className="overflow-y-auto flex-1 px-9 py-8 space-y-7">
 
-          return (
-            <section key={layer.id} ref={el => sectionRefs.current[layer.id] = el}>
-              {/* Accordion header */}
-              <button
-                onClick={() => toggleSection(layer.id)}
-                className="w-full flex items-center gap-2 py-3 text-left"
-              >
-                <svg
-                  className={`w-4 h-4 text-text-muted transition-transform duration-150 shrink-0 ${isOpen ? 'rotate-90' : ''}`}
-                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-                <h3 className="text-base font-semibold text-text-primary">{layer.label}</h3>
-                <div className="flex-1 h-px bg-line/50 mx-1" />
-                <span className="text-xs text-text-muted">
-                  {layer.id === 'sources' ? `${itemCount} integrations` : `${itemCount || 'no'} assets`}
-                </span>
-              </button>
+          {/* M-26-14 requirement */}
+          <div>
+            <p className="text-sm font-semibold text-text-primary mb-3">M-26-14 Requirement</p>
+            <p className="text-base text-text-primary leading-relaxed">{row.reqDesc}</p>
+          </div>
 
-              {isOpen && (
-                <div className="pb-4">
-                  <p className="text-sm text-text-muted leading-relaxed mb-4 ml-6">{layer.desc}</p>
+          {/* How Elastic addresses this */}
+          <div>
+            <p className="text-sm font-semibold text-text-primary mb-3">How Elastic Addresses This</p>
+            <p className="text-sm text-text-primary leading-relaxed">{row.modalHow}</p>
+          </div>
 
-                  {layer.id === 'sources' ? (
-                    <SourcesSection />
-                  ) : assets.length === 0 ? (
-                    <div className="ml-6 rounded-lg border border-dashed border-line px-4 py-3">
-                      <p className="text-xs text-text-muted italic">No assets in this layer.</p>
-                    </div>
-                  ) : (
-                    <AssetTypeGroups assets={assets} />
-                  )}
-                </div>
-              )}
-            </section>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
+          {/* Sub-table (Appendix B categories or detection rules) */}
+          {row.subs && row.subs.length > 0 && (
+            <div>
+              <p className="text-sm font-semibold text-text-primary mb-3">{row.subsLabel ?? 'Sub-items'}</p>
+              <div className="rounded-lg border border-line/50 overflow-hidden" style={{ borderStyle: 'solid' }}>
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-ink-700/80 border-b border-line/40">
+                      <th className="py-3 pl-5 pr-3 text-left text-xs font-semibold text-text-muted" style={{ width: '40px' }}>Cat</th>
+                      <th className="py-3 pr-4 text-left text-xs font-semibold text-text-muted" style={{ width: '47%' }}>Name &amp; Description</th>
+                      <th className="py-3 pr-5 text-left text-xs font-semibold text-text-muted" style={{ width: '47%' }}>Elastic Capability</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {row.subs.map((sub, si) => {
+                      const assetRef = ASSET_FILE_MAP[sub.cap]
+                      return (
+                        <tr key={sub.id} className={`border-b border-line/20 last:border-0 ${si % 2 === 0 ? 'bg-ink-800/50' : ''}`}>
+                          <td className="py-4 pl-5 pr-3 align-top">
+                            <span className="text-[10px] font-bold text-accent-blue bg-accent-blue/10 border border-accent-blue/30 px-1.5 py-0.5 rounded"
+                              style={{ borderStyle: 'solid' }}>{sub.id}</span>
+                          </td>
+                          <td className="py-4 pr-5 align-top">
+                            <p className="text-sm font-semibold text-text-primary leading-snug">{sub.name}</p>
+                            <p className="text-xs text-text-muted leading-relaxed mt-0.5">{sub.desc}</p>
+                          </td>
+                          <td className="py-4 pr-5 align-top">
+                            {assetRef ? (
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-text-primary leading-snug">{assetRef.label}</p>
+                                  <p className="text-xs text-text-muted leading-relaxed mt-0.5">{assetRef.desc}</p>
+                                </div>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setViewerAssetId(assetRef.id) }}
+                                  className="p-1.5 rounded hover:bg-ink-700 text-text-muted hover:text-accent-blue transition-colors shrink-0"
+                                  title={`Inspect ${assetRef.label}`}
+                                  aria-label={`Inspect ${assetRef.label}`}
+                                >
+                                  <InspectIcon />
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <p className="text-xs font-semibold text-text-primary">{sub.cap}</p>
+                                {sub.capDesc && <p className="text-xs text-text-muted mt-0.5 leading-relaxed">{sub.capDesc}</p>}
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
-const ASSET_LEVEL_COLORS = {
-  1: 'bg-accent-teal/10 text-accent-teal border-accent-teal/30',
-  2: 'bg-accent-blue/10 text-accent-blue border-accent-blue/30',
-  3: 'bg-accent-purple/10 text-accent-purple border-accent-purple/30',
-  4: 'bg-accent-coral/10 text-accent-coral border-accent-coral/30',
-}
-
-function SourcesSection() {
-  const [openGroups, setOpenGroups] = useState({})
-  const toggleGroup = useCallback((group) => {
-    setOpenGroups(prev => ({ ...prev, [group]: !prev[group] }))
-  }, [])
-
-  return (
-    <div className="ml-6 space-y-2">
-      {SOURCE_REFS.map(group => {
-        const isOpen = !!openGroups[group.group]
-        return (
-          <div key={group.group} className="rounded-lg border border-line/40 overflow-hidden" style={{ borderStyle: 'solid' }}>
-            <button
-              onClick={() => toggleGroup(group.group)}
-              className="w-full flex items-center gap-2 px-4 py-3 text-left bg-ink-800 hover:bg-ink-700 transition-colors"
-            >
-              <svg
-                className={`w-3.5 h-3.5 text-text-muted transition-transform duration-150 shrink-0 ${isOpen ? 'rotate-90' : ''}`}
-                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
-              <span className="text-sm font-semibold text-text-primary flex-1">{group.group}</span>
-              <a href={group.groupHref} target="_blank" rel="noopener noreferrer"
-                onClick={e => e.stopPropagation()}
-                className="text-xs text-accent-blue hover:underline mr-2">
-                docs ↗
-              </a>
-              <span className="text-xs text-text-muted">{group.items.length}</span>
-            </button>
-
-            {isOpen && (
-              <div className="px-4 pb-3 pt-1 border-t border-line/30">
-                {group.items.map((item, ii) => (
-                  <div key={item.name}
-                    className={`flex items-start justify-between gap-6 py-2.5 ${ii < group.items.length - 1 ? 'border-b border-line/30' : ''}`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <a href={item.href} target="_blank" rel="noopener noreferrer"
-                        className="text-sm font-semibold text-text-primary hover:text-accent-blue transition-colors">
-                        {item.name}
-                      </a>
-                      <p className="text-sm text-text-muted leading-relaxed mt-0.5">{item.desc}</p>
-                    </div>
-                    <span className="text-[10px] font-mono text-text-muted bg-ink-700 border border-line/50 px-2 py-0.5 rounded shrink-0 whitespace-nowrap self-start mt-0.5"
-                      style={{ borderStyle: 'solid' }}>
-                      Appendix B: {item.cats}
-                    </span>
+          {/* Core Platform Capabilities */}
+          {row.modalCapabilities && row.modalCapabilities.length > 0 && (
+            <div>
+              <p className="text-sm font-semibold text-text-primary mb-3">Core Platform Capabilities</p>
+              <div className="rounded-lg border border-line/50 overflow-hidden" style={{ borderStyle: 'solid' }}>
+                {row.modalCapabilities.map((cap, ci) => (
+                  <div key={ci} className={`px-6 py-5 ${ci < row.modalCapabilities.length - 1 ? 'border-b border-line/30' : ''} ${ci % 2 === 0 ? 'bg-ink-800/40' : ''}`}>
+                    <a href={cap.href} target="_blank" rel="noopener noreferrer"
+                      className="text-sm font-semibold text-accent-blue hover:underline">
+                      {cap.name} ↗
+                    </a>
+                    <p className="text-xs text-text-muted leading-relaxed mt-1">{cap.desc}</p>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        )
-      })}
+            </div>
+          )}
+
+          {/* Compliance Pack Assets */}
+          {packAssets.length > 0 && (
+            <div>
+              <p className="text-sm font-semibold text-text-primary mb-3">Compliance Pack Assets</p>
+              <div className="rounded-lg border border-line/50 overflow-hidden" style={{ borderStyle: 'solid' }}>
+                <table className="w-full border-collapse">
+                  <colgroup>
+                    <col style={{ width: '32%' }} />
+                    <col style={{ width: '18%' }} />
+                    <col />
+                    <col style={{ width: '48px' }} />
+                  </colgroup>
+                  <thead>
+                    <tr className="bg-ink-700/80 border-b border-line/40">
+                      <th className="py-3 pl-6 pr-4 text-left text-xs font-semibold text-text-muted">Asset</th>
+                      <th className="py-3 pr-4 text-left text-xs font-semibold text-text-muted">Type</th>
+                      <th className="py-3 pr-4 text-left text-xs font-semibold text-text-muted">Description</th>
+                      <th className="py-3 pr-4" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {packAssets.map((asset, ai) => (
+                      <tr key={asset.id} className={`border-b border-line/20 last:border-0 ${ai % 2 === 0 ? 'bg-ink-800/40' : ''}`}>
+                        <td className="py-4 pl-6 pr-4 align-top">
+                          <p className="text-sm font-semibold text-text-primary leading-snug">{asset.label}</p>
+                        </td>
+                        <td className="py-4 pr-4 align-top">
+                          <AssetTypeBadge type={asset.type} />
+                        </td>
+                        <td className="py-4 pr-4 align-top">
+                          <p className="text-xs text-text-muted leading-relaxed">{asset.desc}</p>
+                        </td>
+                        <td className="py-4 pr-4 align-middle text-center">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setViewerAssetId(asset.id) }}
+                            className="p-1.5 rounded hover:bg-ink-700 text-text-muted hover:text-accent-blue transition-colors"
+                            title={`Inspect ${asset.label}`}
+                            aria-label={`Inspect ${asset.label}`}
+                          >
+                            <InspectIcon />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
     </div>
   )
 }
 
-function AssetTypeGroups({ assets }) {
-  const order = []
-  const map = {}
-  assets.forEach(a => {
-    if (!map[a.type]) { map[a.type] = []; order.push(a.type) }
-    map[a.type].push(a)
-  })
-
+function AssetTypeBadge({ type }) {
+  const meta = ASSET_TYPE_META[type] ?? { label: type, color: 'text-text-muted', bg: 'bg-ink-700 border-line' }
   return (
-    <div className="ml-6 space-y-5">
-      {order.map(type => {
-        const typeMeta = ASSET_TYPE_META[type] ?? { label: type, color: 'text-text-muted', bg: 'bg-ink-700 border-line' }
-        const typeAssets = map[type]
-        return (
-          <div key={type}>
-            <div className="mb-2 ml-4">
-              <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded border ${typeMeta.bg} ${typeMeta.color}`}
-                style={{ borderStyle: 'solid' }}>
-                {typeMeta.label}
-              </span>
-            </div>
-            <div className="ml-10">
-              {typeAssets.map((asset, ai) => (
-                <div key={asset.id}
-                  className={`py-2.5 ${ai < typeAssets.length - 1 ? 'border-b border-line/30' : ''}`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <p className="text-sm font-semibold text-text-primary leading-snug flex-1">{asset.label}</p>
-                    <div className="flex gap-1.5 shrink-0">
-                      {asset.levels.map(l => (
-                        <span key={l}
-                          className={`text-xs font-bold px-2 py-0.5 rounded border whitespace-nowrap ${ASSET_LEVEL_COLORS[l] ?? 'bg-ink-700 text-text-muted border-line'}`}
-                          style={{ borderStyle: 'solid' }}>
-                          L{l}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-sm text-text-muted leading-relaxed mt-0.5">{asset.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )
-      })}
-    </div>
+    <span className={`mt-1.5 inline-block text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${meta.bg} ${meta.color}`}
+      style={{ borderStyle: 'solid' }}>
+      {meta.label}
+    </span>
   )
 }
 
@@ -989,8 +887,8 @@ function AssetTypeGroups({ assets }) {
 
 function ObligationsTab() {
   return (
-    <div className="space-y-5">
-      <div className="px-1 pb-2">
+    <div className="space-y-4 pb-20">
+      <div className="pb-2">
         <h2 className="text-2xl font-bold text-text-primary mb-2">What Can't Elastic Do?</h2>
         <p className="text-base text-text-muted leading-relaxed">
           Elastic satisfies the technical requirements. M-26-14 also imposes operational and documentation
@@ -998,24 +896,27 @@ function ObligationsTab() {
           owns — and where Elastic can help reduce the burden.
         </p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {OBLIGATIONS.map((o) => (
-          <div key={o.title} className="rounded-lg bg-ink-800 border border-line p-5 flex flex-col gap-3" style={{ borderStyle: 'solid' }}>
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-base font-semibold text-text-primary leading-snug">{o.title}</p>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-ink-700 text-text-muted border border-line shrink-0 whitespace-nowrap"
-                style={{ borderStyle: 'solid' }}>
-                {o.when}
-              </span>
+
+      {OBLIGATIONS.map((o) => (
+        <div key={o.title} className="rounded-lg bg-ink-800 border border-line overflow-hidden" style={{ borderStyle: 'solid' }}>
+          <div className="grid grid-cols-2 divide-x divide-line/30">
+            <div className="px-7 py-4">
+              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                <p className="text-base font-semibold text-text-primary">{o.title}</p>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-ink-700 text-text-muted border border-line/60 whitespace-nowrap"
+                  style={{ borderStyle: 'solid' }}>
+                  {o.when}
+                </span>
+              </div>
+              <p className="text-sm text-text-muted leading-relaxed">{o.desc}</p>
             </div>
-            <p className="text-sm text-text-muted leading-relaxed">{o.desc}</p>
-            <div className="border-t border-line/40 pt-3">
-              <p className="text-xs font-semibold text-accent-teal uppercase tracking-wider mb-1.5">How Elastic helps</p>
+            <div className="px-7 py-4">
+              <p className="text-sm font-semibold text-accent-teal mb-1.5">How Elastic can help</p>
               <p className="text-sm text-text-primary leading-relaxed">{o.assist}</p>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   )
 }

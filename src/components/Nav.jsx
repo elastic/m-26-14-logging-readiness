@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { EuiToolTip } from '@elastic/eui'
 import { useTheme } from '../ThemeContext.jsx'
 import logoColor from '../img/logo-elastic-horizontal-color.svg'
 import logoReverse from '../img/logo-elastic-horizontal-color-reverse.svg'
@@ -33,10 +34,8 @@ const SunIcon = () => (
 )
 
 const NAV_ITEMS = [
-  { label: 'Requirements',       to: '/requirements',       matchPrefix: '/requirements' },
-  { label: 'Maturity Levels',    to: '/maturity/small/1',   matchPrefix: '/maturity' },
-  { label: 'Asset Inventory',    to: '/asset-inventory',    matchPrefix: '/asset-inventory' },
-  { label: 'Deployment Options', to: '/deployment-options', matchPrefix: '/deployment-options' },
+  { label: 'Maturity Levels', to: '/maturity/small/1', matchPrefix: '/maturity' },
+  { label: 'Asset Inventory', to: '/asset-inventory',  matchPrefix: '/asset-inventory' },
 ]
 
 export default function Nav() {
@@ -108,13 +107,15 @@ export default function Nav() {
           ))}
 
           {/* Theme toggle */}
-          <button
-            onClick={toggleTheme}
-            className="ml-2 p-2 rounded hover:bg-ink-700 text-text-muted hover:text-text-primary transition-colors"
-            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
-          </button>
+          <EuiToolTip content={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} position="bottom">
+            <button
+              onClick={toggleTheme}
+              className="ml-2 p-2 rounded hover:bg-ink-700 text-text-muted hover:text-text-primary transition-colors"
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+            </button>
+          </EuiToolTip>
 
           {/* Printables */}
           <button
@@ -135,30 +136,24 @@ export default function Nav() {
   )
 }
 
-const PRINTABLE_PERSONAS = [
+const PRINTABLES = [
   {
-    title: 'CISO / Executive',
-    description: 'High-level compliance posture summary, maturity roadmap, and budget-impact overview for leadership briefings.',
-    detail: 'L1–L4 overview · timeline · cost model',
-    href: 'https://www.whitehouse.gov/wp-content/uploads/2026/05/m-26-14.pdf',
+    title: 'Elastic M-26-14 Reference Architecture',
+    description: 'Elastic reference architecture diagrams and deployment guidance for achieving M-26-14 compliance across all four maturity levels.',
+    detail: 'PDF · Reference Architecture',
+    href: '/docs/Elastic%20M-26-14%20Reference%20Architectures.pdf',
   },
   {
-    title: 'ISSO / Compliance Officer',
-    description: 'Full technical requirements by level — Appendix B log categories, retention windows, and control mappings.',
-    detail: 'Appendix B · retention tables · control matrix',
-    href: 'https://www.whitehouse.gov/wp-content/uploads/2026/05/m-26-14.pdf',
+    title: 'OMB M-26-14 Memorandum: Ensuring Effective and Efficient Agency Logging and Network Visibility to Defend Against Evolving Cyber Threats',
+    description: 'The official OMB memorandum establishing the M-26-14 Logging Maturity Model requirements for federal agencies.',
+    detail: 'PDF · Official OMB Memorandum',
+    href: 'https://www.whitehouse.gov/wp-content/uploads/2026/05/M-26-14-Ensuring-Effective-and-Efficient-Agency-Logging-and-Network-Visibility-to-Defend-Against-Evolving-Cyber-Threats.pdf',
   },
   {
-    title: 'System / Platform Administrator',
-    description: 'Deployment checklists, sizing tables, and step-by-step Elastic configuration guidance for each maturity level.',
-    detail: 'Sizing · deploy steps · Fleet config',
-    href: 'https://www.whitehouse.gov/wp-content/uploads/2026/05/m-26-14.pdf',
-  },
-  {
-    title: 'Auditor / Authorizing Official',
-    description: 'Evidence collection guide, audit trail requirements, and THIRF retrieval SLA reference for ATO review.',
-    detail: 'Evidence mapping · THIRF SLAs · ATO checklist',
-    href: 'https://www.whitehouse.gov/wp-content/uploads/2026/05/m-26-14.pdf',
+    title: 'CISA M-26-14 Logging Reference Architecture',
+    description: 'CISA\'s official Logging Reference Architecture (LRA) resource page, the authoritative technical baseline for M-26-14 compliance.',
+    detail: 'Web · CISA Resource',
+    href: 'https://www.cisa.gov/resources-tools/resources/logging-reference-architecture',
   },
 ]
 
@@ -187,7 +182,7 @@ function PrintablesFlyout({ onClose }) {
         <div className="flex items-center justify-between px-6 py-5 border-b border-line/40">
           <div className="flex items-center gap-2 text-text-primary font-semibold text-lg">
             <DocumentsIcon />
-            <span>Printable Reference Guides</span>
+            <span>Printables</span>
           </div>
           <button
             onClick={onClose}
@@ -201,13 +196,12 @@ function PrintablesFlyout({ onClose }) {
         </div>
 
         <p className="px-6 pt-4 pb-2 text-sm text-text-muted leading-relaxed">
-          Persona-tailored printable guides for M-26-14 — each tuned to the level of technical
-          detail appropriate for the audience.
+          Printable and shareable overviews and reference guides for how Elastic can be your organization's M-26-14 compliance accelerator.
         </p>
 
-        {/* Persona cards */}
+        {/* Printable cards */}
         <div className="flex flex-col gap-3 px-6 py-4">
-          {PRINTABLE_PERSONAS.map((p) => (
+          {PRINTABLES.map((p) => (
             <a
               key={p.title}
               href={p.href}
@@ -215,9 +209,9 @@ function PrintablesFlyout({ onClose }) {
               rel="noopener noreferrer"
               className="rounded-lg bg-ink-800 p-5 flex flex-col gap-2 hover:bg-ink-700 transition-colors group"
             >
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-semibold text-text-primary">{p.title}</span>
-                <svg className="w-4 h-4 text-text-muted group-hover:text-text-primary transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <div className="flex items-start justify-between gap-3">
+                <span className="text-sm font-semibold text-text-primary leading-snug">{p.title}</span>
+                <svg className="w-4 h-4 text-text-muted group-hover:text-text-primary transition-colors shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
               </div>

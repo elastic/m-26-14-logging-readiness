@@ -1,7 +1,6 @@
 import React from 'react'
 import { Routes, Route, Navigate, useParams } from 'react-router-dom'
 import Nav from './components/Nav.jsx'
-import Overview from './components/Overview.jsx'
 import LevelView from './components/LevelView.jsx'
 import MaturityView from './components/MaturityView.jsx'
 import AssetInventory from './components/AssetInventory.jsx'
@@ -21,8 +20,8 @@ export default function App() {
         {/* Compliance — home */}
         <Route path="/" element={<CompliancePage />} />
 
-        {/* Requirements (former Overview) */}
-        <Route path="/requirements" element={<Overview />} />
+        {/* Requirements redirects to home (now a tab in CompliancePage) */}
+        <Route path="/requirements" element={<Navigate to="/" replace />} />
 
         {/* Legacy redirect */}
         <Route path="/compliance" element={<Navigate to="/" replace />} />
@@ -40,7 +39,7 @@ export default function App() {
         <Route path="/asset-inventory" element={<AssetInventory />} />
         <Route path="/deployment-options" element={<DeploymentOptions />} />
 
-        <Route path="*" element={<Overview />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <footer className="fixed bottom-0 inset-x-0 z-10 border-t border-line bg-ink-900/90 backdrop-blur py-1.5 text-center text-[11px] text-text-muted/60">
         © 2026 Elastic · Reference architecture viewer · Static UI · No data is collected or transmitted.

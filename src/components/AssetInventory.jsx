@@ -10,7 +10,6 @@ const TYPE_FILTERS = [
   { type: 'kibana-dashboard', label: 'Dashboard' },
   { type: 'kibana-rule',      label: 'Detection Rule' },
   { type: 'ml-job',          label: 'ML Job' },
-  { type: 'ml-datafeed',     label: 'ML Datafeed' },
   { type: 'ilm-policy',      label: 'ILM Policy' },
   { type: 'index-template',  label: 'Index Template' },
   { type: 'ingest-pipeline', label: 'Ingest Pipeline' },

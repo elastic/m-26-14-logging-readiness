@@ -1,0 +1,192 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m2614_compliance",
+    "m2614": {
+      "workstream": 7,
+      "description": "Entity resolution Transform: merges asset events from all HWAM/SWAM sources into one canonical record per device in m2614-assets"
+    }
+  },
+  "description": "Resolve and merge asset inventory events from all sources into canonical asset records. Runs every 30 minutes. Groups by asset.id (deterministic UUID from serial/agent/MAC/hostname). Produces one upserted document per physical or virtual device.",
+  "source": {
+    "index": ["logs-m2614_asset.inventory-*"],
+    "query": {
+      "bool": {
+        "must": [
+          { "exists": { "field": "asset.id" } }
+        ]
+      }
+    }
+  },
+  "dest": {
+    "index": "m2614-assets",
+    "pipeline": "m2614-asset-canonical-enrich"
+  },
+  "sync": {
+    "time": {
+      "field": "@timestamp",
+      "delay": "60s"
+    }
+  },
+  "frequency": "30m",
+  "pivot": {
+    "group_by": {
+      "asset.id": {
+        "terms": { "field": "asset.id" }
+      }
+    },
+    "aggregations": {
+      "asset.name": {
+        "top_metrics": {
+          "metrics": { "field": "asset.name" },
+          "sort": { "@timestamp": "desc" }
+        }
+      },
+      "asset.fqdn": {
+        "top_metrics": {
+          "metrics": { "field": "asset.fqdn" },
+          "sort": { "@timestamp": "desc" }
+        }
+      },
+      "asset.type": {
+        "top_metrics": {
+          "metrics": { "field": "asset.type" },
+          "sort": { "@timestamp": "desc" }
+        }
+      },
+      "asset.status": {
+        "top_metrics": {
+          "metrics": { "field": "asset.status" },
+          "sort": { "@timestamp": "desc" }
+        }
+      },
+      "asset.first_seen": {
+        "min": { "field": "asset.last_seen" }
+      },
+      "asset.last_seen": {
+        "max": { "field": "asset.last_seen" }
+      },
+      "asset.managed": {
+        "max": { "field": "asset.managed" }
+      },
+      "asset.hardware.manufacturer": {
+        "top_metrics": {
+          "metrics": { "field": "asset.hardware.manufacturer" },
+          "sort": { "@timestamp": "desc" }
+        }
+      },
+      "asset.hardware.model": {
+        "top_metrics": {
+          "metrics": { "field": "asset.hardware.model" },
+          "sort": { "@timestamp": "desc" }
+        }
+      },
+      "asset.hardware.serial_number": {
+        "top_metrics": {
+          "metrics": { "field": "asset.hardware.serial_number" },
+          "sort": { "@timestamp": "desc" }
+        }
+      },
+      "asset.hardware.bios_uuid": {
+        "top_metrics": {
+          "metrics": { "field": "asset.hardware.bios_uuid" },
+          "sort": { "@timestamp": "desc" }
+        }
+      },
+      "asset.hardware.chassis_type": {
+        "top_metrics": {
+          "metrics": { "field": "asset.hardware.chassis_type" },
+          "sort": { "@timestamp": "desc" }
+        }
+      },
+      "asset.hardware.cpu.brand": {
+        "top_metrics": {
+          "metrics": { "field": "asset.hardware.cpu.brand" },
+          "sort": { "@timestamp": "desc" }
+        }
+      },
+      "asset.hardware.memory_bytes": {
+        "max": { "field": "asset.hardware.memory_bytes" }
+      },
+      "asset.os.name": {
+        "top_metrics": {
+          "metrics": { "field": "asset.os.name" },
+          "sort": { "@timestamp": "desc" }
+        }
+      },
+      "asset.os.version": {
+        "top_metrics": {
+          "metrics": { "field": "asset.os.version" },
+          "sort": { "@timestamp": "desc" }
+        }
+      },
+      "asset.os.build": {
+        "top_metrics": {
+          "metrics": { "field": "asset.os.build" },
+          "sort": { "@timestamp": "desc" }
+        }
+      },
+      "asset.os.platform": {
+        "top_metrics": {
+          "metrics": { "field": "asset.os.platform" },
+          "sort": { "@timestamp": "desc" }
+        }
+      },
+      "asset.os.architecture": {
+        "top_metrics": {
+          "metrics": { "field": "asset.os.architecture" },
+          "sort": { "@timestamp": "desc" }
+        }
+      },
+      "asset.compliance.encrypted": {
+        "max": { "field": "asset.compliance.encrypted" }
+      },
+      "asset.compliance.mdm_enrolled": {
+        "max": { "field": "asset.compliance.mdm_enrolled" }
+      },
+      "asset.compliance.mdm_compliant": {
+        "max": { "field": "asset.compliance.mdm_compliant" }
+      },
+      "asset.compliance.patch_compliant": {
+        "max": { "field": "asset.compliance.patch_compliant" }
+      },
+      "asset.compliance.last_check": {
+        "max": { "field": "asset.compliance.last_check" }
+      },
+      "asset.organization.owner": {
+        "top_metrics": {
+          "metrics": { "field": "asset.organization.owner" },
+          "sort": { "@timestamp": "desc" }
+        }
+      },
+      "asset.organization.department": {
+        "top_metrics": {
+          "metrics": { "field": "asset.organization.department" },
+          "sort": { "@timestamp": "desc" }
+        }
+      },
+      "asset.organization.location": {
+        "top_metrics": {
+          "metrics": { "field": "asset.organization.location" },
+          "sort": { "@timestamp": "desc" }
+        }
+      },
+      "m2614.hwam_source": {
+        "scripted_metric": {
+          "init_script": "state.sources = new HashSet()",
+          "map_script": "if (doc['asset.source'].size() > 0) state.sources.add(doc['asset.source'].value)",
+          "combine_script": "return new ArrayList(state.sources)",
+          "reduce_script": "def all = new HashSet(); for (s in states) { all.addAll(s); } return new ArrayList(all)"
+        }
+      },
+      "doc_count": {
+        "value_count": { "field": "asset.id" }
+      }
+    }
+  },
+  "settings": {
+    "max_page_search_size": 500,
+    "dates_as_epoch_millis": false,
+    "align_checkpoints": true
+  }
+}

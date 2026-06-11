@@ -1,0 +1,26 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m2614_compliance",
+    "m2614": {
+      "workstream": 7,
+      "description": "Post-transform pipeline for m2614-asset-baselines: stamps snapshot timestamp"
+    }
+  },
+  "description": "Post-transform pipeline for the baseline snapshot index. Stamps the snapshot timestamp so each baseline record carries the time it was captured.",
+  "processors": [
+    {
+      "set": {
+        "field": "@timestamp",
+        "value": "{{{_ingest.timestamp}}}"
+      }
+    },
+    {
+      "set": {
+        "description": "Record snapshot capture time for drift comparison queries",
+        "field": "m2614.baseline_timestamp",
+        "value": "{{{_ingest.timestamp}}}"
+      }
+    }
+  ]
+}

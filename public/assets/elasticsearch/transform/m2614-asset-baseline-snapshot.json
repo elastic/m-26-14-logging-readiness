@@ -1,0 +1,72 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m2614_compliance",
+    "m2614": {
+      "workstream": 7,
+      "description": "Daily baseline snapshot Transform: captures current asset state to enable config drift detection"
+    }
+  },
+  "description": "Daily snapshot of each asset's canonical state (OS version, software hash, network interfaces, encryption). Output to m2614-asset-baselines. Diff between current state and baseline drives detection rules 1-7.",
+  "source": {
+    "index": ["m2614-assets"],
+    "query": {
+      "term": { "asset.managed": true }
+    }
+  },
+  "dest": {
+    "index": "m2614-asset-baselines",
+    "pipeline": "m2614-asset-baseline-hash"
+  },
+  "sync": {
+    "time": {
+      "field": "asset.last_seen",
+      "delay": "5m"
+    }
+  },
+  "frequency": "1h",
+  "pivot": {
+    "group_by": {
+      "asset.id": {
+        "terms": { "field": "asset.id" }
+      }
+    },
+    "aggregations": {
+      "asset.name": {
+        "terms": { "field": "asset.name", "size": 1 }
+      },
+      "asset.os.version": {
+        "terms": { "field": "asset.os.version", "size": 1 }
+      },
+      "asset.os.build": {
+        "terms": { "field": "asset.os.build", "size": 1 }
+      },
+      "asset.os.platform": {
+        "terms": { "field": "asset.os.platform", "size": 1 }
+      },
+      "asset.hardware.serial_number": {
+        "terms": { "field": "asset.hardware.serial_number", "size": 1 }
+      },
+      "asset.compliance.encrypted": {
+        "max": { "field": "asset.compliance.encrypted" }
+      },
+      "asset.compliance.mdm_enrolled": {
+        "max": { "field": "asset.compliance.mdm_enrolled" }
+      },
+      "asset.compliance.mdm_compliant": {
+        "max": { "field": "asset.compliance.mdm_compliant" }
+      },
+      "asset.last_seen": {
+        "max": { "field": "asset.last_seen" }
+      },
+      "m2614.baseline_hash": {
+        "terms": { "field": "m2614.baseline_hash", "size": 1 }
+      }
+    }
+  },
+  "settings": {
+    "max_page_search_size": 500,
+    "dates_as_epoch_millis": false,
+    "align_checkpoints": true
+  }
+}

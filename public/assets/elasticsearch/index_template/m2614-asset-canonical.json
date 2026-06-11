@@ -7,14 +7,6 @@
       "description": "Layer 3 canonical asset index — one document per resolved device, upserted by asset.id"
     }
   },
-  "_notes": [
-    "IMPORTANT: This template must be applied BEFORE the m2614-asset-entity-resolution Transform is started.",
-    "The Transform auto-creates the destination index using its own generated mapping if none exists,",
-    "which is incompatible with this template. Pre-create the index with this template first.",
-    "dynamic: true is required so that pipeline-added fields are dynamically mapped.",
-    "The asset.* scalar fields are left to dynamic mapping because top_metrics + pipeline produce",
-    "the values post-Transform, and we cannot declare the final types at template-load time."
-  ],
   "index_patterns": ["m2614-assets"],
   "priority": 500,
   "template": {

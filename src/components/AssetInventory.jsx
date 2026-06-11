@@ -11,9 +11,11 @@ const TYPE_FILTERS = [
   { type: 'kibana-rule',      label: 'Detection Rule' },
   { type: 'ml-job',          label: 'ML Job' },
   { type: 'ilm-policy',      label: 'ILM Policy' },
+  { type: 'slm-policy',      label: 'SLM Policy' },
   { type: 'index-template',  label: 'Index Template' },
   { type: 'ingest-pipeline', label: 'Ingest Pipeline' },
   { type: 'transform',       label: 'Transform' },
+  { type: 'es-watcher',      label: 'ES Watcher' },
   { type: 'fleet-pack',      label: 'Fleet Pack' },
 ]
 

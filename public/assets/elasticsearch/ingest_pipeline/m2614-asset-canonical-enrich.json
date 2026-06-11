@@ -1,0 +1,57 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m2614_compliance",
+    "m2614": {
+      "workstream": 7,
+      "description": "Post-transform pipeline for m2614-assets canonical index: unwraps top_metrics outputs, cleans null/boolean strings, stamps @timestamp, sets m2614.element1/2_covered flags, computes baseline_hash"
+    }
+  },
+  "description": "Runs on every document written to m2614-assets by the entity resolution Transform. Unwraps top_metrics wrapped values, normalizes null strings and boolean strings, stamps timestamp, evaluates Element 1/2 coverage criteria, computes baseline state hash for drift detection.",
+  "processors": [
+    {
+      "set": {
+        "description": "Stamp canonical record timestamp",
+        "field": "@timestamp",
+        "value": "{{{_ingest.timestamp}}}"
+      }
+    },
+    {
+      "script": {
+        "description": "Unwrap top_metrics single-value maps.",
+        "lang": "painless",
+        "source": "def asset = ctx.asset; if (asset == null) return;\nfor (String f : new String[]{'name','fqdn','type','status'}) {\n  if (asset.containsKey(f) && asset[f] instanceof Map && ((Map)asset[f]).size() == 1) {\n    asset[f] = ((Map)asset[f]).values().iterator().next();\n  }\n}\ndef hw = asset.get('hardware');\nif (hw instanceof Map) {\n  for (String f : new String[]{'manufacturer','model','serial_number','bios_uuid','chassis_type'}) {\n    if (hw.containsKey(f) && hw[f] instanceof Map && ((Map)hw[f]).size() == 1) {\n      hw[f] = ((Map)hw[f]).values().iterator().next();\n    }\n  }\n  def cpu = hw.get('cpu');\n  if (cpu instanceof Map && cpu.containsKey('brand') && cpu['brand'] instanceof Map && ((Map)cpu['brand']).size() == 1) {\n    cpu['brand'] = ((Map)cpu['brand']).values().iterator().next();\n  }\n}\ndef os = asset.get('os');\nif (os instanceof Map) {\n  for (String f : new String[]{'name','version','build','platform','architecture'}) {\n    if (os.containsKey(f) && os[f] instanceof Map && ((Map)os[f]).size() == 1) {\n      os[f] = ((Map)os[f]).values().iterator().next();\n    }\n  }\n}\ndef org = asset.get('organization');\nif (org instanceof Map) {\n  for (String f : new String[]{'owner','department','location'}) {\n    if (org.containsKey(f) && org[f] instanceof Map && ((Map)org[f]).size() == 1) {\n      org[f] = ((Map)org[f]).values().iterator().next();\n    }\n  }\n}"
+      }
+    },
+    {
+      "script": {
+        "description": "Remove string 'null' fields and convert string booleans. top_metrics emits 'null' for missing fields and 'true'/'false' for booleans.",
+        "lang": "painless",
+        "source": "def asset = ctx.asset; if (asset == null) return;\n\n// Remove string 'null' from top-level asset fields\nfor (String f : new String[]{'name','fqdn','type','status'}) {\n  if ('null'.equals(asset.get(f))) asset.remove(f);\n}\n\n// Convert managed string boolean\ndef mv = asset.get('managed');\nif ('true'.equals(mv)) asset['managed'] = true;\nelse if ('false'.equals(mv)) asset['managed'] = false;\n\n// Clean hardware nulls and string booleans\ndef hw = asset.get('hardware');\nif (hw instanceof Map) {\n  for (String f : new String[]{'manufacturer','model','serial_number','bios_uuid','chassis_type'}) {\n    if ('null'.equals(hw.get(f))) ((Map)hw).remove(f);\n  }\n  def cpu = ((Map)hw).get('cpu');\n  if (cpu instanceof Map && 'null'.equals(((Map)cpu).get('brand'))) ((Map)cpu).remove('brand');\n}\n\n// Clean OS nulls\ndef os = asset.get('os');\nif (os instanceof Map) {\n  for (String f : new String[]{'name','version','build','platform','architecture'}) {\n    if ('null'.equals(((Map)os).get(f))) ((Map)os).remove(f);\n  }\n}\n\n// Clean org nulls\ndef org = asset.get('organization');\nif (org instanceof Map) {\n  for (String f : new String[]{'owner','department','location'}) {\n    if ('null'.equals(((Map)org).get(f))) ((Map)org).remove(f);\n  }\n}\n\n// Convert compliance string booleans and remove nulls\ndef comp = asset.get('compliance');\nif (comp instanceof Map) {\n  for (String f : new String[]{'encrypted','mdm_enrolled','mdm_compliant','patch_compliant'}) {\n    def v = ((Map)comp).get(f);\n    if ('true'.equals(v)) ((Map)comp)[f] = true;\n    else if ('false'.equals(v)) ((Map)comp)[f] = false;\n    else if ('null'.equals(v)) ((Map)comp).remove(f);\n  }\n}"
+      }
+    },
+    {
+      "script": {
+        "description": "Evaluate M-26-14 Element 1 (HWAM) and Element 2 (SWAM) coverage flags",
+        "lang": "painless",
+        "source": "if (!ctx.containsKey('m2614') || ctx.m2614 == null) ctx['m2614'] = new HashMap();\n\n// Element 1: managed AND seen. Handle boolean, numeric, and string forms.\ndef managedVal = ctx?.asset?.managed;\nboolean managed = (managedVal == true) ||\n                  (managedVal instanceof Number && ((Number)managedVal).intValue() == 1) ||\n                  'true'.equals(managedVal);\nboolean hasSeen = ctx?.asset?.last_seen != null;\nctx.m2614['element1_covered'] = managed && hasSeen;\n\n// Element 2: sourced from a SWAM-capable tool\nboolean hasSwam = false;\ndef hwam = ctx?.m2614?.get('hwam_source');\nif (hwam != null) {\n  def sources = (hwam instanceof List) ? hwam : [hwam.toString()];\n  def swamSources = new HashSet(['osquery','qualys','crowdstrike','tanium','jamf']);\n  for (def s : sources) {\n    if (swamSources.contains(s.toString())) { hasSwam = true; break; }\n  }\n}\nctx.m2614['element2_covered'] = hasSwam;"
+      }
+    },
+    {
+      "fingerprint": {
+        "description": "Baseline state hash: OS version + serial + encryption status. Changes when asset state drifts.",
+        "fields": ["asset.os.version", "asset.os.build", "asset.hardware.serial_number", "asset.compliance.encrypted"],
+        "target_field": "m2614.baseline_hash",
+        "method": "SHA-256",
+        "ignore_missing": true
+      }
+    },
+    {
+      "set": {
+        "description": "Record when baseline was last computed",
+        "field": "m2614.baseline_timestamp",
+        "value": "{{{_ingest.timestamp}}}"
+      }
+    }
+  ]
+}

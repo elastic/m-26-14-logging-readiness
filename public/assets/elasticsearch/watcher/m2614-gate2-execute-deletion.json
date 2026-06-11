@@ -1,0 +1,90 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m2614_compliance",
+    "m2614": {
+      "workstream": 7,
+      "description": "Gate 2 execution: hourly check for approved_gate2 retirement requests. Manually advances ILM past wait_for_snapshot to begin actual deletion. Creates final audit record."
+    }
+  },
+  "trigger": {
+    "schedule": {
+      "interval": "1h"
+    }
+  },
+  "metadata": {
+    "es_host": "https://m-26-14-7ae75d.es.us-east-1.aws.found.io",
+    "auth_header": "Basic ZWxhc3RpYzpOQklyRjc3WnJ4UTRxSnJRenhlT2liM0Y=",
+    "watcher_id": "m2614-gate2-execute-deletion"
+  },
+  "input": {
+    "search": {
+      "request": {
+        "indices": ["m2614-retirement-requests"],
+        "rest_total_hits_as_int": true,
+        "body": {
+          "size": 0,
+          "aggs": {
+            "by_index": {
+              "terms": {
+                "field": "index_name",
+                "size": 200
+              },
+              "aggs": {
+                "latest_state": {
+                  "top_hits": {
+                    "size": 1,
+                    "sort": [{ "@timestamp": { "order": "desc" } }],
+                    "_source": [
+                      "index_name", "state", "request_id",
+                      "gate2_approved_by", "gate2_approved_at",
+                      "gate1_approved_by", "phase_age_days"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "condition": {
+    "script": {
+      "lang": "painless",
+      "source": "def buckets = ctx.payload.aggregations.by_index.buckets; for (def b : buckets) { def latest = b.latest_state.hits.hits[0]._source; if ('approved_gate2'.equals(latest.state)) return true; } return false;"
+    }
+  },
+  "transform": {
+    "script": {
+      "lang": "painless",
+      "source": "def buckets = ctx.payload.aggregations.by_index.buckets;\ndef approved = [];\nfor (def b : buckets) {\n  def latest = b.latest_state.hits.hits[0]._source;\n  if (!'approved_gate2'.equals(latest.state)) continue;\n  String requestId = latest.index_name + '-scheduled-' + ctx.execution_time.toString();\n  approved.add([\n    '@timestamp': ctx.execution_time,\n    'request_id': requestId,\n    'index_name': latest.index_name,\n    'state': 'scheduled_for_deletion',\n    'updated_at': ctx.execution_time,\n    'phase_age_days': latest.phase_age_days != null ? latest.phase_age_days : 0,\n    'gate1_approved_by': latest.gate1_approved_by != null ? latest.gate1_approved_by : 'unknown',\n    'gate2_approved_by': latest.gate2_approved_by != null ? latest.gate2_approved_by : 'unknown',\n    'gate2_approved_at': latest.gate2_approved_at != null ? latest.gate2_approved_at : ctx.execution_time,\n    'delete_policy_applied': true,\n    'watcher_id': ctx.metadata.watcher_id\n  ]);\n}\nreturn ['approved': approved, 'approved_count': approved.size()];"
+    }
+  },
+  "actions": {
+    "advance_ilm_to_delete": {
+      "foreach": "ctx.payload.approved",
+      "max_iterations": 100,
+      "webhook": {
+        "scheme": "https",
+        "host": "m-26-14-7ae75d.es.us-east-1.aws.found.io",
+        "port": 443,
+        "method": "post",
+        "path": "/{{ctx.payload._value.index_name}}/_ilm/move",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Basic ZWxhc3RpYzpOQklyRjc3WnJ4UTRxSnJRenhlT2liM0Y="
+        },
+        "body": "{\"current_step\": {\"phase\": \"delete\", \"action\": \"wait_for_snapshot\", \"name\": \"wait\"}, \"next_step\": {\"phase\": \"delete\", \"action\": \"delete\", \"name\": \"delete\"}}"
+      }
+    },
+    "create_scheduled_deletion_records": {
+      "foreach": "ctx.payload.approved",
+      "max_iterations": 100,
+      "index": {
+        "index": "m2614-retirement-requests",
+        "doc_id": "{{ctx.payload._value.request_id}}"
+      }
+    }
+  }
+}

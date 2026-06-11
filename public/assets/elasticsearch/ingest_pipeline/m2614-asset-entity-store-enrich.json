@@ -1,0 +1,30 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m2614_compliance",
+    "m2614": {
+      "workstream": 7,
+      "description": "Enrich SIEM alert events with m2614.* asset compliance context from the canonical asset index"
+    }
+  },
+  "description": "Enriches incoming security alert and log events with M-26-14 asset compliance context. Looks up the source host.name in m2614-assets and attaches asset.type, asset.criticality, m2614.element1_covered, m2614.element2_covered, and compliance fields. Enables Security UI and Entity Store records to surface compliance posture alongside risk scores.",
+  "processors": [
+    {
+      "enrich": {
+        "description": "Look up asset compliance context by hostname",
+        "policy_name": "m2614-asset-compliance-lookup",
+        "field": "host.name",
+        "target_field": "m2614.asset_context",
+        "ignore_missing": true,
+        "ignore_failure": true
+      }
+    },
+    {
+      "script": {
+        "description": "Promote key asset context fields to top level for Entity Store compatibility",
+        "lang": "painless",
+        "source": "if (ctx?.m2614?.asset_context != null) {\n  Map ctx_m2614 = ctx.m2614;\n  Map ac = ctx_m2614.asset_context;\n  // Promote fields Security/Entity Store can index on\n  if (ac.containsKey('asset.type'))              ctx_m2614['asset_type']         = ac.get('asset.type');\n  if (ac.containsKey('asset.criticality'))       ctx_m2614['criticality']         = ac.get('asset.criticality');\n  if (ac.containsKey('m2614.element1_covered'))  ctx_m2614['element1_covered']    = ac.get('m2614.element1_covered');\n  if (ac.containsKey('m2614.element2_covered'))  ctx_m2614['element2_covered']    = ac.get('m2614.element2_covered');\n  if (ac.containsKey('asset.compliance.encrypted')) ctx_m2614['asset_encrypted']  = ac.get('asset.compliance.encrypted');\n  if (ac.containsKey('asset.managed'))           ctx_m2614['managed']             = ac.get('asset.managed');\n  if (ac.containsKey('asset.last_seen'))         ctx_m2614['asset_last_seen']     = ac.get('asset.last_seen');\n}"
+      }
+    }
+  ]
+}

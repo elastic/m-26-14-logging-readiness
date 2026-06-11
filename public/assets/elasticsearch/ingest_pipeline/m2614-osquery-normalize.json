@@ -27,10 +27,55 @@
       }
     },
     {
+      "script": {
+        "description": "Promote package.publisher and package.category from software catalog enrichment",
+        "lang": "painless",
+        "source": "if (!ctx.containsKey('package') || ctx.package == null) return;\nMap pkg = ctx.package;\nif (!ctx.containsKey('m2614') || ctx.m2614 == null) return;\nMap m2614 = ctx.m2614;\nif (!m2614.containsKey('software') || m2614.software == null) return;\nMap sw = m2614.software;\n// Promote publisher: catalog enrichment wins if present, otherwise keep existing\nif (sw.containsKey('publisher') && sw.publisher != null && !pkg.containsKey('publisher')) {\n  pkg['publisher'] = sw.publisher;\n}\n// Promote category: catalog enrichment wins; normalize to lowercase\nif (sw.containsKey('category') && sw.category != null && !pkg.containsKey('category')) {\n  pkg['category'] = sw.category.toString().toLowerCase();\n}"
+      }
+    },
+    {
       "fingerprint": {
         "description": "Asset identity fingerprint for deduplication across HWAM/SWAM records",
         "fields": ["host.name", "host.id", "m2614.hardware.serial"],
         "target_field": "m2614.asset_fingerprint",
+        "method": "SHA-256",
+        "ignore_missing": true
+      }
+    },
+    {
+      "script": {
+        "description": "Map m2614.hardware.* and host.os.* to unified asset.* schema",
+        "lang": "painless",
+        "source": "if (!ctx.containsKey('asset') || ctx.asset == null) {\n  ctx['asset'] = new HashMap();\n}\nMap asset = ctx.asset;\n\n// asset.name + source + managed\nif (ctx?.host?.name != null && !asset.containsKey('name')) {\n  asset['name'] = ctx.host.name;\n}\nasset['source'] = 'osquery';\nasset['managed'] = true;\nasset['last_seen'] = ctx['@timestamp'];\n\n// asset.hardware.* from m2614.hardware.*\nif (ctx.containsKey('m2614') && ctx.m2614 != null && ctx.m2614.containsKey('hardware') && ctx.m2614.hardware != null) {\n  Map hw = ctx.m2614.hardware;\n  Map assetHw = new HashMap();\n  if (hw.containsKey('vendor') && hw.vendor != null)            assetHw['manufacturer']     = hw.vendor;\n  if (hw.containsKey('model') && hw.model != null)              assetHw['model']            = hw.model;\n  if (hw.containsKey('serial') && hw.serial != null)            assetHw['serial_number']    = hw.serial;\n  if (hw.containsKey('board_vendor') && hw.board_vendor != null) assetHw['bios_manufacturer'] = hw.board_vendor;\n  if (hw.containsKey('board_model') && hw.board_model != null)  assetHw['bios_version']     = hw.board_model;\n  if (hw.containsKey('cpu_brand') && hw.cpu_brand != null) {\n    Map cpu = new HashMap();\n    cpu['brand'] = hw.cpu_brand;\n    if (hw.containsKey('cpu_cores_physical') && hw.cpu_cores_physical != null) cpu['cores_physical'] = hw.cpu_cores_physical;\n    if (hw.containsKey('cpu_cores_logical') && hw.cpu_cores_logical != null)   cpu['cores_logical']  = hw.cpu_cores_logical;\n    assetHw['cpu'] = cpu;\n  }\n  if (hw.containsKey('memory_bytes') && hw.memory_bytes != null) assetHw['memory_bytes'] = hw.memory_bytes;\n  if (assetHw.size() > 0) asset['hardware'] = assetHw;\n}\n\n// asset.os.* from host.os.*\nif (ctx.containsKey('host') && ctx.host != null && ctx.host.containsKey('os') && ctx.host.os != null) {\n  Map os = ctx.host.os;\n  Map assetOs = new HashMap();\n  if (os.containsKey('name') && os.name != null)     assetOs['name']    = os.name;\n  if (os.containsKey('version') && os.version != null) assetOs['version'] = os.version;\n  if (os.containsKey('platform') && os.platform != null) {\n    assetOs['platform'] = os.platform.toLowerCase();\n  } else if (os.containsKey('family') && os.family != null) {\n    assetOs['platform'] = os.family.toLowerCase();\n  }\n  if (os.containsKey('arch') && os.arch != null) assetOs['architecture'] = os.arch;\n  // os.build (osquery exposes this as os_version.build or host.os.build)\n  if (os.containsKey('build') && os.build != null)   assetOs['build'] = os.build;\n  if (os.containsKey('eol') && os.eol != null)       assetOs['eol']   = os.eol;\n  if (assetOs.size() > 0) asset['os'] = assetOs;\n}"
+      }
+    },
+    {
+      "script": {
+        "description": "Compute asset.id from best resolution key: serial > agent_id > mac > hostname",
+        "lang": "painless",
+        "source": "Set junkSerials = new HashSet(['', '0', 'default string', 'to be filled by o.e.m.', 'system serial number', 'none', 'not specified', 'o.e.m.', 'na', 'n/a']);\nString keyType = null;\nString rawKey = null;\n\n// 1. Hardware serial\nString serial = null;\nif (ctx.containsKey('asset') && ctx.asset != null && ctx.asset.containsKey('hardware') && ctx.asset.hardware != null) {\n  serial = ctx.asset.hardware.get('serial_number');\n}\nif (serial == null && ctx.containsKey('m2614') && ctx.m2614 != null && ctx.m2614.containsKey('hardware') && ctx.m2614.hardware != null) {\n  serial = ctx.m2614.hardware.get('serial');\n}\nif (serial != null && serial.length() > 0 && !junkSerials.contains(serial.toLowerCase())) {\n  keyType = 'serial';\n  rawKey = serial.toLowerCase();\n}\n\n// 2. Elastic agent ID\nif (keyType == null && ctx.containsKey('agent') && ctx.agent != null && ctx.agent.containsKey('id') && ctx.agent.id != null) {\n  keyType = 'agent';\n  rawKey = ctx.agent.id;\n}\n\n// 3. First MAC address\nif (keyType == null) {\n  String mac = null;\n  if (ctx.containsKey('host') && ctx.host != null && ctx.host.containsKey('mac')) {\n    def macField = ctx.host.mac;\n    if (macField instanceof List) {\n      if (macField.size() > 0) mac = (String)macField[0];\n    } else if (macField instanceof String) {\n      mac = macField;\n    }\n  }\n  if (mac != null && mac.length() > 0) {\n    keyType = 'mac';\n    rawKey = mac.toLowerCase().replace('-', ':');\n  }\n}\n\n// 4. Hostname fallback\nif (keyType == null && ctx.containsKey('host') && ctx.host != null && ctx.host.containsKey('name') && ctx.host.name != null) {\n  keyType = 'hostname';\n  rawKey = ctx.host.name.toLowerCase();\n}\n\n// Store resolution key for fingerprint processor; record confidence\nif (keyType != null) {\n  ctx['_asset_resolution_key'] = keyType + ':' + rawKey;\n  Map confidenceMap = new HashMap();\n  confidenceMap.put('serial', 0.95);\n  confidenceMap.put('agent', 0.85);\n  confidenceMap.put('mac', 0.70);\n  confidenceMap.put('hostname', 0.40);\n  if (!ctx.containsKey('asset') || ctx.asset == null) ctx['asset'] = new HashMap();\n  ctx.asset['_resolution_type'] = keyType;\n  ctx.asset['_resolution_confidence'] = confidenceMap.get(keyType);\n}"
+      }
+    },
+    {
+      "fingerprint": {
+        "description": "Deterministic asset.id from resolution key (same device = same ID regardless of source)",
+        "fields": ["_asset_resolution_key"],
+        "target_field": "asset.id",
+        "method": "SHA-256",
+        "ignore_missing": true
+      }
+    },
+    {
+      "remove": {
+        "field": ["_asset_resolution_key", "asset._resolution_type", "asset._resolution_confidence"],
+        "ignore_missing": true
+      }
+    },
+    {
+      "fingerprint": {
+        "description": "Log integrity hash: asset identity + state + ingest time",
+        "fields": ["asset.id", "asset.os.version", "asset.hardware.serial_number", "@timestamp"],
+        "target_field": "m2614.integrity_hash",
         "method": "SHA-256",
         "ignore_missing": true
       }

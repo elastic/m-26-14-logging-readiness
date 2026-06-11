@@ -1,0 +1,218 @@
+# =============================================================================
+# Elastic Workflow: M-26-14 Data Retirement — Gate 1 Detection
+# Category: compliance/data-management
+#
+# Daily scan using Elastic AI Agent to identify M-26-14 managed frozen
+# indices that exceed the retention threshold and have no active retirement
+# request. Creates a Gate 1 Kibana Case for human approval and indexes
+# pending_gate1 audit records. Satisfies M-26-14 Element 4 chain-of-custody
+# requirements before any log data deletion.
+#
+# Schema: github.com/elastic/workflows
+# Author: Elastic / M-26-14 Compliance Pack
+# Tags: M-26-14, Compliance, Data Retirement, Scheduled
+# =============================================================================
+version: "1"
+name: M-26-14 Data Retirement — Gate 1 Detection
+description: >
+  Scheduled daily scan (and manual trigger) that uses Elastic AI Agent to
+  identify M-26-14 frozen indices older than the configured threshold with
+  no active retirement request. Creates a Gate 1 approval Kibana Case and
+  indexes pending_gate1 audit records for each candidate. Part of the
+  M-26-14 two-gate data retirement workflow.
+enabled: false
+tags:
+  - M-26-14
+  - Compliance
+  - Data Retirement
+  - Scheduled
+
+# ---------------------------------------------------------------------------
+# CONSTANTS — update before enabling
+# ---------------------------------------------------------------------------
+consts:
+  frozen_threshold_days: 30
+  retirement_index: m2614-retirement-requests
+  notification_connector_id: YOUR-SLACK-OR-EMAIL-CONNECTOR-ID
+
+# ---------------------------------------------------------------------------
+# TRIGGERS
+# ---------------------------------------------------------------------------
+triggers:
+  - type: scheduled
+    with:
+      rrule:
+        freq: DAILY
+        interval: 1
+        tzid: UTC
+        byhour:
+          - 6
+        byminute:
+          - 0
+  - type: manual
+
+# ---------------------------------------------------------------------------
+# STEPS
+# ---------------------------------------------------------------------------
+steps:
+
+  # -------------------------------------------------------------------------
+  # STEP 1: find_retirement_candidates
+  # -------------------------------------------------------------------------
+  # AI Agent queries ILM explain + m2614-retirement-requests to identify
+  # frozen indices exceeding the threshold with no active retirement request.
+  # -------------------------------------------------------------------------
+  - name: find_retirement_candidates
+    type: ai.agent
+    agent-id: elastic-ai-agent
+    with:
+      message: |
+        You are performing a data retirement compliance check for M-26-14.
+
+        Step 1: Query GET /_all/_ilm/explain?only_managed=true to get the
+        current ILM lifecycle status for all managed indices.
+
+        Step 2: Query POST /m2614-retirement-requests/_search with this body
+        to get all indices that already have an active retirement request:
+        {
+          "size": 0,
+          "query": {
+            "terms": {
+              "state": [
+                "pending_gate1","approved_gate1",
+                "pending_gate2","approved_gate2",
+                "scheduled_for_deletion"
+              ]
+            }
+          },
+          "aggs": {
+            "by_index": { "terms": { "field": "index_name", "size": 500 } }
+          }
+        }
+
+        Step 3: Build the candidate list. For each index in the ILM response:
+          - SKIP if the index name does not contain "m2614"
+          - SKIP if the index is not in the "frozen" ILM phase
+          - SKIP if the index appears in the retirement-requests aggregation
+            (it already has an active request)
+          - SKIP if phase_time_millis indicates it has been frozen for LESS
+            than {{ consts.frozen_threshold_days }} days
+            (age = (now_epoch_ms - phase_time_millis) / 86400000)
+          - Otherwise, add it: index name, days frozen, current ILM policy
+
+        Return your findings in EXACTLY this format — no other text:
+
+        If candidates found:
+        CANDIDATES_FOUND
+        INDEX: <name> | DAYS_FROZEN: <n> | POLICY: <policy_name>
+        (one line per candidate)
+
+        If no candidates found:
+        NO_CANDIDATES
+    timeout: 120s
+    on-failure:
+      continue: false
+      retry:
+        max-attempts: 2
+        delay: 15s
+
+  # -------------------------------------------------------------------------
+  # STEP 2: log_scan_result
+  # -------------------------------------------------------------------------
+  - name: log_scan_result
+    type: console
+    with:
+      message: "Gate 1 scan ({{ execution.startedAt | date: '%Y-%m-%d' }}): {{ steps.find_retirement_candidates.output.message }}"
+
+  # -------------------------------------------------------------------------
+  # STEP 3: open_gate1_cases_and_audit
+  # -------------------------------------------------------------------------
+  # Conditional: only execute if CANDIDATES_FOUND in agent output.
+  # -------------------------------------------------------------------------
+  - name: open_gate1_cases_and_audit
+    type: if
+    condition: 'steps.find_retirement_candidates.output.message: *CANDIDATES_FOUND*'
+    steps:
+
+      - name: create_gate1_case
+        type: cases.createCase
+        with:
+          title: "M-26-14 Data Retirement — Gate 1 Approval Required ({{ execution.startedAt | date: '%Y-%m-%d' }})"
+          description: |
+            ## M-26-14 Data Retirement: Gate 1 Approval Required
+
+            **Detection Date:** {{ execution.startedAt | date: '%Y-%m-%d %H:%M UTC' }}
+            **Threshold:** Indices frozen longer than {{ consts.frozen_threshold_days }} days
+
+            ### Candidate Indices
+
+            {{ steps.find_retirement_candidates.output.message }}
+
+            ---
+            ### Gate 1 Approval Instructions
+
+            For each candidate index, either approve or cancel:
+
+            **To approve Gate 1** (index to `m2614-retirement-requests`):
+            ```json
+            {
+              "@timestamp": "<now-iso>",
+              "request_id": "<index_name>-gate1",
+              "index_name": "<index_name>",
+              "state": "approved_gate1",
+              "gate1_approved_by": "<your-username>",
+              "gate1_approved_at": "<now-iso>"
+            }
+            ```
+
+            **To cancel:**
+            ```json
+            { "state": "cancelled", "index_name": "<index_name>", "cancelled_by": "<username>" }
+            ```
+
+            After approving, run the **M-26-14 Data Retirement — Gate 1 Approval Handler** workflow.
+
+            ---
+            *Auto-generated by M-26-14 Data Retirement Gate 1 Detection workflow.*
+          owner: securitySolution
+          settings:
+            syncAlerts: false
+          severity: medium
+          tags:
+            - m2614
+            - data-retirement
+            - gate1
+            - compliance
+
+      - name: record_workflow_audit
+        type: elasticsearch.index
+        with:
+          index: "{{ consts.retirement_index }}"
+          id: "workflow-gate1-detect-{{ execution.id }}"
+          document:
+            "@timestamp": "{{ execution.startedAt | date: '%Y-%m-%dT%H:%M:%S.000Z' }}"
+            workflow_execution_id: "{{ execution.id }}"
+            state: gate1_detection_run
+            notes: "Gate 1 detection: candidates identified by Elastic Workflow scheduled run"
+            watcher_id: m2614-data-retirement-gate1-detect
+        on-failure:
+          continue: true
+
+      - name: notify_gate1_pending
+        type: kibana.request
+        with:
+          method: POST
+          path: /api/actions/connector/{{ consts.notification_connector_id }}/_execute
+          body:
+            params:
+              message: |
+                [M-26-14] Data Retirement Gate 1 — Approval Required
+                Date: {{ execution.startedAt | date: '%Y-%m-%d' }}
+
+                Candidate indices frozen beyond {{ consts.frozen_threshold_days }}-day threshold:
+                {{ steps.find_retirement_candidates.output.message }}
+
+                Review the Kibana Case and approve or cancel each candidate.
+                Next step: run the Gate 1 Approval Handler workflow after approving.
+        on-failure:
+          continue: true

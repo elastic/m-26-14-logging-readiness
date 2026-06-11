@@ -1,0 +1,101 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m2614_compliance",
+    "m2614": {
+      "workstream": 7,
+      "description": "Layer 3 canonical asset index — one document per resolved device, upserted by asset.id"
+    }
+  },
+  "index_patterns": ["m2614-assets"],
+  "priority": 500,
+  "template": {
+    "settings": {
+      "index.number_of_shards": 1,
+      "index.number_of_replicas": 1,
+      "index.codec": "best_compression"
+    },
+    "mappings": {
+      "dynamic": true,
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "doc_count":  { "type": "double" },
+        "asset": {
+          "properties": {
+            "id":               { "type": "keyword" },
+            "name":             { "type": "keyword" },
+            "fqdn":             { "type": "keyword" },
+            "type":             { "type": "keyword" },
+            "status":           { "type": "keyword" },
+            "managed":          { "type": "boolean" },
+            "criticality":      { "type": "keyword" },
+            "source":           { "type": "keyword" },
+            "discovery_method": { "type": "keyword" },
+            "first_seen":       { "type": "date" },
+            "last_seen":        { "type": "date" },
+            "compliance": {
+              "properties": {
+                "encrypted":              { "type": "boolean" },
+                "mdm_enrolled":           { "type": "boolean" },
+                "mdm_compliant":          { "type": "boolean" },
+                "patch_compliant":        { "type": "boolean" },
+                "app_allowlist_enforced": { "type": "boolean" },
+                "aad_join_type":          { "type": "keyword" },
+                "last_check":             { "type": "date" }
+              }
+            },
+            "hardware": {
+              "properties": {
+                "manufacturer":      { "type": "keyword" },
+                "model":             { "type": "keyword" },
+                "serial_number":     { "type": "keyword" },
+                "bios_uuid":         { "type": "keyword" },
+                "memory_bytes":      { "type": "long" },
+                "cpu": {
+                  "properties": {
+                    "brand":          { "type": "keyword" },
+                    "cores_physical": { "type": "integer" }
+                  }
+                }
+              }
+            },
+            "os": {
+              "properties": {
+                "name":     { "type": "keyword" },
+                "version":  { "type": "keyword" },
+                "build":    { "type": "keyword" },
+                "platform": { "type": "keyword" },
+                "eol":      { "type": "boolean" }
+              }
+            },
+            "organization": {
+              "properties": {
+                "owner":      { "type": "keyword" },
+                "department": { "type": "keyword" },
+                "location":   { "type": "keyword" },
+                "asset_tag":  { "type": "keyword" }
+              }
+            },
+            "risk": {
+              "properties": {
+                "criticality_score": { "type": "float" },
+                "exposure_score":    { "type": "float" },
+                "scanner_score":     { "type": "float" }
+              }
+            }
+          }
+        },
+        "m2614": {
+          "properties": {
+            "element1_covered":   { "type": "boolean" },
+            "element2_covered":   { "type": "boolean" },
+            "hwam_source":        { "type": "keyword" },
+            "baseline_hash":      { "type": "keyword" },
+            "baseline_timestamp": { "type": "date" },
+            "drift_detected":     { "type": "boolean" }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m2614_compliance",
+    "m2614": {
+      "workstream": 7,
+      "description": "Source-agnostic asset normalizer: maps any HWAM/SWAM source to unified asset.* schema and computes deterministic asset.id"
+    }
+  },
+  "description": "Normalize asset inventory events from any source (osquery, CrowdStrike, Tenable, Qualys, Intune, Jamf, ServiceNow) to the unified asset.* schema. Called by source-specific sub-pipelines after their own field extraction.",
+  "processors": [
+    {
+      "script": {
+        "description": "Ensure asset object exists; set source-agnostic defaults",
+        "lang": "painless",
+        "source": "if (!ctx.containsKey('asset') || ctx.asset == null) {\n  ctx['asset'] = new HashMap();\n}\nMap asset = ctx.asset;\n\n// asset.last_seen defaults to ingest time\nif (!asset.containsKey('last_seen') || asset.last_seen == null) {\n  asset['last_seen'] = ctx['@timestamp'];\n}\n\n// asset.name fallback chain: asset.name > asset.fqdn short > host.name > agent.name\nif (!asset.containsKey('name') || asset.name == null) {\n  if (ctx.containsKey('host') && ctx.host != null && ctx.host.containsKey('name') && ctx.host.name != null) {\n    asset['name'] = ctx.host.name;\n  } else if (ctx.containsKey('agent') && ctx.agent != null && ctx.agent.containsKey('name') && ctx.agent.name != null) {\n    asset['name'] = ctx.agent.name;\n  }\n}\n\n// asset.status default\nif (!asset.containsKey('status') || asset.status == null) {\n  asset['status'] = 'active';\n}\n\n// Sync asset.managed to m2614.managed\nif (!ctx.containsKey('m2614') || ctx.m2614 == null) ctx['m2614'] = new HashMap();\nif (asset.containsKey('managed')) {\n  ctx.m2614['managed'] = asset.managed;\n}\nif (asset.containsKey('source')) {\n  ctx.m2614['hwam_source'] = asset.source;\n}"
+      }
+    },
+    {
+      "script": {
+        "description": "Compute asset.id from best available resolution key: serial > bios_uuid > agent_id > mac > hostname",
+        "lang": "painless",
+        "source": "Set junkSerials = new HashSet(['', '0', 'default string', 'to be filled by o.e.m.', 'system serial number', 'none', 'not specified', 'o.e.m.', 'na', 'n/a', 'not available', 'chassis serial number']);\nMap asset = ctx.asset;\nString keyType = null;\nString rawKey = null;\n\n// 1. Hardware serial number\nif (asset.containsKey('hardware') && asset.hardware != null) {\n  String serial = asset.hardware.get('serial_number');\n  if (serial != null && serial.length() > 0 && !junkSerials.contains(serial.toLowerCase().trim())) {\n    keyType = 'serial';\n    rawKey = serial.toLowerCase().trim();\n  }\n  // 2. BIOS UUID\n  if (keyType == null) {\n    String biosUuid = asset.hardware.get('bios_uuid');\n    if (biosUuid != null && biosUuid.length() > 0) {\n      // Reject all-zeros UUID\n      String stripped = biosUuid.replace('-','').replace(' ','').toLowerCase();\n      if (!stripped.equals('00000000000000000000000000000000') && stripped.length() >= 32) {\n        keyType = 'bios_uuid';\n        rawKey = biosUuid.toLowerCase().trim();\n      }\n    }\n  }\n}\n\n// 3. Elastic agent ID\nif (keyType == null && ctx.containsKey('agent') && ctx.agent != null && ctx.agent.containsKey('id') && ctx.agent.id != null && ctx.agent.id.length() > 0) {\n  keyType = 'agent';\n  rawKey = ctx.agent.id;\n}\n\n// 4. source_id (e.g. CrowdStrike device_id, Tenable uuid)\nif (keyType == null && asset.containsKey('source_id') && asset.source_id != null && asset.source_id.length() > 0) {\n  keyType = 'source_id:' + (asset.source != null ? asset.source : 'unknown');\n  rawKey = asset.source_id;\n}\n\n// 5. First MAC address\nif (keyType == null) {\n  String mac = null;\n  if (ctx.containsKey('host') && ctx.host != null && ctx.host.containsKey('mac')) {\n    def macField = ctx.host.mac;\n    if (macField instanceof List && macField.size() > 0) mac = (String)macField[0];\n    else if (macField instanceof String && macField.length() > 0) mac = macField;\n  }\n  if (mac == null && asset.containsKey('network') && asset.network instanceof List && asset.network.size() > 0) {\n    mac = asset.network[0].get('mac');\n  }\n  if (mac != null && mac.length() > 0) {\n    keyType = 'mac';\n    rawKey = mac.toLowerCase().replace('-',':');\n  }\n}\n\n// 6. Hostname fallback\nif (keyType == null && asset.containsKey('name') && asset.name != null && asset.name.length() > 0) {\n  keyType = 'hostname';\n  rawKey = asset.name.toLowerCase();\n}\n\n// Store resolution key for fingerprint; skip if asset.id already set\nif (keyType != null && (!asset.containsKey('id') || asset.id == null)) {\n  ctx['_asset_resolution_key'] = 'm2614-asset:' + keyType + ':' + rawKey;\n  Map conf = ['serial':0.95,'bios_uuid':0.90,'agent':0.85,'mac':0.70,'hostname':0.40];\n  String confKey = keyType.contains(':') ? keyType.substring(0, keyType.indexOf(':')) : keyType;\n  asset['_resolution_confidence'] = conf.containsKey(confKey) ? conf.get(confKey) : 0.30;\n}"
+      }
+    },
+    {
+      "fingerprint": {
+        "description": "Deterministic asset.id: same device → same ID across all sources and over time",
+        "fields": ["_asset_resolution_key"],
+        "target_field": "asset.id",
+        "method": "SHA-256",
+        "ignore_missing": true
+      }
+    },
+    {
+      "remove": {
+        "field": ["_asset_resolution_key", "asset._resolution_confidence"],
+        "ignore_missing": true
+      }
+    },
+    {
+      "script": {
+        "description": "Cross-populate os.build and os.eol: asset.os.* ↔ top-level os.*",
+        "lang": "painless",
+        "source": "Map assetOs = (ctx.containsKey('asset') && ctx.asset != null) ? ctx.asset.get('os') : null;\nMap topOs = ctx.containsKey('os') ? ctx.os : null;\n\n// Ensure top-level os object exists if asset.os has data\nif (assetOs != null && assetOs.size() > 0) {\n  if (topOs == null) {\n    topOs = new HashMap();\n    ctx['os'] = topOs;\n  }\n  // asset.os → top-level os (fill gaps only)\n  for (String k : new String[]{'name','version','build','platform','architecture','eol','kernel'}) {\n    if (assetOs.containsKey(k) && assetOs.get(k) != null && !topOs.containsKey(k)) {\n      topOs.put(k, assetOs.get(k));\n    }\n  }\n}\n\n// top-level os → asset.os (fill gaps in reverse)\nif (topOs != null && topOs.size() > 0 && assetOs != null) {\n  for (String k : new String[]{'build','eol'}) {\n    if (topOs.containsKey(k) && topOs.get(k) != null && !assetOs.containsKey(k)) {\n      assetOs.put(k, topOs.get(k));\n    }\n  }\n}"
+      }
+    },
+    {
+      "script": {
+        "description": "Compute vulnerability.age_days from vulnerability.first_found if not already set",
+        "lang": "painless",
+        "source": "if (!ctx.containsKey('vulnerability') || ctx.vulnerability == null) return;\nMap vuln = ctx.vulnerability;\nif (vuln.containsKey('age_days') && vuln.get('age_days') != null) return;\nif (!vuln.containsKey('first_found') || vuln.get('first_found') == null) return;\ntry {\n  ZonedDateTime ff = ZonedDateTime.parse(vuln.first_found.toString());\n  ZonedDateTime ts = ZonedDateTime.parse(ctx['@timestamp'].toString());\n  long ageDays = java.time.temporal.ChronoUnit.DAYS.between(ff, ts);\n  if (ageDays >= 0) vuln['age_days'] = ageDays;\n} catch (Exception e) { /* ignore parse failures */ }"
+      }
+    },
+    {
+      "fingerprint": {
+        "description": "Log integrity hash covering asset identity + state + ingest time",
+        "fields": ["asset.id", "asset.os.version", "asset.hardware.serial_number", "@timestamp"],
+        "target_field": "m2614.integrity_hash",
+        "method": "SHA-256",
+        "ignore_missing": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m2614_compliance",
+    "m2614": {
+      "description": "Long-term compliance snapshot policy — 7-year retention for M-26-14 audit requirements. Referenced by wait_for_snapshot in ILM delete phases to guarantee snapshot before deletion."
+    }
+  },
+  "schedule": "0 0 2 * * ?",
+  "name": "<m2614-compliance-{now/d}>",
+  "repository": "found-snapshots",
+  "config": {
+    "indices": [
+      "m2614-*",
+      ".ds-logs-m2614*",
+      ".ds-logs-m2614_*"
+    ],
+    "include_global_state": false,
+    "partial": false
+  },
+  "retention": {
+    "expire_after": "2555d",
+    "min_count": 1,
+    "max_count": 2555
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m2614_compliance",
+    "m2614": {
+      "workstream": 7,
+      "description": "Gate 1 approval handler: hourly check for approved_gate1 retirement requests. Switches index ILM policy to delete-enabled variant, creates pending_gate2 audit record, opens Gate 2 Kibana Case."
+    }
+  },
+  "trigger": {
+    "schedule": {
+      "interval": "1h"
+    }
+  },
+  "metadata": {
+    "es_host": "https://m-26-14-7ae75d.es.us-east-1.aws.found.io",
+    "auth_header": "Basic ZWxhc3RpYzpOQklyRjc3WnJ4UTRxSnJRenhlT2liM0Y=",
+    "watcher_id": "m2614-gate1-approval-advance"
+  },
+  "input": {
+    "search": {
+      "request": {
+        "indices": ["m2614-retirement-requests"],
+        "rest_total_hits_as_int": true,
+        "body": {
+          "size": 0,
+          "aggs": {
+            "by_index": {
+              "terms": {
+                "field": "index_name",
+                "size": 200
+              },
+              "aggs": {
+                "latest_state": {
+                  "top_hits": {
+                    "size": 1,
+                    "sort": [{ "@timestamp": { "order": "desc" } }],
+                    "_source": [
+                      "index_name", "state", "request_id",
+                      "ilm_policy", "phase_age_days", "gate1_approved_by"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "condition": {
+    "script": {
+      "lang": "painless",
+      "source": "def buckets = ctx.payload['aggregations']['by_index']['buckets']; for (def b : buckets) { def hits = b['latest_state']['hits']['hits']; if (hits != null && hits.size() > 0 && 'approved_gate1'.equals(hits[0]['_source']['state'])) return true; } return false;"
+    }
+  },
+  "transform": {
+    "script": {
+      "lang": "painless",
+      "source": "def ilmPolicyMap = ['m2614-logs-l3-no-delete': 'm2614-logs-l3-hot-frozen', 'm2614-logs-l4-no-delete': 'm2614-logs-l4-hot-frozen']; def buckets = ctx.payload['aggregations']['by_index']['buckets']; def approved = []; for (def b : buckets) { def hits = b['latest_state']['hits']['hits']; if (hits == null || hits.size() == 0) continue; def src = hits[0]['_source']; if (!'approved_gate1'.equals(src['state'])) continue; String indexName = src['index_name'].toString(); String origPolicy = src['ilm_policy'] != null ? src['ilm_policy'].toString() : 'unknown'; String deletePolicy = ilmPolicyMap.containsKey(origPolicy) ? ilmPolicyMap[origPolicy] : origPolicy; String approvedBy = src['gate1_approved_by'] != null ? src['gate1_approved_by'].toString() : 'system'; int ageDays = src['phase_age_days'] != null ? (int)(src['phase_age_days']) : 0; String requestId = indexName + '-gate2'; approved.add(['@timestamp': ctx.execution_time, 'request_id': requestId, 'index_name': indexName, 'state': 'pending_gate2', 'created_at': ctx.execution_time, 'updated_at': ctx.execution_time, 'phase_age_days': ageDays, 'ilm_policy': origPolicy, 'delete_policy': deletePolicy, 'ilm_phase': 'frozen', 'gate1_approved_by': approvedBy, 'delete_policy_applied': true, 'watcher_id': ctx.metadata['watcher_id']]); } StringBuilder sb = new StringBuilder(); for (def a : approved) { sb.append('- ').append(a['index_name']).append(' (Gate1 by: ').append(a['gate1_approved_by']).append(', frozen ').append(a['phase_age_days']).append('d) '); } return ['approved': approved, 'approved_count': approved.size(), 'summary_text': sb.toString()];"
+    }
+  },
+  "actions": {
+    "switch_to_delete_policy": {
+      "foreach": "ctx.payload.approved",
+      "max_iterations": 100,
+      "webhook": {
+        "scheme": "https",
+        "host": "m-26-14-7ae75d.es.us-east-1.aws.found.io",
+        "port": 443,
+        "method": "put",
+        "path": "/{{ctx.payload._value.index_name}}/_settings",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Basic ZWxhc3RpYzpOQklyRjc3WnJ4UTRxSnJRenhlT2liM0Y="
+        },
+        "body": "{\"index.lifecycle.name\": \"{{ctx.payload._value.delete_policy}}\"}"
+      }
+    },
+    "create_pending_gate2_records": {
+      "foreach": "ctx.payload.approved",
+      "max_iterations": 100,
+      "index": {
+        "index": "m2614-retirement-requests",
+        "doc_id": "{{ctx.payload._value.request_id}}"
+      }
+    },
+    "open_gate2_kibana_case": {
+      "webhook": {
+        "scheme": "https",
+        "host": "m-26-14-7ae75d.kb.us-east-1.aws.found.io",
+        "port": 443,
+        "method": "post",
+        "path": "/api/cases",
+        "headers": {
+          "Content-Type": "application/json",
+          "kbn-xsrf": "watcher",
+          "Authorization": "Basic ZWxhc3RpYzpOQklyRjc3WnJ4UTRxSnJRenhlT2liM0Y="
+        },
+        "body": "{\"title\": \"M-26-14 Data Retirement - Gate 2 Deletion Approval Required ({{ctx.payload.approved_count}} index(es))\", \"description\": \"Gate 1 has been approved. Indices switched to deletion-enabled ILM. ILM will take a compliance snapshot (wait_for_snapshot) before proceeding. ACTION REQUIRED (Gate 2): Once snapshot is confirmed, authorize final deletion by indexing to m2614-retirement-requests with {state: approved_gate2, index_name: <name>, gate2_approved_by: <username>}. Indices: {{ctx.payload.summary_text}} Verify snapshots: Kibana > Stack Management > Snapshot and Restore.\", \"tags\": [\"m2614\", \"data-retirement\", \"gate2\", \"compliance\"], \"connector\": {\"id\": \"none\", \"name\": \"none\", \"type\": \".none\", \"fields\": null}, \"settings\": {\"syncAlerts\": false}, \"severity\": \"high\", \"owner\": \"securitySolution\"}"
+      }
+    }
+  }
+}

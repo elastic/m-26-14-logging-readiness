@@ -1,0 +1,103 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m2614_compliance",
+    "m2614": {
+      "workstream": 7,
+      "description": "Legal hold / selective copy template. Trigger manually via POST /_watcher/watch/m2614-selective-copy-legal-hold/_execute after customizing metadata.params. Reindexes a query-scoped subset into a named retained index (no-delete ILM) then snapshots it."
+    }
+  },
+  "trigger": {
+    "schedule": {
+      "interval": "365d"
+    }
+  },
+  "metadata": {
+    "es_host": "https://m-26-14-7ae75d.es.us-east-1.aws.found.io",
+    "auth_header": "Basic ZWxhc3RpYzpOQklyRjc3WnJ4UTRxSnJRenhlT2liM0Y=",
+    "watcher_id": "m2614-selective-copy-legal-hold",
+    "params": {
+      "source_index": ".ds-logs-m2614.dns-default-*",
+      "dest_index": "m2614-retained-dns-2026-holdname",
+      "hold_reason": "Legal hold: replace with case-id or investigation reference",
+      "held_by": "replace-with-approver-username"
+    }
+  },
+  "input": {
+    "http": {
+      "request": {
+        "url": "https://m-26-14-7ae75d.es.us-east-1.aws.found.io/_reindex?wait_for_completion=false",
+        "method": "post",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Basic ZWxhc3RpYzpOQklyRjc3WnJ4UTRxSnJRenhlT2liM0Y="
+        },
+        "body": "{\"source\": {\"index\": \"{{ctx.metadata.params.source_index}}\"}, \"dest\": {\"index\": \"{{ctx.metadata.params.dest_index}}\", \"op_type\": \"create\"}}",
+        "connection_timeout": "10s",
+        "read_timeout": "15s"
+      }
+    }
+  },
+  "condition": {
+    "script": {
+      "lang": "painless",
+      "source": "return ctx.payload['task'] != null;"
+    }
+  },
+  "transform": {
+    "script": {
+      "lang": "painless",
+      "source": "String taskId = ctx.payload['task'] != null ? ctx.payload['task'].toString() : 'unknown'; String destIndex = ctx.metadata['params']['dest_index'].toString(); String heldBy = ctx.metadata['params']['held_by'].toString(); String holdReason = ctx.metadata['params']['hold_reason'].toString(); String requestId = destIndex + '-legalhold'; return ['task_id': taskId, 'dest_index': destIndex, 'held_by': heldBy, 'hold_reason': holdReason, 'request_id': requestId, 'audit_doc': ['@timestamp': ctx.execution_time, 'request_id': requestId, 'index_name': destIndex, 'state': 'legal_hold_initiated', 'created_at': ctx.execution_time, 'updated_at': ctx.execution_time, 'ilm_policy': 'm2614-logs-l3-no-delete', 'ilm_phase': 'pending', 'notes': holdReason, 'gate1_approved_by': heldBy, 'watcher_id': ctx.metadata['watcher_id'], 'reindex_task_id': taskId]];"
+    }
+  },
+  "actions": {
+    "create_legal_hold_audit_record": {
+      "index": {
+        "index": "m2614-retirement-requests",
+        "doc_id": "{{ctx.payload.request_id}}"
+      }
+    },
+    "apply_no_delete_ilm_policy": {
+      "webhook": {
+        "scheme": "https",
+        "host": "m-26-14-7ae75d.es.us-east-1.aws.found.io",
+        "port": 443,
+        "method": "put",
+        "path": "/{{ctx.payload.dest_index}}/_settings",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Basic ZWxhc3RpYzpOQklyRjc3WnJ4UTRxSnJRenhlT2liM0Y="
+        },
+        "body": "{\"index.lifecycle.name\": \"m2614-logs-l3-no-delete\"}"
+      }
+    },
+    "trigger_compliance_snapshot": {
+      "webhook": {
+        "scheme": "https",
+        "host": "m-26-14-7ae75d.es.us-east-1.aws.found.io",
+        "port": 443,
+        "method": "put",
+        "path": "/_slm/policy/m2614-compliance-snapshots/_execute",
+        "headers": {
+          "Authorization": "Basic ZWxhc3RpYzpOQklyRjc3WnJ4UTRxSnJRenhlT2liM0Y="
+        },
+        "body": ""
+      }
+    },
+    "open_legal_hold_kibana_case": {
+      "webhook": {
+        "scheme": "https",
+        "host": "m-26-14-7ae75d.kb.us-east-1.aws.found.io",
+        "port": 443,
+        "method": "post",
+        "path": "/api/cases",
+        "headers": {
+          "Content-Type": "application/json",
+          "kbn-xsrf": "watcher",
+          "Authorization": "Basic ZWxhc3RpYzpOQklyRjc3WnJ4UTRxSnJRenhlT2liM0Y="
+        },
+        "body": "{\"title\": \"M-26-14 Legal Hold Created: {{ctx.payload.dest_index}}\", \"description\": \"A legal hold selective copy has been initiated. Source: {{ctx.metadata.params.source_index}} | Destination: {{ctx.payload.dest_index}} | Reason: {{ctx.payload.hold_reason}} | Initiated by: {{ctx.payload.held_by}} | Reindex task: {{ctx.payload.task_id}} | The retained index is assigned m2614-logs-l3-no-delete ILM (indefinite retention). A compliance snapshot has been triggered. Monitor: GET _tasks/{{ctx.payload.task_id}}\", \"tags\": [\"m2614\", \"legal-hold\", \"data-retention\", \"compliance\"], \"connector\": {\"id\": \"none\", \"name\": \"none\", \"type\": \".none\", \"fields\": null}, \"settings\": {\"syncAlerts\": false}, \"severity\": \"medium\", \"owner\": \"securitySolution\"}"
+      }
+    }
+  }
+}

@@ -1,0 +1,116 @@
+# =============================================================================
+# Elastic Workflow: M-26-14 Data Retirement — Gate 2 Execution
+# Category: compliance/data-management
+#
+# Manual workflow triggered after Gate 2 final deletion is authorized.
+# Advances ILM past the wait_for_snapshot gate to execute deletion,
+# records the scheduled_for_deletion audit state.
+#
+# PREREQUISITE: Verify that a durable snapshot of the index exists in
+# the m2614-compliance-snapshots SLM policy BEFORE running this workflow.
+# Kibana → Stack Management → Snapshot and Restore
+#
+# NOTE: kibana.request uses /internal/es/ to proxy ES API through Kibana.
+# Adjust prefix if your Kibana version differs.
+#
+# Schema: github.com/elastic/workflows
+# Author: Elastic / M-26-14 Compliance Pack
+# Tags: M-26-14, Compliance, Data Retirement, Manual
+# =============================================================================
+version: "1"
+name: M-26-14 Data Retirement — Gate 2 Execution
+description: >
+  Manual workflow: run after Gate 2 final deletion authorization is confirmed
+  for a specific index. Advances ILM past the wait_for_snapshot step to
+  execute deletion and records the scheduled_for_deletion audit state.
+  Requires verified snapshot existence before running.
+enabled: false
+tags:
+  - M-26-14
+  - Compliance
+  - Data Retirement
+  - Manual
+
+# ---------------------------------------------------------------------------
+# CONSTANTS
+# ---------------------------------------------------------------------------
+consts:
+  retirement_index: m2614-retirement-requests
+
+# ---------------------------------------------------------------------------
+# TRIGGERS — manual only
+# ---------------------------------------------------------------------------
+triggers:
+  - type: manual
+    inputs:
+      - name: index_name
+        type: string
+        description: "Index with Gate 2 approval to execute deletion (e.g. .ds-logs-m2614.dns-default-2025.01)"
+      - name: gate2_approved_by
+        type: string
+        description: "Username of the Gate 2 approver"
+      - name: gate1_approved_by
+        type: string
+        description: "Username of the Gate 1 approver (for complete audit record)"
+
+# ---------------------------------------------------------------------------
+# STEPS
+# ---------------------------------------------------------------------------
+steps:
+
+  # -------------------------------------------------------------------------
+  # STEP 1: advance_ilm_to_delete
+  # -------------------------------------------------------------------------
+  # Moves the index past wait_for_snapshot to the actual delete action.
+  # This is irreversible — confirm snapshot exists before running.
+  # NOTE: /internal/es/ proxies ES API through Kibana. Adjust if needed.
+  # -------------------------------------------------------------------------
+  - name: advance_ilm_to_delete
+    type: kibana.request
+    with:
+      method: POST
+      path: /internal/es/{{ inputs.index_name }}/_ilm/move
+      body:
+        current_step:
+          phase: delete
+          action: wait_for_snapshot
+          name: wait
+        next_step:
+          phase: delete
+          action: delete
+          name: delete
+    on-failure:
+      continue: false
+      retry:
+        max-attempts: 2
+        delay: 10s
+
+  # -------------------------------------------------------------------------
+  # STEP 2: record_scheduled_deletion
+  # -------------------------------------------------------------------------
+  - name: record_scheduled_deletion
+    type: elasticsearch.index
+    with:
+      index: "{{ consts.retirement_index }}"
+      id: "{{ inputs.index_name }}-scheduled-{{ execution.id }}"
+      document:
+        "@timestamp": "{{ execution.startedAt | date: '%Y-%m-%dT%H:%M:%S.000Z' }}"
+        request_id: "{{ inputs.index_name }}-scheduled-{{ execution.id }}"
+        index_name: "{{ inputs.index_name }}"
+        state: scheduled_for_deletion
+        updated_at: "{{ execution.startedAt | date: '%Y-%m-%dT%H:%M:%S.000Z' }}"
+        gate1_approved_by: "{{ inputs.gate1_approved_by }}"
+        gate2_approved_by: "{{ inputs.gate2_approved_by }}"
+        gate2_approved_at: "{{ execution.startedAt | date: '%Y-%m-%dT%H:%M:%S.000Z' }}"
+        delete_policy_applied: true
+        watcher_id: m2614-data-retirement-gate2-execute
+    on-failure:
+      continue: true
+
+  # -------------------------------------------------------------------------
+  # STEP 3: log_completion
+  # -------------------------------------------------------------------------
+  - name: log_completion
+    type: console
+    with:
+      message: "Gate 2 executed for {{ inputs.index_name }}. ILM advanced past wait_for_snapshot. Deletion scheduled. Gate1: {{ inputs.gate1_approved_by }}, Gate2: {{ inputs.gate2_approved_by }}"

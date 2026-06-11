@@ -164,6 +164,23 @@ const MATRIX_ROWS = [
       { name: 'ILM — L4 Hot Tier Floor', type: 'platform', desc: 'Hot retention extended to 180 days — satisfies both L4 CEM searchable and THIRF retrievable requirements from a single policy.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/index-lifecycle-management.html' },
     ],
   },
+  {
+    phase: 1,
+    firstLevel: 1,
+    req: 'Two-gate data retirement with snapshot audit trail',
+    reqDesc: 'Before compliance log data can be permanently deleted, agencies must ensure a durable snapshot exists and obtain documented approvals — satisfying chain-of-custody requirements across all maturity levels.',
+    cap: 'Kibana Workflows + SLM policy + Kibana Cases + Audit Index',
+    capDesc: 'Automated two-gate workflow: daily scan identifies aged frozen indices → Gate 1 Kibana Case for human approval → ILM wait_for_snapshot ensures backup exists → Gate 2 Case for final deletion authorization. Manual Kibana Workflows execute each gate transition with full audit trail.',
+    modalHow: 'The M-26-14 compliance pack deploys a complete two-gate data retirement system built on Kibana Workflows, Kibana Cases, SLM, and an append-only audit index (m2614-retirement-requests). Detection alerts (Kibana Rules) fire when frozen indices exceed the configurable age threshold and open a Gate 1 Kibana Case for human review — no data is touched until a human approves. Once approved, the Gate 1 Kibana Workflow switches the index to a deletion-enabled ILM policy. ILM wait_for_snapshot then acts as a technical safeguard: deletion is blocked until the SLM policy confirms a durable snapshot exists in S3. Gate 2 requires a second explicit human approval before the Gate 2 Execution Workflow advances ILM past the snapshot gate to execute deletion. Every state transition — detect, approve, snapshot, delete — is recorded in the append-only m2614-retirement-requests audit index. The Legal Hold Workflow enables selective data preservation to a permanent no-delete retained index before retirement begins.',
+    modalAssetIds: ['slm-compliance-snapshots', 'template-retirement-requests', 'watcher-gate1-detect', 'watcher-gate1-approve', 'watcher-gate2-execute', 'watcher-legal-hold-copy', 'rule-dm-gate1-pending', 'rule-dm-gate2-pending', 'workflow-gate1-detect', 'workflow-gate1-approval', 'workflow-gate2-execute', 'workflow-legal-hold'],
+    modalCapabilities: [
+      { name: 'Kibana Workflows', type: 'platform', desc: 'YAML-defined automation engine executing each gate transition: Gate 1 approval switches ILM policy; Gate 2 execution advances ILM past the snapshot gate; Legal Hold workflow reindexes data to a no-delete retained index. Each workflow records a full audit trail in the retirement audit index and opens a Kibana Case.', href: 'https://www.elastic.co/guide/en/kibana/current/workflows.html' },
+      { name: 'Elasticsearch Snapshot Lifecycle Management (SLM)', type: 'platform', desc: 'Automated daily snapshots of all m2614-* indices to S3. Used as the technical gate before deletion — ILM wait_for_snapshot blocks deletion until SLM confirms a durable backup exists.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/snapshot-lifecycle-management.html' },
+      { name: 'ILM wait_for_snapshot', type: 'platform', desc: 'Technical enforcement gate in the ILM delete phase — deletion is blocked until the named SLM policy confirms a successful snapshot. Cannot be bypassed without an explicit human ILM move action.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/ilm-wait-for-snapshot.html' },
+      { name: 'Kibana Cases', type: 'platform', desc: 'Human-in-the-loop approval interface for each retirement gate. Each gate creates a traceable case with full context (index name, age, policy, approver) for the authorizing official.', href: 'https://www.elastic.co/guide/en/kibana/current/cases-overview.html' },
+      { name: 'Elasticsearch Watchers', type: 'platform', desc: 'Event-driven automation engine running gate detection and audit record creation. Works alongside Kibana Workflows — Watchers detect conditions, Workflows execute human-approved transitions.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/xpack-alerting.html' },
+    ],
+  },
 
   // ── Phase 2: Days 2–7 ──────────────────────────────────────────────────────
   {

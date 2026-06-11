@@ -56,6 +56,23 @@
             "hwam_source":       { "type": "keyword" },
             "asset_fingerprint": { "type": "keyword" }
           }
+        },
+        "asset": {
+          "properties": {
+            "id":      { "type": "keyword" },
+            "name":    { "type": "keyword" },
+            "source":  { "type": "keyword" },
+            "managed": { "type": "boolean" },
+            "network": {
+              "type": "nested",
+              "properties": {
+                "interface": { "type": "keyword" },
+                "ip":        { "type": "ip" },
+                "mac":       { "type": "keyword" },
+                "type":      { "type": "keyword" }
+              }
+            }
+          }
         }
       }
     }

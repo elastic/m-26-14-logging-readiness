@@ -41,7 +41,9 @@
             "version":      { "type": "keyword" },
             "type":         { "type": "keyword" },
             "architecture": { "type": "keyword" },
-            "install_path": { "type": "keyword" }
+            "install_path": { "type": "keyword" },
+            "publisher":    { "type": "keyword" },
+            "category":     { "type": "keyword" }
           }
         },
         "osquery": {
@@ -63,6 +65,15 @@
                 "eol":        { "type": "boolean" }
               }
             }
+          }
+        },
+        "asset": {
+          "properties": {
+            "id":       { "type": "keyword" },
+            "name":     { "type": "keyword" },
+            "source":   { "type": "keyword" },
+            "managed":  { "type": "boolean" },
+            "last_seen":{ "type": "date" }
           }
         }
       }

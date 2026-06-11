@@ -100,11 +100,13 @@
             },
             "compliance": {
               "properties": {
-                "encrypted":       { "type": "boolean" },
-                "mdm_enrolled":    { "type": "boolean" },
-                "mdm_compliant":   { "type": "boolean" },
-                "patch_compliant": { "type": "boolean" },
-                "last_check":      { "type": "date" }
+                "encrypted":              { "type": "boolean" },
+                "mdm_enrolled":           { "type": "boolean" },
+                "mdm_compliant":          { "type": "boolean" },
+                "patch_compliant":        { "type": "boolean" },
+                "app_allowlist_enforced": { "type": "boolean" },
+                "aad_join_type":          { "type": "keyword" },
+                "last_check":             { "type": "date" }
               }
             },
             "organization": {
@@ -115,7 +117,64 @@
                 "asset_tag":  { "type": "keyword" },
                 "tags":       { "type": "keyword" }
               }
+            },
+            "risk": {
+              "properties": {
+                "criticality_score": { "type": "float" },
+                "exposure_score":    { "type": "float" },
+                "scanner_score":     { "type": "float" }
+              }
+            },
+            "identity": {
+              "type": "nested",
+              "properties": {
+                "source":     { "type": "keyword" },
+                "id":         { "type": "keyword" },
+                "confidence": { "type": "float" },
+                "last_seen":  { "type": "date" }
+              }
+            },
+            "discovery_method": { "type": "keyword" }
+          }
+        },
+        "os": {
+          "properties": {
+            "name":     { "type": "keyword" },
+            "version":  { "type": "keyword" },
+            "build":    { "type": "keyword" },
+            "family":   { "type": "keyword" },
+            "platform": { "type": "keyword" },
+            "kernel":   { "type": "keyword" },
+            "eol":      { "type": "boolean" }
+          }
+        },
+        "vulnerability": {
+          "properties": {
+            "id":                { "type": "keyword" },
+            "severity":          { "type": "keyword" },
+            "first_found":       { "type": "date" },
+            "last_found":        { "type": "date" },
+            "age_days":          { "type": "long" },
+            "exploit_available": { "type": "boolean" },
+            "patch_available":   { "type": "boolean" },
+            "risk_accepted":     { "type": "boolean" },
+            "score": {
+              "properties": {
+                "base":    { "type": "float" },
+                "version": { "type": "keyword" }
+              }
             }
+          }
+        },
+        "package": {
+          "properties": {
+            "name":         { "type": "keyword" },
+            "version":      { "type": "keyword" },
+            "type":         { "type": "keyword" },
+            "architecture": { "type": "keyword" },
+            "publisher":    { "type": "keyword" },
+            "category":     { "type": "keyword" },
+            "path":         { "type": "keyword" }
           }
         },
         "m2614": {
@@ -124,6 +183,7 @@
             "hwam_source":       { "type": "keyword" },
             "asset_type":        { "type": "keyword" },
             "asset_fingerprint": { "type": "keyword" },
+            "integrity_hash":    { "type": "keyword" },
             "element1_covered":  { "type": "boolean" },
             "element2_covered":  { "type": "boolean" },
             "drift_detected":    { "type": "boolean" },

@@ -39,6 +39,20 @@
       }
     },
     {
+      "script": {
+        "description": "Cross-populate os.build and os.eol: asset.os.* ↔ top-level os.*",
+        "lang": "painless",
+        "source": "Map assetOs = (ctx.containsKey('asset') && ctx.asset != null) ? ctx.asset.get('os') : null;\nMap topOs = ctx.containsKey('os') ? ctx.os : null;\n\n// Ensure top-level os object exists if asset.os has data\nif (assetOs != null && assetOs.size() > 0) {\n  if (topOs == null) {\n    topOs = new HashMap();\n    ctx['os'] = topOs;\n  }\n  // asset.os → top-level os (fill gaps only)\n  for (String k : new String[]{'name','version','build','platform','architecture','eol','kernel'}) {\n    if (assetOs.containsKey(k) && assetOs.get(k) != null && !topOs.containsKey(k)) {\n      topOs.put(k, assetOs.get(k));\n    }\n  }\n}\n\n// top-level os → asset.os (fill gaps in reverse)\nif (topOs != null && topOs.size() > 0 && assetOs != null) {\n  for (String k : new String[]{'build','eol'}) {\n    if (topOs.containsKey(k) && topOs.get(k) != null && !assetOs.containsKey(k)) {\n      assetOs.put(k, topOs.get(k));\n    }\n  }\n}"
+      }
+    },
+    {
+      "script": {
+        "description": "Compute vulnerability.age_days from vulnerability.first_found if not already set",
+        "lang": "painless",
+        "source": "if (!ctx.containsKey('vulnerability') || ctx.vulnerability == null) return;\nMap vuln = ctx.vulnerability;\nif (vuln.containsKey('age_days') && vuln.get('age_days') != null) return;\nif (!vuln.containsKey('first_found') || vuln.get('first_found') == null) return;\ntry {\n  ZonedDateTime ff = ZonedDateTime.parse(vuln.first_found.toString());\n  ZonedDateTime ts = ZonedDateTime.parse(ctx['@timestamp'].toString());\n  long ageDays = java.time.temporal.ChronoUnit.DAYS.between(ff, ts);\n  if (ageDays >= 0) vuln['age_days'] = ageDays;\n} catch (Exception e) { /* ignore parse failures */ }"
+      }
+    },
+    {
       "fingerprint": {
         "description": "Log integrity hash covering asset identity + state + ingest time",
         "fields": ["asset.id", "asset.os.version", "asset.hardware.serial_number", "@timestamp"],

@@ -138,12 +138,12 @@ steps:
       index: "{{ consts.retirement_index }}"
       id: "{{ inputs.dest_index }}-legalhold"
       document:
-        "@timestamp": "{{ execution.startedAt }}"
+        "@timestamp": "{{ execution.startedAt | date: '%Y-%m-%dT%H:%M:%S.000Z' }}"
         request_id: "{{ inputs.dest_index }}-legalhold"
         index_name: "{{ inputs.dest_index }}"
         state: legal_hold_initiated
-        created_at: "{{ execution.startedAt }}"
-        updated_at: "{{ execution.startedAt }}"
+        created_at: "{{ execution.startedAt | date: '%Y-%m-%dT%H:%M:%S.000Z' }}"
+        updated_at: "{{ execution.startedAt | date: '%Y-%m-%dT%H:%M:%S.000Z' }}"
         ilm_policy: "{{ inputs.no_delete_ilm_policy }}"
         ilm_phase: pending
         notes: "{{ inputs.hold_reason }}"

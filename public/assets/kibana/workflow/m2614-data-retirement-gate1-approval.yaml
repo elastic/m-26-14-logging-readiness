@@ -99,16 +99,16 @@ steps:
       index: "{{ consts.retirement_index }}"
       id: "{{ inputs.index_name }}-gate1-approved"
       document:
-        "@timestamp": "{{ execution.startedAt }}"
+        "@timestamp": "{{ execution.startedAt | date: '%Y-%m-%dT%H:%M:%S.000Z' }}"
         request_id: "{{ inputs.index_name }}-gate1"
         index_name: "{{ inputs.index_name }}"
         state: approved_gate1
-        updated_at: "{{ execution.startedAt }}"
+        updated_at: "{{ execution.startedAt | date: '%Y-%m-%dT%H:%M:%S.000Z' }}"
         phase_age_days: "{{ inputs.phase_age_days }}"
         ilm_policy: "{{ inputs.original_ilm_policy }}"
         delete_policy: "{{ inputs.ilm_delete_policy }}"
         gate1_approved_by: "{{ inputs.approved_by }}"
-        gate1_approved_at: "{{ execution.startedAt }}"
+        gate1_approved_at: "{{ execution.startedAt | date: '%Y-%m-%dT%H:%M:%S.000Z' }}"
         delete_policy_applied: true
         watcher_id: m2614-data-retirement-gate1-approval
     on-failure:
@@ -123,12 +123,12 @@ steps:
       index: "{{ consts.retirement_index }}"
       id: "{{ inputs.index_name }}-gate2"
       document:
-        "@timestamp": "{{ execution.startedAt }}"
+        "@timestamp": "{{ execution.startedAt | date: '%Y-%m-%dT%H:%M:%S.000Z' }}"
         request_id: "{{ inputs.index_name }}-gate2"
         index_name: "{{ inputs.index_name }}"
         state: pending_gate2
-        created_at: "{{ execution.startedAt }}"
-        updated_at: "{{ execution.startedAt }}"
+        created_at: "{{ execution.startedAt | date: '%Y-%m-%dT%H:%M:%S.000Z' }}"
+        updated_at: "{{ execution.startedAt | date: '%Y-%m-%dT%H:%M:%S.000Z' }}"
         phase_age_days: "{{ inputs.phase_age_days }}"
         ilm_policy: "{{ inputs.original_ilm_policy }}"
         delete_policy: "{{ inputs.ilm_delete_policy }}"

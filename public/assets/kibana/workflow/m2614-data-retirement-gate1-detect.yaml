@@ -190,7 +190,7 @@ steps:
           index: "{{ consts.retirement_index }}"
           id: "workflow-gate1-detect-{{ execution.id }}"
           document:
-            "@timestamp": "{{ execution.startedAt }}"
+            "@timestamp": "{{ execution.startedAt | date: '%Y-%m-%dT%H:%M:%S.000Z' }}"
             workflow_execution_id: "{{ execution.id }}"
             state: gate1_detection_run
             notes: "Gate 1 detection: candidates identified by Elastic Workflow scheduled run"

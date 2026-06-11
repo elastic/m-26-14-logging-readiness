@@ -94,14 +94,14 @@ steps:
       index: "{{ consts.retirement_index }}"
       id: "{{ inputs.index_name }}-scheduled-{{ execution.id }}"
       document:
-        "@timestamp": "{{ execution.startedAt }}"
+        "@timestamp": "{{ execution.startedAt | date: '%Y-%m-%dT%H:%M:%S.000Z' }}"
         request_id: "{{ inputs.index_name }}-scheduled-{{ execution.id }}"
         index_name: "{{ inputs.index_name }}"
         state: scheduled_for_deletion
-        updated_at: "{{ execution.startedAt }}"
+        updated_at: "{{ execution.startedAt | date: '%Y-%m-%dT%H:%M:%S.000Z' }}"
         gate1_approved_by: "{{ inputs.gate1_approved_by }}"
         gate2_approved_by: "{{ inputs.gate2_approved_by }}"
-        gate2_approved_at: "{{ execution.startedAt }}"
+        gate2_approved_at: "{{ execution.startedAt | date: '%Y-%m-%dT%H:%M:%S.000Z' }}"
         delete_policy_applied: true
         watcher_id: m2614-data-retirement-gate2-execute
     on-failure:

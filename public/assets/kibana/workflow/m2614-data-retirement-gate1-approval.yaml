@@ -1,0 +1,230 @@
+# =============================================================================
+# Elastic Workflow: M-26-14 Data Retirement — Gate 1 Approval Handler
+# Category: compliance/data-management
+#
+# Manual workflow triggered after a human approves Gate 1 for a specific
+# index. Switches the index ILM policy to a deletion-enabled variant,
+# records approved_gate1 and pending_gate2 audit states, then opens a
+# Gate 2 (final deletion authorization) Kibana Case.
+#
+# ILM wait_for_snapshot will then block deletion until the SLM policy
+# m2614-compliance-snapshots confirms a durable S3 backup exists.
+#
+# NOTE: kibana.request steps use /internal/es/ prefix to proxy ES API calls
+# through Kibana. Adjust prefix if your Kibana version differs.
+#
+# Schema: github.com/elastic/workflows
+# Author: Elastic / M-26-14 Compliance Pack
+# Tags: M-26-14, Compliance, Data Retirement, Manual
+# =============================================================================
+version: "1"
+name: M-26-14 Data Retirement — Gate 1 Approval Handler
+description: >
+  Manual workflow: run after Gate 1 has been approved for a specific index.
+  Switches the index ILM policy to a deletion-enabled variant, records
+  approved_gate1 and pending_gate2 states in the audit index, and opens a
+  Gate 2 (final deletion authorization) Kibana Case. ILM wait_for_snapshot
+  then enforces a durable snapshot exists before deletion can proceed.
+enabled: false
+tags:
+  - M-26-14
+  - Compliance
+  - Data Retirement
+  - Manual
+
+# ---------------------------------------------------------------------------
+# CONSTANTS — update before enabling
+# ---------------------------------------------------------------------------
+consts:
+  retirement_index: m2614-retirement-requests
+  notification_connector_id: YOUR-SLACK-OR-EMAIL-CONNECTOR-ID
+
+# ---------------------------------------------------------------------------
+# TRIGGERS — manual only, run after Gate 1 approval documented in audit index
+# ---------------------------------------------------------------------------
+triggers:
+  - type: manual
+    inputs:
+      - name: index_name
+        type: string
+        description: "Frozen index approved for retirement (e.g. .ds-logs-m2614.dns-default-2025.01)"
+      - name: approved_by
+        type: string
+        description: "Username of the Gate 1 approver"
+      - name: ilm_delete_policy
+        type: string
+        description: "Deletion-enabled ILM policy to apply (e.g. m2614-logs-l3-hot-frozen)"
+        default: "m2614-logs-l3-hot-frozen"
+      - name: original_ilm_policy
+        type: string
+        description: "Current (no-delete) ILM policy on the index"
+        default: "m2614-logs-l3-no-delete"
+      - name: phase_age_days
+        type: string
+        description: "Days the index has been in the frozen phase (for audit record)"
+        default: "0"
+
+# ---------------------------------------------------------------------------
+# STEPS
+# ---------------------------------------------------------------------------
+steps:
+
+  # -------------------------------------------------------------------------
+  # STEP 1: switch_to_delete_policy
+  # -------------------------------------------------------------------------
+  # Changes the index ILM policy from the no-delete variant to the
+  # deletion-enabled variant. ILM wait_for_snapshot will then block
+  # actual deletion until a compliant snapshot exists.
+  # NOTE: /internal/es/ proxies ES API through Kibana. Adjust if needed.
+  # -------------------------------------------------------------------------
+  - name: switch_to_delete_policy
+    type: kibana.request
+    with:
+      method: PUT
+      path: /internal/es/{{ inputs.index_name }}/_settings
+      body:
+        index.lifecycle.name: "{{ inputs.ilm_delete_policy }}"
+    on-failure:
+      continue: false
+      retry:
+        max-attempts: 2
+        delay: 10s
+
+  # -------------------------------------------------------------------------
+  # STEP 2: record_approved_gate1
+  # -------------------------------------------------------------------------
+  - name: record_approved_gate1
+    type: elasticsearch.index
+    with:
+      index: "{{ consts.retirement_index }}"
+      id: "{{ inputs.index_name }}-gate1-approved"
+      document:
+        "@timestamp": "{{ execution.startedAt }}"
+        request_id: "{{ inputs.index_name }}-gate1"
+        index_name: "{{ inputs.index_name }}"
+        state: approved_gate1
+        updated_at: "{{ execution.startedAt }}"
+        phase_age_days: "{{ inputs.phase_age_days }}"
+        ilm_policy: "{{ inputs.original_ilm_policy }}"
+        delete_policy: "{{ inputs.ilm_delete_policy }}"
+        gate1_approved_by: "{{ inputs.approved_by }}"
+        gate1_approved_at: "{{ execution.startedAt }}"
+        delete_policy_applied: true
+        watcher_id: m2614-data-retirement-gate1-approval
+    on-failure:
+      continue: true
+
+  # -------------------------------------------------------------------------
+  # STEP 3: record_pending_gate2
+  # -------------------------------------------------------------------------
+  - name: record_pending_gate2
+    type: elasticsearch.index
+    with:
+      index: "{{ consts.retirement_index }}"
+      id: "{{ inputs.index_name }}-gate2"
+      document:
+        "@timestamp": "{{ execution.startedAt }}"
+        request_id: "{{ inputs.index_name }}-gate2"
+        index_name: "{{ inputs.index_name }}"
+        state: pending_gate2
+        created_at: "{{ execution.startedAt }}"
+        updated_at: "{{ execution.startedAt }}"
+        phase_age_days: "{{ inputs.phase_age_days }}"
+        ilm_policy: "{{ inputs.original_ilm_policy }}"
+        delete_policy: "{{ inputs.ilm_delete_policy }}"
+        ilm_phase: frozen
+        gate1_approved_by: "{{ inputs.approved_by }}"
+        delete_policy_applied: true
+        watcher_id: m2614-data-retirement-gate1-approval
+    on-failure:
+      continue: true
+
+  # -------------------------------------------------------------------------
+  # STEP 4: open_gate2_case
+  # -------------------------------------------------------------------------
+  - name: open_gate2_case
+    type: cases.createCase
+    with:
+      title: "M-26-14 Data Retirement — Gate 2 Authorization Required: {{ inputs.index_name }}"
+      description: |
+        ## M-26-14 Data Retirement: Gate 2 — Final Deletion Authorization
+
+        | Field | Value |
+        |-------|-------|
+        | **Index** | `{{ inputs.index_name }}` |
+        | **Gate 1 Approved By** | {{ inputs.approved_by }} |
+        | **Gate 1 Approved At** | {{ execution.startedAt | date: '%Y-%m-%d %H:%M UTC' }} |
+        | **Deletion ILM Policy** | `{{ inputs.ilm_delete_policy }}` |
+        | **Original Policy** | `{{ inputs.original_ilm_policy }}` |
+
+        ---
+        ### What Happens Next (Automatic)
+
+        ILM is now managing this index through the deletion lifecycle.
+        The `wait_for_snapshot` action **blocks deletion** until the SLM
+        policy `m2614-compliance-snapshots` confirms a durable S3 backup
+        exists. No manual action is needed for the snapshot — it runs daily.
+
+        ---
+        ### Gate 2 Authorization Instructions
+
+        1. Verify the snapshot exists:
+           **Kibana → Stack Management → Snapshot and Restore**
+           Look for a recent `m2614-compliance-<date>` snapshot.
+
+        2. Authorize final deletion by indexing to `m2614-retirement-requests`:
+           ```json
+           {
+             "@timestamp": "<now-iso>",
+             "request_id": "{{ inputs.index_name }}-gate2-approved",
+             "index_name": "{{ inputs.index_name }}",
+             "state": "approved_gate2",
+             "gate2_approved_by": "<your-username>",
+             "gate2_approved_at": "<now-iso>"
+           }
+           ```
+
+        3. Run the **M-26-14 Data Retirement — Gate 2 Execution** workflow
+           with `index_name: {{ inputs.index_name }}`.
+
+        ---
+        *Auto-generated by M-26-14 Data Retirement Gate 1 Approval Handler workflow.*
+      owner: securitySolution
+      settings:
+        syncAlerts: false
+      severity: high
+      tags:
+        - m2614
+        - data-retirement
+        - gate2
+        - compliance
+
+  # -------------------------------------------------------------------------
+  # STEP 5: notify_gate2_pending
+  # -------------------------------------------------------------------------
+  - name: notify_gate2_pending
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/actions/connector/{{ consts.notification_connector_id }}/_execute
+      body:
+        params:
+          message: |
+            [M-26-14] Data Retirement Gate 2 — Authorization Required
+            Index: {{ inputs.index_name }}
+            Gate 1 approved by: {{ inputs.approved_by }}
+            ILM switched to: {{ inputs.ilm_delete_policy }}
+
+            Next steps:
+            1. Verify snapshot in Kibana Stack Management > Snapshot and Restore
+            2. Run the Gate 2 Execution workflow once snapshot is confirmed
+    on-failure:
+      continue: true
+
+  # -------------------------------------------------------------------------
+  # STEP 6: log_completion
+  # -------------------------------------------------------------------------
+  - name: log_completion
+    type: console
+    with:
+      message: "Gate 1 approved for {{ inputs.index_name }}. ILM → {{ inputs.ilm_delete_policy }}. Gate 2 case opened. Approved by: {{ inputs.approved_by }}"

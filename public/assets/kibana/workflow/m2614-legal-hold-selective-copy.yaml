@@ -1,0 +1,239 @@
+# =============================================================================
+# Elastic Workflow: M-26-14 Legal Hold — Selective Copy
+# Category: compliance/data-management
+#
+# Manual workflow for initiating a legal hold or regulatory preservation
+# copy. Asynchronously reindexes data from a source index into a named
+# retained index with a no-delete ILM policy, triggers an immediate
+# compliance snapshot, and opens a Kibana legal hold Case for audit
+# traceability. Run before the retirement lifecycle begins on an index.
+#
+# NOTE: kibana.request uses /internal/es/ to proxy ES API through Kibana.
+# Adjust prefix if your Kibana version differs.
+#
+# Schema: github.com/elastic/workflows
+# Author: Elastic / M-26-14 Compliance Pack
+# Tags: M-26-14, Compliance, Legal Hold, Data Retention, Manual
+# =============================================================================
+version: "1"
+name: M-26-14 Legal Hold — Selective Copy
+description: >
+  Manual workflow for legal hold or regulatory data preservation. Reindexes
+  a source index into a named retained index with no-delete ILM policy,
+  triggers compliance snapshot, and opens a Kibana legal hold Case with full
+  audit trail. Satisfies M-26-14 forensic preservation requirements before
+  the retirement lifecycle begins.
+enabled: false
+tags:
+  - M-26-14
+  - Compliance
+  - Legal Hold
+  - Data Retention
+  - Manual
+
+# ---------------------------------------------------------------------------
+# CONSTANTS — update before enabling
+# ---------------------------------------------------------------------------
+consts:
+  retirement_index: m2614-retirement-requests
+  notification_connector_id: YOUR-SLACK-OR-EMAIL-CONNECTOR-ID
+
+# ---------------------------------------------------------------------------
+# TRIGGERS — manual only, customize inputs per hold
+# ---------------------------------------------------------------------------
+triggers:
+  - type: manual
+    inputs:
+      - name: source_index
+        type: string
+        description: "Source index to copy from (e.g. .ds-logs-m2614.dns-default-2025.01)"
+      - name: dest_index
+        type: string
+        description: "Destination retained index name (e.g. m2614-retained-dns-2026-case001)"
+      - name: hold_reason
+        type: string
+        description: "Legal or regulatory reason for the hold (case ID, investigation reference, statute)"
+      - name: held_by
+        type: string
+        description: "Username of the authorizing official"
+      - name: no_delete_ilm_policy
+        type: string
+        description: "No-delete ILM policy to apply to the retained index"
+        default: "m2614-logs-l3-no-delete"
+
+# ---------------------------------------------------------------------------
+# STEPS
+# ---------------------------------------------------------------------------
+steps:
+
+  # -------------------------------------------------------------------------
+  # STEP 1: initiate_reindex
+  # -------------------------------------------------------------------------
+  # Async reindex — starts the copy without waiting for completion.
+  # Monitor progress: GET /_tasks?actions=*reindex&detailed
+  # NOTE: /internal/es/ proxies ES API through Kibana. Adjust if needed.
+  # -------------------------------------------------------------------------
+  - name: initiate_reindex
+    type: kibana.request
+    with:
+      method: POST
+      path: /internal/es/_reindex?wait_for_completion=false
+      body:
+        source:
+          index: "{{ inputs.source_index }}"
+        dest:
+          index: "{{ inputs.dest_index }}"
+          op_type: create
+    on-failure:
+      continue: false
+      retry:
+        max-attempts: 1
+        delay: 5s
+
+  # -------------------------------------------------------------------------
+  # STEP 2: log_reindex_start
+  # -------------------------------------------------------------------------
+  - name: log_reindex_start
+    type: console
+    with:
+      message: "Reindex started: {{ inputs.source_index }} → {{ inputs.dest_index }}. Task: {{ steps.initiate_reindex.output | json }}"
+
+  # -------------------------------------------------------------------------
+  # STEP 3: apply_no_delete_ilm
+  # -------------------------------------------------------------------------
+  # Apply no-delete ILM to the retained index immediately — ensures it
+  # cannot enter deletion lifecycle regardless of default template settings.
+  # -------------------------------------------------------------------------
+  - name: apply_no_delete_ilm
+    type: kibana.request
+    with:
+      method: PUT
+      path: /internal/es/{{ inputs.dest_index }}/_settings
+      body:
+        index.lifecycle.name: "{{ inputs.no_delete_ilm_policy }}"
+    on-failure:
+      continue: true
+
+  # -------------------------------------------------------------------------
+  # STEP 4: trigger_compliance_snapshot
+  # -------------------------------------------------------------------------
+  # Execute the SLM policy immediately to snapshot the retained index
+  # before any further lifecycle transitions.
+  # -------------------------------------------------------------------------
+  - name: trigger_compliance_snapshot
+    type: kibana.request
+    with:
+      method: PUT
+      path: /internal/es/_slm/policy/m2614-compliance-snapshots/_execute
+      body: {}
+    on-failure:
+      continue: true
+
+  # -------------------------------------------------------------------------
+  # STEP 5: record_legal_hold_audit
+  # -------------------------------------------------------------------------
+  - name: record_legal_hold_audit
+    type: elasticsearch.index
+    with:
+      index: "{{ consts.retirement_index }}"
+      id: "{{ inputs.dest_index }}-legalhold"
+      document:
+        "@timestamp": "{{ execution.startedAt }}"
+        request_id: "{{ inputs.dest_index }}-legalhold"
+        index_name: "{{ inputs.dest_index }}"
+        state: legal_hold_initiated
+        created_at: "{{ execution.startedAt }}"
+        updated_at: "{{ execution.startedAt }}"
+        ilm_policy: "{{ inputs.no_delete_ilm_policy }}"
+        ilm_phase: pending
+        notes: "{{ inputs.hold_reason }}"
+        gate1_approved_by: "{{ inputs.held_by }}"
+        watcher_id: m2614-legal-hold-selective-copy
+        workflow_execution_id: "{{ execution.id }}"
+    on-failure:
+      continue: true
+
+  # -------------------------------------------------------------------------
+  # STEP 6: open_legal_hold_case
+  # -------------------------------------------------------------------------
+  - name: open_legal_hold_case
+    type: cases.createCase
+    with:
+      title: "M-26-14 Legal Hold Initiated: {{ inputs.dest_index }}"
+      description: |
+        ## M-26-14 Legal Hold / Selective Copy Initiated
+
+        | Field | Value |
+        |-------|-------|
+        | **Source Index** | `{{ inputs.source_index }}` |
+        | **Retained Index** | `{{ inputs.dest_index }}` |
+        | **Hold Reason** | {{ inputs.hold_reason }} |
+        | **Authorized By** | {{ inputs.held_by }} |
+        | **Initiated** | {{ execution.startedAt | date: '%Y-%m-%d %H:%M UTC' }} |
+        | **ILM Policy Applied** | `{{ inputs.no_delete_ilm_policy }}` (no-delete) |
+
+        ---
+        ### Actions Taken
+
+        1. **Async reindex started** — `{{ inputs.source_index }}` → `{{ inputs.dest_index }}`
+        2. **No-delete ILM applied** — `{{ inputs.no_delete_ilm_policy }}` (retained index cannot be deleted)
+        3. **Compliance snapshot triggered** — `m2614-compliance-snapshots` SLM policy executed
+        4. **Audit record indexed** — `m2614-retirement-requests` (state: `legal_hold_initiated`)
+
+        ---
+        ### Monitor Reindex Progress
+
+        ```
+        GET /_tasks?actions=*reindex&detailed
+        ```
+
+        ### Verify Retained Index
+
+        ```
+        GET /{{ inputs.dest_index }}/_count
+        ```
+
+        ---
+        The retained index is permanently preserved under the no-delete ILM
+        policy. It will not enter the deletion lifecycle without an explicit
+        ILM policy change by an authorized administrator.
+
+        ---
+        *Auto-generated by M-26-14 Legal Hold Selective Copy workflow.*
+      owner: securitySolution
+      settings:
+        syncAlerts: false
+      severity: medium
+      tags:
+        - m2614
+        - legal-hold
+        - data-retention
+        - compliance
+
+  # -------------------------------------------------------------------------
+  # STEP 7: notify_legal_hold
+  # -------------------------------------------------------------------------
+  - name: notify_legal_hold
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/actions/connector/{{ consts.notification_connector_id }}/_execute
+      body:
+        params:
+          message: |
+            [M-26-14] Legal Hold Initiated
+            Source: {{ inputs.source_index }}
+            Retained Index: {{ inputs.dest_index }}
+            Reason: {{ inputs.hold_reason }}
+            Authorized By: {{ inputs.held_by }}
+            No-delete ILM applied. Compliance snapshot triggered.
+    on-failure:
+      continue: true
+
+  # -------------------------------------------------------------------------
+  # STEP 8: log_completion
+  # -------------------------------------------------------------------------
+  - name: log_completion
+    type: console
+    with:
+      message: "Legal hold workflow complete. Source: {{ inputs.source_index }} → Retained: {{ inputs.dest_index }}. Reason: {{ inputs.hold_reason }}. Authorized by: {{ inputs.held_by }}"

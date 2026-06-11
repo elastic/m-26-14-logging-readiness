@@ -910,6 +910,48 @@ export const ASSET_FILES = [
     desc: 'Osquery pack deployed via Fleet to collect hardware (HWAM), software (SWAM), network interface, and user account inventory across all enrolled endpoints.',
   },
 
+  // ── Kibana Workflows — Data Management ───────────────────────────────────
+  {
+    id: 'workflow-gate1-detect',
+    label: 'Workflow — Gate 1 Detection (Scheduled)',
+    column: 'THIRF',
+    type: 'kibana-workflow',
+    format: 'yaml',
+    levels: [1, 2, 3, 4],
+    file: '/assets/kibana/workflow/m2614-data-retirement-gate1-detect.yaml',
+    desc: 'Scheduled daily Elastic Workflow: AI Agent scans frozen m2614 indices older than threshold, creates Gate 1 Kibana Case for human approval, indexes pending_gate1 audit records, and sends Slack/email notification.',
+  },
+  {
+    id: 'workflow-gate1-approval',
+    label: 'Workflow — Gate 1 Approval Handler (Manual)',
+    column: 'THIRF',
+    type: 'kibana-workflow',
+    format: 'yaml',
+    levels: [1, 2, 3, 4],
+    file: '/assets/kibana/workflow/m2614-data-retirement-gate1-approval.yaml',
+    desc: 'Manual Elastic Workflow: switches index ILM to deletion-enabled policy after Gate 1 approval, records approved_gate1 and pending_gate2 audit states, opens Gate 2 Kibana Case, and sends notification.',
+  },
+  {
+    id: 'workflow-gate2-execute',
+    label: 'Workflow — Gate 2 Execution (Manual)',
+    column: 'THIRF',
+    type: 'kibana-workflow',
+    format: 'yaml',
+    levels: [1, 2, 3, 4],
+    file: '/assets/kibana/workflow/m2614-data-retirement-gate2-execute.yaml',
+    desc: 'Manual Elastic Workflow: advances ILM past wait_for_snapshot to execute final deletion after Gate 2 authorization. Records scheduled_for_deletion audit state. Requires verified snapshot before running.',
+  },
+  {
+    id: 'workflow-legal-hold',
+    label: 'Workflow — Legal Hold / Selective Copy (Manual)',
+    column: 'THIRF',
+    type: 'kibana-workflow',
+    format: 'yaml',
+    levels: [1, 2, 3, 4],
+    file: '/assets/kibana/workflow/m2614-legal-hold-selective-copy.yaml',
+    desc: 'Manual Elastic Workflow: reindexes source data into a named retained index with no-delete ILM, triggers compliance snapshot, opens legal hold Kibana Case, and records audit trail. Run before retirement lifecycle begins.',
+  },
+
   // ── Kibana Rules — Data Management (THIRF) ────────────────────────────────
   {
     id: 'rule-dm-gate1-pending',
@@ -953,6 +995,7 @@ export const ASSET_TYPE_META = {
   'fleet-pack':        { label: 'Fleet Pack',      color: 'text-[#DD0A73]',       bg: 'bg-[#DD0A73]/10 border-[#DD0A73]/30'         },
   'es-watcher':        { label: 'ES Watcher',      color: 'text-accent-blue',     bg: 'bg-accent-blue/10 border-accent-blue/30'     },
   'slm-policy':        { label: 'SLM Policy',      color: 'text-accent-green',    bg: 'bg-accent-green/10 border-accent-green/30'   },
+  'kibana-workflow':   { label: 'Workflow',         color: 'text-[#EE72A6]',       bg: 'bg-[#EE72A6]/10 border-[#EE72A6]/30'         },
 }
 
 // Detect which NDJSON schema a parsed line belongs to

@@ -569,6 +569,18 @@ export const ASSET_FILES = [
     desc: 'L4 log retention variant with no delete phase — permanent retention for agencies under extended preservation obligations.',
   },
 
+  // ── Elasticsearch — SLM Policies ─────────────────────────────────────────
+  {
+    id: 'slm-compliance-snapshots',
+    label: 'SLM Policy — Compliance Snapshots',
+    column: 'Elastic Search AI Platform',
+    type: 'slm-policy',
+    format: 'json',
+    levels: [1, 2, 3, 4],
+    file: '/assets/elasticsearch/slm_policy/m2614-compliance-snapshots.json',
+    desc: 'Snapshot Lifecycle Management policy: daily snapshots of all m2614-* indices to S3 (found-snapshots), retained for 7 years. Required by ILM wait_for_snapshot gate — deletion cannot proceed until SLM confirms a durable backup exists.',
+  },
+
   // ── Elasticsearch — Index Templates ────────────────────────────────────────
   {
     id: 'template-alert-coverage',
@@ -649,6 +661,17 @@ export const ASSET_FILES = [
     levels: [1, 2, 3, 4],
     file: '/assets/elasticsearch/index_template/m2614-asset-canonical.json',
     desc: 'Layer 3 canonical asset index (m2614-assets) — one document per resolved device, upserted by asset.id. Single query target for HWAM/SWAM dashboards and M-26-14 compliance attestation.',
+  },
+
+  {
+    id: 'template-retirement-requests',
+    label: 'Index Template — Data Retirement Audit Log',
+    column: 'Elastic Search AI Platform',
+    type: 'index-template',
+    format: 'json',
+    levels: [1, 2, 3, 4],
+    file: '/assets/elasticsearch/index_template/m2614-retirement-requests.json',
+    desc: 'Append-only audit log and state machine for the two-gate data retirement approval workflow. Each state transition creates a new document; current state = most recent doc per index_name.',
   },
 
   // ── Elasticsearch — Ingest Pipelines ───────────────────────────────────────
@@ -833,6 +856,48 @@ export const ASSET_FILES = [
     desc: 'Latest-value transform maintaining current coverage state per category for real-time dashboard KPIs.',
   },
 
+  // ── Elasticsearch — Watchers ──────────────────────────────────────────────
+  {
+    id: 'watcher-gate1-detect',
+    label: 'ES Watcher — Gate 1 Frozen Index Detection',
+    column: 'Elastic Search AI Platform',
+    type: 'es-watcher',
+    format: 'json',
+    levels: [1, 2, 3, 4],
+    file: '/assets/elasticsearch/watcher/m2614-gate1-detect-frozen-aged.json',
+    desc: 'Daily scan (6am UTC) detecting m2614 frozen indices older than the retention threshold with no active retirement request. Opens Gate 1 Kibana Case and creates pending_gate1 audit record per candidate.',
+  },
+  {
+    id: 'watcher-gate1-approve',
+    label: 'ES Watcher — Gate 1 Approval Advance',
+    column: 'Elastic Search AI Platform',
+    type: 'es-watcher',
+    format: 'json',
+    levels: [1, 2, 3, 4],
+    file: '/assets/elasticsearch/watcher/m2614-gate1-approval-advance.json',
+    desc: 'Hourly check for approved_gate1 retirement requests. Switches index ILM to deletion-enabled policy, creates pending_gate2 audit record, opens Gate 2 Kibana Case (high severity) for final approval.',
+  },
+  {
+    id: 'watcher-gate2-execute',
+    label: 'ES Watcher — Gate 2 Deletion Execution',
+    column: 'Elastic Search AI Platform',
+    type: 'es-watcher',
+    format: 'json',
+    levels: [1, 2, 3, 4],
+    file: '/assets/elasticsearch/watcher/m2614-gate2-execute-deletion.json',
+    desc: 'Hourly check for approved_gate2 retirement requests. Advances ILM past wait_for_snapshot to execute deletion. Creates scheduled_for_deletion audit record.',
+  },
+  {
+    id: 'watcher-legal-hold-copy',
+    label: 'ES Watcher — Legal Hold / Selective Copy',
+    column: 'Elastic Search AI Platform',
+    type: 'es-watcher',
+    format: 'json',
+    levels: [1, 2, 3, 4],
+    file: '/assets/elasticsearch/watcher/m2614-selective-copy-legal-hold.json',
+    desc: 'Manual-trigger watcher: async reindexes a query-scoped subset from a frozen/source index into a named retained index (no-delete ILM), triggers compliance snapshot, and opens a Kibana legal hold Case. Customize metadata.params before executing.',
+  },
+
   // ── Fleet Pack ─────────────────────────────────────────────────────────────
   {
     id: 'fleet-osquery-pack',
@@ -843,6 +908,30 @@ export const ASSET_FILES = [
     levels: [1, 2, 3, 4],
     file: '/assets/fleet_package_policy/m2614_asset_inventory_pack.yaml',
     desc: 'Osquery pack deployed via Fleet to collect hardware (HWAM), software (SWAM), network interface, and user account inventory across all enrolled endpoints.',
+  },
+
+  // ── Kibana Rules — Data Management (THIRF) ────────────────────────────────
+  {
+    id: 'rule-dm-gate1-pending',
+    label: 'Alert Rule — Data Retirement: Gate 1 Pending',
+    column: 'THIRF',
+    type: 'kibana-rule',
+    format: 'ndjson',
+    levels: [1, 2, 3, 4],
+    file: '/assets/kibana/rule/m2614-data-retirement-gate1-pending.ndjson',
+    desc: '1 ES|QL rule: alerts when retirement requests remain in pending_gate1 state for >24 hours without Gate 1 approval — prevents stalled retirement workflows.',
+    ruleCount: 1,
+  },
+  {
+    id: 'rule-dm-gate2-pending',
+    label: 'Alert Rule — Data Retirement: Gate 2 Pending',
+    column: 'THIRF',
+    type: 'kibana-rule',
+    format: 'ndjson',
+    levels: [1, 2, 3, 4],
+    file: '/assets/kibana/rule/m2614-data-retirement-gate2-pending.ndjson',
+    desc: '1 ES|QL rule: alerts when retirement requests stall in pending_gate2 state for >24 hours — snapshot confirmed but final deletion approval not granted.',
+    ruleCount: 1,
   },
 ]
 
@@ -862,6 +951,8 @@ export const ASSET_TYPE_META = {
   'ml-job':            { label: 'ML Job',          color: 'text-[#FA744E]',       bg: 'bg-[#FA744E]/10 border-[#FA744E]/30'         },
   'transform':         { label: 'Transform',       color: 'text-[#FA744E]',       bg: 'bg-[#FA744E]/10 border-[#FA744E]/30'         },
   'fleet-pack':        { label: 'Fleet Pack',      color: 'text-[#DD0A73]',       bg: 'bg-[#DD0A73]/10 border-[#DD0A73]/30'         },
+  'es-watcher':        { label: 'ES Watcher',      color: 'text-accent-blue',     bg: 'bg-accent-blue/10 border-accent-blue/30'     },
+  'slm-policy':        { label: 'SLM Policy',      color: 'text-accent-green',    bg: 'bg-accent-green/10 border-accent-green/30'   },
 }
 
 // Detect which NDJSON schema a parsed line belongs to

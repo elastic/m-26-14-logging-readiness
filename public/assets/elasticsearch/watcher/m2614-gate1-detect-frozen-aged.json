@@ -1,0 +1,128 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m2614_compliance",
+    "m2614": {
+      "workstream": 7,
+      "description": "Gate 1 detection: daily scan for m2614 indices frozen longer than threshold with no active retirement request. Creates audit record + Kibana Case per candidate."
+    }
+  },
+  "trigger": {
+    "schedule": {
+      "cron": "0 0 6 * * ?"
+    }
+  },
+  "metadata": {
+    "es_host": "https://m-26-14-7ae75d.es.us-east-1.aws.found.io",
+    "kibana_host": "https://m-26-14-7ae75d.kb.us-east-1.aws.found.io",
+    "auth_header": "Basic ZWxhc3RpYzpOQklyRjc3WnJ4UTRxSnJRenhlT2liM0Y=",
+    "frozen_threshold_days": 30,
+    "watcher_id": "m2614-gate1-detect-frozen-aged"
+  },
+  "input": {
+    "chain": {
+      "inputs": [
+        {
+          "ilm": {
+            "http": {
+              "request": {
+                "url": "https://m-26-14-7ae75d.es.us-east-1.aws.found.io/_all/_ilm/explain",
+                "method": "get",
+                "params": {
+                  "only_managed": "true",
+                  "filter_path": "indices"
+                },
+                "headers": {
+                  "Authorization": "Basic ZWxhc3RpYzpOQklyRjc3WnJ4UTRxSnJRenhlT2liM0Y="
+                },
+                "connection_timeout": "30s",
+                "read_timeout": "30s"
+              }
+            }
+          }
+        },
+        {
+          "existing_requests": {
+            "search": {
+              "request": {
+                "indices": ["m2614-retirement-requests"],
+                "rest_total_hits_as_int": true,
+                "body": {
+                  "size": 0,
+                  "query": {
+                    "terms": {
+                      "state": [
+                        "pending_gate1",
+                        "approved_gate1",
+                        "pending_gate2",
+                        "approved_gate2",
+                        "scheduled_for_deletion"
+                      ]
+                    }
+                  },
+                  "aggs": {
+                    "by_index": {
+                      "terms": {
+                        "field": "index_name",
+                        "size": 500
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "condition": {
+    "script": {
+      "lang": "painless",
+      "source": "def ilmData = ctx.payload['ilm']; return ilmData != null && ilmData.get('indices') != null && ilmData.get('indices').size() > 0;"
+    }
+  },
+  "transform": {
+    "script": {
+      "lang": "painless",
+      "source": "def ilmData = ctx.payload['ilm'].get('indices'); if (ilmData == null) return ['candidates': [], 'candidate_count': 0, 'summary_text': 'No ILM data available.']; Set existingSet = new HashSet(); def aggResult = ctx.payload['existing_requests']; if (aggResult != null && aggResult['aggregations'] != null && aggResult['aggregations']['by_index'] != null) { def buckets = aggResult['aggregations']['by_index']['buckets']; if (buckets != null) { for (def b : buckets) { existingSet.add(b['key']); } } } long nowMs = ctx.execution_time.millis; long thresholdMs = (long)(ctx.metadata['frozen_threshold_days']) * 86400000L; def candidates = []; for (def entry : ilmData.entrySet()) { String indexName = entry.getKey(); def state = entry.getValue(); if (!indexName.contains('m2614')) continue; if (!'frozen'.equals(state['phase'])) continue; if (existingSet.contains(indexName)) continue; def phaseMs = state['phase_time_millis']; if (phaseMs == null) continue; long frozenAgeMs = nowMs - (long)(phaseMs); if (frozenAgeMs < thresholdMs) continue; int ageDays = (int)(frozenAgeMs / 86400000L); String policy = state['policy'] != null ? state['policy'].toString() : 'unknown'; String requestId = indexName + '-gate1'; candidates.add(['@timestamp': ctx.execution_time, 'request_id': requestId, 'index_name': indexName, 'state': 'pending_gate1', 'created_at': ctx.execution_time, 'updated_at': ctx.execution_time, 'phase_age_days': ageDays, 'ilm_policy': policy, 'ilm_phase': 'frozen', 'watcher_id': ctx.metadata['watcher_id']]); } StringBuilder sb = new StringBuilder(); for (def c : candidates) { sb.append('- ').append(c['index_name']).append(' (frozen ').append(c['phase_age_days']).append('d, policy: ').append(c['ilm_policy']).append(') '); } return ['candidates': candidates, 'candidate_count': candidates.size(), 'summary_text': sb.length() > 0 ? sb.toString() : 'No new retirement candidates.'];"
+    }
+  },
+  "actions": {
+    "create_retirement_audit_records": {
+      "condition": {
+        "script": {
+          "lang": "painless",
+          "source": "return ctx.payload['candidate_count'] > 0;"
+        }
+      },
+      "foreach": "ctx.payload.candidates",
+      "max_iterations": 100,
+      "index": {
+        "index": "m2614-retirement-requests",
+        "doc_id": "{{ctx.payload._value.request_id}}"
+      }
+    },
+    "open_gate1_kibana_case": {
+      "condition": {
+        "script": {
+          "lang": "painless",
+          "source": "return ctx.payload['candidate_count'] > 0;"
+        }
+      },
+      "webhook": {
+        "scheme": "https",
+        "host": "m-26-14-7ae75d.kb.us-east-1.aws.found.io",
+        "port": 443,
+        "method": "post",
+        "path": "/api/cases",
+        "headers": {
+          "Content-Type": "application/json",
+          "kbn-xsrf": "watcher",
+          "Authorization": "Basic ZWxhc3RpYzpOQklyRjc3WnJ4UTRxSnJRenhlT2liM0Y="
+        },
+        "body": "{\"title\": \"M-26-14 Data Retirement - Gate 1 Approval Required ({{ctx.payload.candidate_count}} index(es))\", \"description\": \"The following M-26-14 managed indices have been frozen beyond the retention threshold and are candidates for data retirement. Review and approve each before the deletion lifecycle begins. Candidates: {{ctx.payload.summary_text}} To approve Gate 1: index a document to m2614-retirement-requests with {state: approved_gate1, index_name: <name>, gate1_approved_by: <your-username>}. To cancel: index with {state: cancelled}.\", \"tags\": [\"m2614\", \"data-retirement\", \"gate1\", \"compliance\"], \"connector\": {\"id\": \"none\", \"name\": \"none\", \"type\": \".none\", \"fields\": null}, \"settings\": {\"syncAlerts\": false}, \"severity\": \"medium\", \"owner\": \"securitySolution\"}"
+      }
+    }
+  }
+}

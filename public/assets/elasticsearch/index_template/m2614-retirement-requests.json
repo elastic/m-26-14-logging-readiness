@@ -1,0 +1,47 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m2614_compliance",
+    "m2614": {
+      "workstream": 7,
+      "description": "Audit log and state machine for two-gate data retirement approval workflow. Append-only: each state transition creates a new document. Current state = most recent doc per index_name."
+    }
+  },
+  "index_patterns": ["m2614-retirement-requests"],
+  "priority": 500,
+  "template": {
+    "settings": {
+      "index.number_of_shards": 1,
+      "index.number_of_replicas": 1,
+      "index.codec": "best_compression"
+    },
+    "mappings": {
+      "dynamic": false,
+      "properties": {
+        "@timestamp":            { "type": "date" },
+        "request_id":            { "type": "keyword" },
+        "index_name":            { "type": "keyword" },
+        "state":                 { "type": "keyword" },
+        "created_at":            { "type": "date" },
+        "updated_at":            { "type": "date" },
+        "phase_age_days":        { "type": "integer" },
+        "index_size_bytes":      { "type": "long" },
+        "ilm_policy":            { "type": "keyword" },
+        "ilm_phase":             { "type": "keyword" },
+        "gate1_case_id":         { "type": "keyword" },
+        "gate1_approved_by":     { "type": "keyword" },
+        "gate1_approved_at":     { "type": "date" },
+        "gate2_case_id":         { "type": "keyword" },
+        "gate2_approved_by":     { "type": "keyword" },
+        "gate2_approved_at":     { "type": "date" },
+        "snapshot_id":           { "type": "keyword" },
+        "delete_policy_applied": { "type": "boolean" },
+        "deletion_completed_at": { "type": "date" },
+        "cancelled_by":          { "type": "keyword" },
+        "cancelled_at":          { "type": "date" },
+        "notes":                 { "type": "text" },
+        "watcher_id":            { "type": "keyword" }
+      }
+    }
+  }
+}

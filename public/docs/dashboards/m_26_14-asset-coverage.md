@@ -4,72 +4,78 @@
 
 The **M-26-14 Asset Coverage Drill-Down** dashboard (`m_26_14-asset-coverage`) is the evidence surface for **Element 1 (Hardware Asset Management — HWAM)** and **Element 2 (Software Asset Management — SWAM)** of OMB Memorandum M-26-14. It answers the two questions that anchor the lower maturity levels (L1–L2) of every agency self-assessment:
 
-1. **Do we know what is on the network?** (Element 1 — complete hardware inventory across IT, OT, and IoT asset classes)
+1. **Do we know what is on the network?** (Element 1 — complete hardware inventory)
 2. **Are we collecting logs from it?** (Element 2 — Elastic Agent enrollment and active log collection coverage)
 
-The dashboard reads from the discovered-asset inventory (`m_26_14-demo-hwam_assets`) and the hourly coverage metrics store (`m_26_14-metrics-asset-coverage`), so it reflects what asset discovery actually found — not what a spreadsheet says should exist. The gap between "discovered" and "enrolled," and any non-zero unauthorized-asset count, is exactly the evidence an Authorizing Official needs to see quantified.
+The dashboard reads the **canonical asset store** (`m_26_14-assets`) — the same single-source-of-truth inventory that backs the HWAM Overview, HWAM Gaps, Asset Drift, and SWAM dashboards. Every tile and chart reflects the merged, deduplicated asset identity produced by the entity-resolution transform, so the numbers here reconcile exactly with the rest of the HWAM story (60 discovered / 55 managed / 5 unmanaged on the reference dataset). The gap between "discovered" and "managed," and any unmanaged device, is exactly the evidence an Authorizing Official needs quantified.
+
+> **Note (redesign):** earlier revisions of this dashboard read a separate
+> fabricated 847-host pile (`m_26_14-demo-hwam_assets`) and showed IT/OT/IoT and
+> criticality breakdowns. That pile had no canonical backing and has been
+> removed; the dashboard was repointed to `m_26_14-assets` so data, dashboards,
+> and walkthrough screenshots all read the same scale. The OS-platform /
+> OS-name / reporting-component breakdowns below replace the old
+> class/criticality tiles, which had no field behind them.
 
 ### Who Uses This Dashboard
 
 | Role | Primary Use |
 |------|-------------|
-| **ISSO** | Weekly inventory reconciliation; documents enrollment gaps and unauthorized assets as POA&M entries; assembles Element 1/2 evidence for AO packages |
-| **CISO** | Tracks the enrollment-coverage trend against agency maturity targets; prioritizes agent rollout funding for OT/IoT segments |
+| **ISSO** | Weekly inventory reconciliation; documents unmanaged assets as POA&M entries; assembles Element 1/2 evidence for AO packages |
+| **CISO** | Tracks managed-coverage against agency maturity targets; prioritizes agent rollout |
 | **Authorizing Official (AO)** | Reviews asset coverage posture during ATO milestones; the Daily Collection Coverage Trend is the primary Element 2 attestation artifact |
-| **SOC Lead** | Investigates Unauthorized Assets (potential rogue devices); identifies unmanaged hosts that represent telemetry blind spots |
+| **SOC Lead** | Investigates unmanaged hosts (potential rogue/shadow devices) via the unknown-device triage loop; identifies telemetry blind spots |
 
 ### Relationship to the Maturity Overview Hub
 
-This dashboard is a **drill-down target** from the hub dashboard **M-26-14 Maturity Overview** (`m_26_14-maturity-overview`), which rolls all five M-26-14 elements into a single maturity scorecard. A **"← Back: M-26-14 Maturity Overview"** links panel sits at the top of this dashboard for round-trip navigation; it preserves your current time range and filters when you return to the hub.
+This dashboard is a **drill-down target** from **M-26-14 Maturity Overview** (`m_26_14-maturity-overview`). A **"← Back: M-26-14 Maturity Overview"** links panel sits at the top for round-trip navigation; it preserves your current time range and filters.
 
 ---
 
 ## 2. Dashboard Layout
 
-The dashboard contains one navigation panel and eleven Lens visualizations, all driven by ES|QL queries. The metric rows summarize current inventory state; the charts break down composition; the bottom panel shows coverage over time.
+One navigation panel and ten Lens visualizations, all ES|QL over `m_26_14-assets` (the trend panel reads the coverage-metrics store). Headline tiles are collapsed to a single number + subtitle.
 
-![M-26-14 Asset Coverage dashboard — asset count metrics across the top, enrollment and authorization metrics in the second row, composition charts in the third row, and the daily collection coverage trend across the bottom](../screenshots/02-asset-coverage.png)
+![M-26-14 Asset Coverage dashboard — asset count tiles across the top, coverage tiles in the second row, OS and component composition charts in the third row, and the daily collection coverage trend across the bottom](../screenshots/02-asset-coverage.png)
 
 ### Navigation (top)
 
 | Panel | Type | Behavior |
 |-------|------|----------|
-| **← Back: M-26-14 Maturity Overview** | Links | Returns to the hub dashboard in the same tab, carrying the current time range and filters |
+| **← Back: M-26-14 Maturity Overview** | Links | Returns to the hub dashboard in the same tab, carrying time range and filters |
 
-### Row 1 — Asset Inventory Metrics (Element 1)
+### Row 1 — Asset Inventory (Element 1)
 
-All four panels count documents in `m_26_14-demo-hwam_assets`, segmented by `m_26_14.asset_type`.
+| Panel | ES\|QL Logic | What It Shows |
+|-------|-------------|---------------|
+| **Total Assets** | `STATS COUNT(*)` | Every discovered asset. The denominator for all coverage math. |
+| **Managed Assets** | `WHERE asset.managed == true` | Assets with an enrolled Elastic Agent (teal) |
+| **Unmanaged Assets** | `WHERE asset.managed == false` | Unrecognized-on-network devices (coral) — each one enters the triage loop |
+| **Reporting Components** | `COUNT_DISTINCT(asset.component)` | Bureaus / enclaves represented in the inventory |
 
-| Panel | ES|QL Logic | What It Shows |
-|-------|------------|---------------|
-| **Total Assets (HWAM/SWAM)** | `STATS count = COUNT(*)` | Every discovered asset, regardless of class. Subtitle: "All discovered assets." This is the denominator for all coverage math. |
-| **IT Assets** | `WHERE m_26_14.asset_type == "IT"` | Traditional servers, workstations, and network devices |
-| **OT Assets** | `WHERE m_26_14.asset_type == "OT"` | Operational technology — ICS/SCADA, building systems (shown in red to flag the typically hardest-to-instrument class) |
-| **IoT Assets** | `WHERE m_26_14.asset_type == "IoT"` | Cameras, sensors, embedded devices |
+### Row 2 — Coverage (Element 1 / 2)
 
-### Row 2 — Collection Coverage Metrics (Element 2)
+| Panel | ES\|QL Logic | What It Shows |
+|-------|-------------|---------------|
+| **Element 1 Covered** | `WHERE m_26_14.element1_covered == true` | Assets present in the hardware inventory (HWAM) |
+| **Element 2 Covered** | `WHERE m_26_14.element2_covered == true` | Assets with software inventory / collection (SWAM) |
+| **Config Drift** | `WHERE m_26_14.drift_detected == true` | Assets diverged from their certified baseline (coral) |
 
-| Panel | ES|QL Logic | What It Shows |
-|-------|------------|---------------|
-| **Elastic Agent Enrolled** | `WHERE m_26_14.managed == true` | Assets with an enrolled Elastic Agent actively shipping logs (teal; subtitle "Active log collection") |
-| **Not Enrolled** | `WHERE m_26_14.managed == false` | Discovered assets with **no** active log collection (yellow; subtitle "No active log collection"). Each one is a telemetry blind spot. |
-| **Unauthorized Assets** | `WHERE m_26_14.authorized == false` | Assets seen on the network but not present in the authorized inventory (red; subtitle "Unrecognized on network"). Target: 0. |
-
-### Row 3 — Inventory Composition
+### Row 3 — Composition
 
 | Panel | Type | What It Shows |
 |-------|------|---------------|
-| **Asset Type Distribution** | Pie (percent labels) | Proportional split of IT / OT / IoT across the discovered inventory |
-| **Assets by OS Family** | Horizontal bar | Top 10 `host.os.family` values — drives SWAM baseline and patch-scope planning |
-| **Assets by Criticality** | Bar | Distribution across `m_26_14.criticality` tiers — use to prioritize enrollment of high-criticality unmanaged assets first |
+| **Assets by OS Platform** | Pie | macOS / Windows / Linux split (managed assets; null-OS unmanaged devices excluded) |
+| **Assets by OS** | Horizontal bar | Top `asset.os.name` values — drives SWAM baseline and patch-scope planning |
+| **Assets by Reporting Component** | Horizontal bar | Distribution across `asset.component` — `unattributed` is the unmanaged cohort |
 
 ### Row 4 — Coverage Over Time
 
-| Panel | Type | ES|QL Source |
+| Panel | Type | ES\|QL Source |
 |-------|------|--------------|
-| **Daily Collection Coverage Trend** | Area chart (full width) | `FROM m_26_14-metrics-asset-coverage \| WHERE m_26_14.element == "element_2_collection" \| EVAL day = DATE_TRUNC(1 day, @timestamp) \| STATS value = MAX(m_26_14.value) BY day \| SORT day ASC` |
+| **Daily Collection Coverage Trend** | Area chart (full width) | `FROM m_26_14-metrics-asset-coverage \| ... STATS value = MAX(...) BY day \| SORT day ASC` |
 
-This panel reads the pre-computed coverage metric (best value per day), so it renders quickly and is unaffected by raw inventory volume. It is the single most useful artifact for demonstrating Element 2 progress between assessment cycles.
+This panel reads the pre-computed coverage metric, so it renders quickly and is the single most useful artifact for demonstrating Element 2 progress between assessment cycles.
 
 ---
 
@@ -77,64 +83,49 @@ This panel reads the pre-computed coverage metric (best value per day), so it re
 
 ### Coverage Interpretation
 
-The core ratio is **Elastic Agent Enrolled ÷ Total Assets**. Read it alongside the trend panel:
+The core ratio is **Managed ÷ Total**. Read it alongside the trend panel:
 
 | Observation | Interpretation |
 |-------------|----------------|
-| Enrolled ≈ Total, trend flat at a high value | Mature Element 2 posture — collection coverage is established and stable |
-| Enrolled < Total, trend rising | Active rollout in progress — document the rollout plan and projected completion date in the evidence package |
-| Trend declining | Agents are unenrolling faster than new ones are added — investigate Fleet health (Section 6) before this becomes an audit finding |
-| Total Assets rising while Enrolled is flat | Asset discovery is finding devices faster than enrollment is keeping up — the gap is growing even though the enrolled count looks stable |
+| Managed ≈ Total, trend flat/high | Mature Element 2 posture — collection is established and stable |
+| Managed < Total, trend rising | Active rollout — document the plan and projected completion |
+| Trend declining | Agents unenrolling faster than added — investigate Fleet health |
+| Total rising while Managed flat | Discovery is outpacing enrollment — the gap is growing |
 
 ### Identifying Gaps
 
-1. **Unmanaged assets (Not Enrolled > 0).** These hosts generate no logs in Appendix B categories. Cross-reference with the **Assets by Criticality** chart: an unmanaged *high-criticality* asset is a priority POA&M item; an unmanaged low-criticality IoT sensor may be an accepted, documented limitation.
-2. **Unauthorized assets (Unauthorized Assets > 0).** These are devices observed on the network but absent from the authorized baseline — either an inventory record gap or a genuine rogue device. Every non-zero count requires triage: open Discover against `m_26_14-demo-hwam_assets` filtered on `m_26_14.authorized: false`, identify the hosts, and either authorize-and-enroll them or escalate to the SOC.
-3. **Class-level blind spots.** If the OT or IoT metric is large but the pie chart shows enrollment concentrated in IT, your coverage percentage is propped up by the easiest asset class. M-26-14 maturity assessments look at coverage across *all* asset types.
+1. **Unmanaged assets (Unmanaged > 0).** These hosts generate no logs in Appendix B categories. Each is fed to the **unknown-device triage loop**, which classifies it (rogue / decommissioned / new-but-uninventoried / shadow-IT / needs-review) and routes it to a Kibana Case. Do **not** triage from Discover by hand — read the `m_26_14-asset-triage` ledger (Section 7).
+2. **Config drift (Config Drift > 0).** Assets whose live baseline hash diverged from the certified snapshot. Investigate via the Asset Drift dashboard.
+3. **Component blind spots.** `unattributed` in the component chart is the unmanaged cohort (network-discovered devices with no bureau attribution) — a deliberate signal that these assets need identification, not a data error.
 
 ### Time Range Behavior
 
-The metric and composition panels reflect the current inventory snapshot within the selected time range; the trend panel is the historical view. For point-in-time attestation, use a recent narrow window (e.g., Last 24 hours). For progress narratives, widen to 90 days so the trend shows the full rollout arc.
+Metric and composition panels reflect the current snapshot within the selected range; the trend panel is the historical view. For attestation use a narrow recent window; for progress narratives widen to 90 days.
 
 ---
 
 ## 4. How to Use for AO Reporting
 
-Use this procedure to produce the Element 1/2 portion of an M-26-14 evidence package (10–15 minutes once familiar):
-
-1. **Set the time range** — Last 90 days for trend context; note the exact range in the evidence package.
-2. **Capture the dashboard** — Use Kibana's **Share → Export → PDF** (or a full-page screenshot). The capture must include the Total Assets, Enrolled/Not Enrolled, and trend panels in one image.
-3. **Record the coverage ratio** — State it explicitly: "As of [date], 412 of 450 discovered assets (91.6%) have active Elastic Agent log collection."
-4. **Explain every gap** — For each Not Enrolled cohort, document the reason (rollout in progress, OT constraint, decommission pending) and a target date. Unexplained gaps read as findings; explained gaps read as managed risk.
-5. **Attest to unauthorized assets** — If the count is 0, say so. If non-zero, attach the triage disposition for each asset and the corresponding POA&M entry.
-6. **Attach the trend** — The Daily Collection Coverage Trend demonstrates *continuous* monitoring rather than a point-in-time check, which directly supports higher maturity-level claims for Element 2.
-7. **Link, don't just print** — Include the live dashboard URL so the AO (or assessor) can verify current posture directly.
+1. **Set the time range** — 90 days for trend context; note the exact range.
+2. **Capture the dashboard** — **Share → Export → PDF**; include Total, Managed/Unmanaged, and trend tiles in one image.
+3. **Record the coverage ratio** — e.g. "As of [date], 55 of 60 discovered assets (91.7%) are managed with active Elastic Agent collection."
+4. **Explain every gap** — for each unmanaged cohort, attach the **triage disposition** and target date. Explained gaps read as managed risk; unexplained gaps read as findings.
+5. **Attest to unmanaged/unauthorized assets** — attach the triage ledger disposition for each (rogue → IR case; decommissioned → retirement record; etc.) and the corresponding POA&M entry.
+6. **Attach the trend** — demonstrates *continuous* monitoring for Element 2.
+7. **Link, don't just print** — include the live dashboard URL.
 
 ---
 
 ## 5. Data Sources
 
-The dashboard sits at the end of an automated discovery-to-metrics pipeline:
-
 | Stage | Component | Function |
 |-------|-----------|----------|
-| 1. Discovery | osquery pack `m_26_14_asset_inventory` (via Fleet/Osquery Manager) | Scheduled queries enumerate hardware and installed software on managed endpoints |
-| 2. Normalization | Ingest pipeline `m_26_14-osquery-normalize` | Maps raw osquery rows to ECS plus `m_26_14.*` fields (`asset_type`, `managed`, `authorized`, `criticality`) |
-| 3. Storage | `logs-m_26_14_osquery.*` data streams | Normalized inventory/discovery events |
-| 4. Metrics refresh | `tools/coverage_refresh.py` (runs **hourly**) | Computes per-element coverage values and writes them to `m_26_14-metrics-asset-coverage` |
-| 5. Visualization | This dashboard | Metric/composition panels read `m_26_14-demo-hwam_assets`; the trend panel reads `m_26_14-metrics-asset-coverage` |
+| 1. Discovery | osquery pack + network discovery → `logs-m_26_14_osquery.*` / `logs-m_26_14_asset.inventory-*` | Enumerate hardware/software on managed endpoints; network-discovery rows for unmanaged devices |
+| 2. Resolution | transform `m_26_14-asset-entity-resolution` | Merges all sources into one canonical doc per device (group by deterministic `asset.id`) |
+| 3. Canonical store | `m_26_14-assets` | One doc per physical/virtual asset; the dashboard's tiles + charts read this |
+| 4. Metrics refresh | coverage refresh job (hourly) | Writes per-element coverage values to `m_26_14-metrics-asset-coverage` (trend panel) |
 
-**Refresh cadence:** inventory panels update as osquery results are ingested (per the pack's query schedule); the coverage trend updates hourly when `coverage_refresh.py` runs. A trend that is more than ~2 hours stale indicates the refresh job has stopped (see Section 6).
-
-**Key fields:**
-
-| Field | Meaning |
-|-------|---------|
-| `m_26_14.asset_type` | `IT`, `OT`, or `IoT` |
-| `m_26_14.managed` | `true` if an Elastic Agent is enrolled and collecting |
-| `m_26_14.authorized` | `false` if the asset is not in the authorized baseline |
-| `m_26_14.criticality` | Asset criticality tier |
-| `m_26_14.element` / `m_26_14.value` | Metric series key (`element_2_collection`) and coverage value in the metrics index |
+**Key fields:** `asset.managed`, `asset.component`, `asset.status`, `asset.os.platform/name`, `asset.hardware.manufacturer/serial_number`, `m_26_14.element1_covered`, `m_26_14.element2_covered`, `m_26_14.drift_detected`, `m_26_14.hwam_source`.
 
 ---
 
@@ -142,66 +133,97 @@ The dashboard sits at the end of an automated discovery-to-metrics pipeline:
 
 ### All panels show "No results found"
 
-Check that the source indices exist and contain documents (Dev Tools):
-
 ```
-GET m_26_14-demo-hwam_assets/_count
+GET m_26_14-assets/_count
 GET m_26_14-metrics-asset-coverage/_count
 ```
 
-If counts are zero, the demo/seed data has not been loaded or the osquery pipeline has never delivered results. Also widen the dashboard time range — the metric panels are time-filtered on `@timestamp`.
+If zero, the seed/inventory load has not run or the entity-resolution transform is stopped. Widen the time range — tiles are time-filtered on `@timestamp`.
 
-### Inventory panels populate but the trend panel is empty
+### Tiles populate but the trend panel is empty
 
-The trend reads a different index and filters on `m_26_14.element == "element_2_collection"`. Verify the metric series exists:
+The trend reads `m_26_14-metrics-asset-coverage`. If the latest metric doc is more than a couple of hours old, the hourly coverage refresh job is not running — check its scheduler and credentials.
 
-```
-GET m_26_14-metrics-asset-coverage/_search
-{
-  "size": 1,
-  "query": { "term": { "m_26_14.element": "element_2_collection" } },
-  "sort": [ { "@timestamp": "desc" } ]
-}
-```
+### Managed + Unmanaged does not equal Total
 
-If the latest document is more than a couple of hours old, the hourly `tools/coverage_refresh.py` job is not running — check its scheduler (cron/launchd) and credentials.
-
-### Asset counts look stale or incomplete
-
-1. **Confirm osquery results are arriving:**
-
-   ```
-   GET logs-m_26_14_osquery.*/_search
-   {
-     "size": 1,
-     "sort": [ { "@timestamp": "desc" } ]
-   }
-   ```
-
-2. **Check Fleet agent health** — In Kibana go to **Fleet → Agents** and confirm agents are `Healthy` and the Osquery Manager integration is assigned to their policy. Offline agents stop contributing inventory rows.
-3. **Verify the osquery pack** — In **Osquery → Packs**, confirm `m_26_14_asset_inventory` is enabled and its queries last ran on schedule.
-4. **Verify the ingest pipeline is attached:**
-
-   ```
-   GET _ingest/pipeline/m_26_14-osquery-normalize
-   ```
-
-   If osquery documents arrive without `m_26_14.*` fields, the normalize pipeline is missing from the data stream's default pipeline chain.
-
-### Enrolled + Not Enrolled does not equal Total Assets
-
-A small discrepancy usually means some asset documents lack the `m_26_14.managed` field (they match neither `== true` nor `== false`). Find them:
+Some asset docs lack `asset.managed`. Find them:
 
 ```
-GET m_26_14-demo-hwam_assets/_search
-{
-  "size": 10,
-  "query": { "bool": { "must_not": { "exists": { "field": "m_26_14.managed" } } } }
-}
+GET m_26_14-assets/_search
+{ "size": 10, "query": { "bool": { "must_not": { "exists": { "field": "asset.managed" } } } } }
 ```
-
-Fix the normalization pipeline or re-run discovery for the affected hosts.
 
 ### Back-link does not navigate
 
-The links panel targets the dashboard saved object `m_26_14-maturity-overview`. If that dashboard was deleted or imported with a new ID, re-import the compliance pack's dashboard bundle so the saved-object reference resolves.
+The links panel targets `m_26_14-maturity-overview`. If that dashboard was re-imported with a new ID, re-import the pack's dashboard bundle so the reference resolves.
+
+---
+
+## 7. Entity Resolution & Unknown-Device Promotion
+
+Every device on this dashboard has been through **identity resolution** before it
+appears as one asset. Understanding that path explains what the Unmanaged tile
+really means and how a device leaves it.
+
+### How one asset identity is formed
+
+The `m_26_14-asset-normalize` pipeline computes a deterministic `asset.id` from a
+**priority-ordered key hierarchy** — hardware serial (highest trust) → BIOS UUID
+→ Elastic agent ID → vendor device-id → MAC → hostname (lowest). That key is
+SHA-256'd, so the same physical device collapses to **one** identity across
+osquery, Intune, Tenable, CrowdStrike, and network discovery. The
+`m_26_14-asset-entity-resolution` transform groups by `asset.id` and merges
+observations (latest-wins on volatile fields, set-union on `m_26_14.hwam_source`).
+
+### Expected vs observed
+
+The scoring engine joins the **observed ledger** (`m_26_14-observed` — everything
+emitting logs) against the canonical inventory by `host.name`, producing four cells:
+
+| Cell | Meaning |
+|------|---------|
+| `expected_observed` | in inventory **and** logging — healthy |
+| `expected_silent` | in inventory, **not** logging — coverage gap |
+| `unexpected_observed` | logging, **not** in inventory — shadow / rogue (the triage queue) |
+| `unexpected_silent` | neither — unobservable |
+
+> **Phase-2 note:** IP-keyed observed-only entities (`observed-<ip>@<collector>`)
+> are **not** auto-folded into a canonical asset yet. Until that spine IP-fold
+> ships, they stay `unexpected_observed` and are resolved by an operator.
+
+### The triage loop — what happens to an unmanaged device
+
+An `asset.managed:false` device is **classified**, not left as a raw count. The
+`m_26_14-asset-triage-classify` pipeline reads each unmanaged asset, folds in a
+**computed** rogue signal (correlated Security alerts summarized per host by the
+`m_26_14-host-alert-summary` transform), and writes a disposition to the
+`m_26_14-asset-triage` ledger:
+
+| Disposition | Signature | Next step (human-gated) |
+|-------------|-----------|--------------------------|
+| **rogue** | unmanaged + correlated high-severity alert | escalate to IR / isolate |
+| **decommissioned** | retired/inactive or stale >45d | confirm offline → suppress |
+| **new_uninventoried** | strong identity (serial + enterprise vendor), no alerts | enroll |
+| **shadow_it** | consumer/BYOD vendor, no alerts | exception (policy) |
+| **needs_review** | ambiguous signals | identify first |
+
+Read the queue:
+
+```
+GET m_26_14-asset-triage/_search
+{ "query": { "term": { "state": "proposed" } },
+  "sort": [ { "m_26_14.triage.confidence": "desc" } ] }
+```
+
+### Promotion: unknown → known
+
+A device leaves the Unmanaged tile only when it becomes **canonical**. On the
+*enroll* path you add it to inventory; the entity-resolution transform mints its
+`asset.id`, and the next classify pass marks it `inventoried`. Promotion is
+deliberately **operator-driven** — the loop never auto-merges an identity it
+isn't sure of.
+
+Full procedure (decision tree + the four next-steps + where the human gate sits):
+see `docs/runbooks/unknown-device-triage-playbook.md`. Reversible automation
+(auto-suppress, auto-draft-enroll) is documented, opt-in, in
+`docs/runbooks/unknown-device-automation-examples.md`.

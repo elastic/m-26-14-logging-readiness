@@ -17,12 +17,13 @@ function basename(file) {
 // Per-type URL builders. `name` is the deployed object name (file basename
 // unless the asset declares `liveId`).
 const TYPE_LINKS = {
-  // Relative window so the link always frames the rolling demo data (base
-  // seed = last ~30d, ML baseline = last 21d) plus the fixed-date governance
-  // records (retirement requests back to ~Apr 1). now-120d/now covers both and
-  // auto-tracks reseeds instead of going stale on a fixed date.
+  // Exact window pinned to the period the demo data spans: governance records
+  // (retirement requests) start 2026-04-01 and the live streams run through
+  // 2026-06-30. A relative now-120d window drifts and can frame an empty range
+  // as the data ages, so the link uses the explicit data span instead. Update
+  // this range if the dataset is reseeded to a different period.
   'kibana-dashboard': name =>
-    `/app/dashboards#/view/${name}?_g=(time:(from:now-120d,to:now))`,
+    `/app/dashboards#/view/${name}?_g=(time:(from:'2026-04-01T00:00:00.000Z',to:'2026-07-01T00:00:00.000Z'))`,
   'index-template': name =>
     `/app/management/data/index_management/templates/${encodeURIComponent(name)}`,
   'ilm-policy': name =>

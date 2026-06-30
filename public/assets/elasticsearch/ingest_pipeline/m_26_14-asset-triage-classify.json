@@ -1,0 +1,44 @@
+{
+  "description": "M-26-14 unknown-device TRIAGE classifier. Reads one canonical asset doc (m_26_14-assets) and routes previously-unknown/unmanaged entities into exactly one disposition with a recommended next step and an evidence trail. Enriches m_26_14-host-alert-lookup by host.name to fold in the COMPUTED rogue signal (correlated Security alerts), then runs a priority-ordered Painless classifier over {managed, alert_count, max_risk_score, asset.status, hardware.manufacturer, hardware.serial_number, first_seen, last_seen}. Stamps m_26_14.triage.{disposition, recommended_action, confidence, signals[], auto_actionable, alert_count, max_risk_score, classified_at} and state='proposed'. Intended as a _reindex dest pipeline from m_26_14-assets -> m_26_14-asset-triage (idempotent, _id=asset.id) so the canonical store is never clobbered. Dispositions: rogue->escalate_ir | decommissioned->retire | new_uninventoried->enroll | shadow_it->exception | needs_review->review | inventoried (managed, no action). auto_actionable flags the REVERSIBLE next steps (suppress/draft-enroll) that MAY be automated after policy sign-off; it never auto-executes here — all enforcement is human-gated by the m_26_14-unknown-device-triage workflow.",
+  "_meta": {
+    "pack": "m_26_14",
+    "maps_to": "Element 1 (HWAM) detect+identify+action of unauthorized/unknown assets",
+    "depends_on": ["m_26_14-host-alert-summary transform", "m_26_14-host-alert-lookup enrich policy (execute after the transform populates its index)"]
+  },
+  "processors": [
+    {
+      "set": {
+        "description": "Parseable ingest now() for recency math (ctx._ingest is null in ingest context; Mustache _ingest.timestamp works)",
+        "field": "_now",
+        "value": "{{{_ingest.timestamp}}}"
+      }
+    },
+    {
+      "enrich": {
+        "description": "Fold in the computed rogue signal: correlated Security alerts summarized per host.name",
+        "policy_name": "m_26_14-host-alert-lookup",
+        "field": "host.name",
+        "target_field": "_alerts",
+        "ignore_missing": true
+      }
+    },
+    {
+      "script": {
+        "description": "Priority-ordered disposition classifier",
+        "source": "String hostName = ctx.host?.name ?: ''; boolean managed = (ctx.asset?.managed == true); String status = (ctx.asset?.status != null ? ctx.asset.status.toLowerCase() : 'unknown'); String mfr = (ctx.asset?.hardware?.manufacturer != null ? ctx.asset.hardware.manufacturer.toLowerCase() : ''); String serial = ctx.asset?.hardware?.serial_number; boolean hasSerial = (serial != null && serial.trim().length() > 0); def al = ctx._alerts; long alertCount = 0L; double maxRisk = 0.0; List ruleNames = new ArrayList(); if (al != null) { if (al.alert_count != null) { alertCount = (long)(al.alert_count); } if (al.max_risk_score != null) { maxRisk = (double)(al.max_risk_score); } if (al.rule_names != null) { ruleNames = new ArrayList(al.rule_names); } } boolean highAlert = (alertCount > 0 && maxRisk >= 65.0); long nowMs = ZonedDateTime.parse(ctx._now).toInstant().toEpochMilli(); double firstDays = -1.0; double lastDays = -1.0; if (ctx.asset?.first_seen != null) { try { long t = ZonedDateTime.parse(ctx.asset.first_seen).toInstant().toEpochMilli(); firstDays = (double)(nowMs - t) / 86400000.0; } catch (Exception e) {} } if (ctx.asset?.last_seen != null) { try { long t = ZonedDateTime.parse(ctx.asset.last_seen).toInstant().toEpochMilli(); lastDays = (double)(nowMs - t) / 86400000.0; } catch (Exception e) {} } def consumer = ['apple','samsung','google','asus','acer','razer','lg','xiaomi','huawei','oneplus','amazon','roku']; def enterprise = ['dell','hp','hewlett','lenovo','cisco','ubiquiti','vmware','microsoft','supermicro','intel','juniper','aruba','fortinet','palo alto','netgear','zebra']; boolean consumerVendor = false; for (v in consumer) { if (mfr.contains(v)) { consumerVendor = true; } } boolean enterpriseVendor = false; for (v in enterprise) { if (mfr.contains(v)) { enterpriseVendor = true; } } def signals = new ArrayList(); String disp; String action; boolean autoActionable; double conf; if (managed) { disp = 'inventoried'; action = 'none'; autoActionable = false; conf = 0.95; signals.add('managed'); } else { signals.add('unmanaged'); if (highAlert) { disp = 'rogue'; action = 'escalate_ir'; autoActionable = false; conf = 0.9; signals.add('high_severity_alert:risk=' + (long)maxRisk + ':count=' + alertCount); if (!ruleNames.isEmpty()) { signals.add('rules:' + String.join('|', ruleNames)); } } else if (status == 'retired' || status == 'decommissioned' || status == 'inactive' || status == 'disposed') { disp = 'decommissioned'; action = 'retire'; autoActionable = true; conf = 0.85; signals.add('status:' + status); if (lastDays >= 0 && lastDays <= 14) { signals.add('still_emitting:last_seen_' + (long)lastDays + 'd'); conf = 0.9; } } else if (lastDays >= 45) { disp = 'decommissioned'; action = 'retire'; autoActionable = true; conf = 0.6; signals.add('stale:last_seen_' + (long)lastDays + 'd'); } else if (enterpriseVendor && hasSerial) { disp = 'new_uninventoried'; action = 'enroll'; autoActionable = true; conf = 0.7; signals.add('enterprise_vendor:' + mfr); signals.add('has_serial'); if (firstDays >= 0 && firstDays <= 14) { signals.add('recent_first_seen_' + (long)firstDays + 'd'); conf = 0.85; } } else if (consumerVendor) { disp = 'shadow_it'; action = 'exception'; autoActionable = false; conf = 0.7; signals.add('consumer_vendor:' + mfr); } else { disp = 'needs_review'; action = 'review'; autoActionable = false; conf = 0.4; if (hasSerial) { signals.add('has_serial'); } if (mfr.length() > 0) { signals.add('vendor:' + mfr); } } } if (conf > 0.95) { conf = 0.95; } Map tri = new HashMap(); tri.disposition = disp; tri.recommended_action = action; tri.auto_actionable = autoActionable; tri.confidence = conf; tri.signals = signals; tri.classified_at = ctx._now; tri.alert_count = alertCount; tri.max_risk_score = maxRisk; if (ctx.m_26_14 == null) { ctx.m_26_14 = new HashMap(); } ctx.m_26_14.triage = tri; ctx.state = 'proposed'; if (ctx.asset?.id != null) { ctx._id = ctx.asset.id; }"
+      }
+    },
+    {
+      "set": {
+        "field": "@timestamp",
+        "value": "{{{_now}}}"
+      }
+    },
+    {
+      "remove": {
+        "field": ["_now", "_alerts"],
+        "ignore_missing": true
+      }
+    }
+  ]
+}

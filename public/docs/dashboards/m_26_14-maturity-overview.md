@@ -4,7 +4,7 @@
 
 The **M-26-14 Maturity Overview** dashboard (`m_26_14-maturity-overview`) is the executive hub of the Elastic M-26-14 compliance pack. It answers, on a single screen, the question that frames every maturity self-assessment under OMB Memorandum M-26-14: *"Where does the agency stand on each of the five compliance elements, and which elements are blocking advancement to the next maturity level?"*
 
-The deployed demo configuration models a representative agency ("Gotham City Agency") progressing from **Event Logging Level 2 (L2) to Level 3 (L3)**. The dashboard's own description summarizes the posture it displays: Elements 1 and 4 are at L3; Elements 2, 3, and 5 are blocking L3 advancement. Every number on the dashboard ties back to one of the five M-26-14 compliance elements:
+The deployed demo configuration models a representative federal civilian agency progressing from **Event Logging Level 2 (L2) to Level 3 (L3)**. The dashboard's own description summarizes the posture it displays: Elements 1 and 4 are at L3; Elements 2, 3, and 5 are blocking L3 advancement. Every number on the dashboard ties back to one of the five M-26-14 compliance elements:
 
 | Element | Requirement Area |
 |---------|------------------|

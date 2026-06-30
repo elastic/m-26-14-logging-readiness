@@ -46,6 +46,13 @@
     },
     {
       "script": {
+        "description": "Derive m_26_14.hwam_source from managed state so Element 2 (SWAM) coverage and HWAM-source breakdowns are stable. Managed assets are osquery-inventoried; unmanaged were network-discovered. Only fills when the transform supplied no real source.",
+        "lang": "painless",
+        "source": "if (!(ctx.get('m_26_14') instanceof Map)) ctx['m_26_14'] = new HashMap();\ndef m = (Map)ctx.get('m_26_14');\ndef ex = m.get('hwam_source');\nboolean hasReal = (ex instanceof List && ((List)ex).size() > 0) || (ex instanceof String && ((String)ex).length() > 0 && !'null'.equals(ex));\nif (!hasReal) {\n  def mv = ctx?.asset?.managed;\n  boolean managed = (mv == true) || (mv instanceof Number && ((Number)mv).intValue()==1) || 'true'.equals(mv);\n  m['hwam_source'] = managed ? ['osquery'] : ['network_discovery'];\n}"
+      }
+    },
+    {
+      "script": {
         "description": "Evaluate M-26-14 Element 1 (HWAM) and Element 2 (SWAM) coverage flags",
         "lang": "painless",
         "source": "if (!ctx.containsKey('m_26_14') || ctx.m_26_14 == null) ctx['m_26_14'] = new HashMap();\n\n// Element 1: managed AND seen. Handle boolean, numeric, and string forms.\ndef managedVal = ctx?.asset?.managed;\nboolean managed = (managedVal == true) ||\n                  (managedVal instanceof Number && ((Number)managedVal).intValue() == 1) ||\n                  'true'.equals(managedVal);\nboolean hasSeen = ctx?.asset?.last_seen != null;\nctx.m_26_14['element1_covered'] = managed && hasSeen;\n\n// Element 2: sourced from a SWAM-capable tool\nboolean hasSwam = false;\ndef hwam = ctx?.m_26_14?.get('hwam_source');\nif (hwam != null) {\n  def sources = (hwam instanceof List) ? hwam : [hwam.toString()];\n  def swamSources = new HashSet(['osquery','qualys','crowdstrike','tanium','jamf']);\n  for (def s : sources) {\n    if (swamSources.contains(s.toString())) { hasSwam = true; break; }\n  }\n}\nctx.m_26_14['element2_covered'] = hasSwam;"

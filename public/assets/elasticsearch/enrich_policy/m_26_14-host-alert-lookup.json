@@ -1,0 +1,7 @@
+{
+  "match": {
+    "indices": "m_26_14-host-alert-summary",
+    "match_field": "host.name",
+    "enrich_fields": ["alert_count", "max_risk_score", "last_alert", "severities", "rule_names"]
+  }
+}

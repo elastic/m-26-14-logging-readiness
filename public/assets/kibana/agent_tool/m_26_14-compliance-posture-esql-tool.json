@@ -1,18 +1,18 @@
 {
   "id": "m_26_14-compliance-posture-query",
   "type": "esql",
-  "description": "Queries M-26-14 compliance posture metrics and classification audit records using ES|QL. Supports querying m_26_14-data-classification-requests for unclassified data streams and m_26_14-metrics-* for maturity score time series. Use for POA&M drafting, ATO risk narrative, and compliance gap identification.",
-  "tags": ["m_26_14", "compliance", "posture", "data-classification", "poam", "cato"],
+  "description": "Queries M-26-14 alert-coverage posture (Collection Operations) from m_26_14-metrics-alert-coverage using ES|QL. Returns, per Appendix B logging category, whether detections are active/covered plus recent rule and alert counts. Use for POA&M drafting to surface categories with no or partial detection coverage. For classification gaps use m_26_14-classification-audit-query; for retirement gaps use m_26_14-retirement-audit-query.",
+  "tags": ["m_26_14", "compliance", "posture", "collection-operations", "poam", "cato"],
   "configuration": {
-    "query": "FROM m_26_14-metrics-alert-coverage,m_26_14-metrics-asset-coverage,m_26_14-metrics-retention | WHERE @timestamp >= NOW() - ?lookback | STATS count = COUNT(*), latest = MAX(@timestamp) BY metric_type, state | SORT latest DESC | LIMIT ?limit",
+    "query": "FROM m_26_14-metrics-alert-coverage | WHERE @timestamp >= ?from_date | STATS rules_active = MAX(m_26_14.rules_active), alerts_30d = MAX(m_26_14.alerts_30d), latest = MAX(@timestamp) BY category = m_26_14.category_label.keyword, coverage_status = m_26_14.coverage_status.keyword | SORT category ASC | LIMIT ?limit",
     "params": {
-      "lookback": {
+      "from_date": {
         "type": "string",
-        "description": "Time lookback period in ES|QL duration format. Examples: 7d (7 days), 30d (30 days), 90d (90 days)."
+        "description": "Earliest @timestamp to include, as an ISO-8601 datetime (e.g. 2025-07-01T00:00:00.000Z). Compute this from your lookback window before calling — the metrics indices are daily snapshots, so a 90-day or 365-day floor is typical."
       },
       "limit": {
         "type": "integer",
-        "description": "Maximum number of aggregated results to return. Default: 50."
+        "description": "Maximum number of category rows to return. Default: 50 (covers all categories)."
       }
     }
   }

@@ -186,7 +186,7 @@ const MATRIX_ROWS = [
     phase: 1,
     firstLevel: 2,
     req: 'Data classification intake for new indices and data streams',
-    reqDesc: 'M-26-14 Data pillar requires agencies to categorize data and limit access based on that categorization. New indices and data streams must be classified for sensitivity before retention policies and access controls are applied.',
+    reqDesc: 'M-26-14 directs agencies to keep logs from capturing data in contravention of law and to protect the confidentiality and integrity of sensitive log data (Appendix A, Log Collection Containing Risk of Incidental Sensitive Data Exposure; Log Management element). New indices and data streams must be classified for sensitivity before retention policies and access controls are applied.',
     cap: 'Kibana Workflow — Data Classification Intake',
     capDesc: 'Manual Kibana Workflow opens a Kibana Case for data steward review when a new unclassified data stream is discovered, records classification_pending in audit index, and notifies the responsible team.',
     modalHow: 'The M-26-14 compliance pack includes a Data Classification Intake Kibana Workflow that initiates a formal classification review whenever a new index or data stream is discovered without an assigned sensitivity label. The workflow opens a Kibana Case assigned to the data steward with M-26-14 sensitivity tier guidance (public → restricted), instructions for inspecting the index and applying the appropriate ILM policy, and records a classification_pending state in the m_26_14-data-classification-requests audit index. The M-26-14 POA&M Drafting Agent can query this index to surface unclassified data streams as open compliance findings. Classification must be completed before default retention policies or broad access roles are applied to the new data stream.',
@@ -231,14 +231,23 @@ const MATRIX_ROWS = [
     phase: 2,
     firstLevel: 2,
     req: 'Asset inventory in Agency Logging Plan',
-    reqDesc: 'A complete, documented inventory of all log-producing systems must be maintained and reflected in the Agency Logging Plan submitted to CISA.',
-    cap: 'Fleet Server + osquery pack',
-    capDesc: 'Fleet enrollment auto-builds an up-to-date asset inventory. Osquery captures hardware, software, and network state per endpoint for HWAM/SWAM.',
-    modalHow: 'Every Elastic Agent enrollment writes an inventory record to the Fleet-managed asset index. The compliance pack\'s osquery Fleet pack then continuously queries each enrolled endpoint for hardware identity (HWAM), installed software (SWAM), network interfaces, and local user accounts. This data populates the Asset Coverage dashboard, which provides the evidence export format needed for the Agency Logging Plan submission to CISA within 90 days of LRA publication. The inventory updates in real time as agents enroll or go offline.',
+    reqDesc: 'A complete, documented inventory of all log-producing systems must be maintained and reflected in the Agency Logging Plan submitted to CISA. Element 1 also requires detecting and acting on assets that appear on the network but are not in the inventory.',
+    cap: 'Fleet + osquery + unknown-device triage loop',
+    capDesc: 'Fleet enrollment auto-builds the inventory; osquery captures hardware/software/network state for HWAM/SWAM; the triage loop classifies every unmanaged device and routes it to a gated next step.',
+    modalHow: 'Every Elastic Agent enrollment writes an inventory record to the Fleet-managed asset index. The compliance pack\'s osquery Fleet pack then continuously queries each enrolled endpoint for hardware identity (HWAM), installed software (SWAM), network interfaces, and local user accounts, all resolved into one canonical asset per device. This populates the Asset Coverage dashboard — the evidence export format for the Agency Logging Plan submission to CISA. But inventory is only half of Element 1: the memo also requires detecting and acting on devices that are NOT in inventory. The compliance pack closes that loop. A device surfaces three ways — the first-seen rogue-device detection rule, the observed-vs-inventory quadrant (on the wire but not inventoried), and network-discovery rows. The triage classifier then routes each unmanaged device into exactly one disposition from real signals (a computed Security-alert correlation for rogue, asset status for decommissioned, identity strength and vendor for new-vs-shadow), writes it to the triage ledger, and opens a disposition-specific Kibana Case with the recommended next step pre-filled. Classification and routing are automatic; every enforcement step — isolate, enroll, allow-list, retire — is human-gated.',
+    subsLabel: 'Unknown-Device Dispositions (detect → classify → route → gated action)',
+    subs: [
+      { id: '1', name: 'Rogue',              desc: 'Unmanaged device with a correlated high-severity Security alert. Computed from real detections, not a seeded flag.', cap: 'escalate to IR (gated: isolate)' },
+      { id: '2', name: 'Decommissioned',     desc: 'Marked retired/inactive or silent-then-stale (>45d) yet still on the network.',                                   cap: 'confirm offline → suppress (reversible)' },
+      { id: '3', name: 'New-but-uninventoried', desc: 'Real device with strong identity (serial + enterprise vendor), no alerts — simply not in HWAM yet.',             cap: 'enroll (gated: deploy agent)' },
+      { id: '4', name: 'Shadow-IT',          desc: 'Unmanaged consumer / BYOD device, no alerts. A policy decision, not a technical one.',                            cap: 'exception (gated: allow-list/removal)' },
+      { id: '5', name: 'Needs-review',       desc: 'Signals ambiguous or conflicting — identity must be established before routing.',                                  cap: 'identify first' },
+    ],
     modalAssetIds: ['fleet-osquery-pack', 'dash-asset-coverage', 'template-osquery-hardware', 'template-osquery-network', 'template-osquery-software', 'pipeline-osquery-normalize', 'ilm-asset-inventory'],
     modalCapabilities: [
       { name: 'Fleet Server Enrollment', type: 'platform', desc: 'Every agent enrollment writes a host inventory record including identity, OS, and network state — auto-builds the asset inventory.', href: 'https://www.elastic.co/guide/en/fleet/current/install-fleet-managed-elastic-agent.html' },
       { name: 'Osquery Manager Integration', type: 'platform', desc: 'Scheduled SQL-like queries against endpoint hardware, software, user account, and network state — populates HWAM/SWAM inventory.', href: 'https://docs.elastic.co/integrations/osquery_manager' },
+      { name: 'Unknown-Device Triage Playbook', type: 'doc', desc: 'Decision tree + the four gated next-steps (enroll / exception / escalate-IR / retire) and the unknown→known promotion path. Classification by the m_26_14-asset-triage-classify pipeline; routing by the m_26_14-unknown-device-triage workflow.', href: '/docs/runbooks/unknown-device-triage-playbook.md' },
     ],
   },
   {
@@ -317,7 +326,7 @@ const MATRIX_ROWS = [
     reqDesc: 'M-26-14 requires documented incident response, ongoing POA&M management, and auditable compliance reporting. These manual documentation burdens are the primary bottleneck for agency compliance teams.',
     cap: 'Elastic Agent Builder — 3 AI compliance agents',
     capDesc: 'Three pre-configured AI agents automate the most time-intensive compliance documentation tasks: threat investigation summaries, POA&M entry drafting from live findings, and after-action report generation from closed cases.',
-    modalHow: 'The M-26-14 compliance pack ships three Elastic Agent Builder agents, each pre-configured with M-26-14 context, the appropriate built-in Elastic tools, and custom ES|QL tools scoped to the compliance indices. The Threat Investigation Agent autonomously investigates security alerts — querying entity risk scores, asset inventory, related logs, and attack discoveries — and produces a structured investigation summary with M-26-14 pillar/element impact mapping, ready to attach to the Kibana Case. The POA&M Drafting Agent queries open cases, unclassified data streams, retirement audit gaps, and recurring unresolved alerts, then drafts FISMA-compliant POA&M entries with proper control references, risk ratings, milestones, and completion dates. The After-Action Report Agent reconstructs incident timelines from closed cases and log data, calculates detection gaps, maps affected assets to M-26-14 elements, and drafts a formal AAR document — reducing a 2–4 hour manual task to under 2 minutes. All three agents use custom ES|QL tools scoped to m_26_14-* indices for data-grounded, verifiable output. Agents are deployed via the included shell script using the Agent Builder REST API.',
+    modalHow: 'The M-26-14 compliance pack ships three Elastic Agent Builder agents, each pre-configured with M-26-14 context, the appropriate built-in Elastic tools, and custom ES|QL tools scoped to the compliance indices. The Threat Investigation Agent autonomously investigates security alerts — querying entity risk scores, asset inventory, related logs, and attack discoveries — and produces a structured investigation summary with M-26-14 element impact mapping, ready to attach to the Kibana Case. The POA&M Drafting Agent queries open cases, unclassified data streams, retirement audit gaps, and recurring unresolved alerts, then drafts FISMA-compliant POA&M entries with proper control references, risk ratings, milestones, and completion dates. The After-Action Report Agent reconstructs incident timelines from closed cases and log data, calculates detection gaps, maps affected assets to M-26-14 elements, and drafts a formal AAR document — reducing a 2–4 hour manual task to under 2 minutes. All three agents use custom ES|QL tools scoped to m_26_14-* indices for data-grounded, verifiable output. Agents are deployed via the included shell script using the Agent Builder REST API.',
     modalAssetIds: ['agent-threat-investigation', 'agent-poam-drafting', 'agent-aar', 'agent-tool-asset-inventory', 'agent-tool-retirement-audit', 'agent-tool-compliance-posture'],
     modalCapabilities: [
       { name: 'Elastic Agent Builder', type: 'platform', desc: 'Custom AI agent platform with built-in tools for Elasticsearch, Kibana Cases, security alerts, entity risk scores, and Elastic Workflows. Agents are deployed via REST API with configurable system instructions and tool scoping.', href: 'https://www.elastic.co/docs/explore-analyze/ai-features/elastic-agent-builder' },
@@ -567,8 +576,9 @@ function ComplianceInDaysTab() {
       {/* Conops blurb */}
       <p className="text-sm leading-relaxed text-text-muted" style={{ fontSize: 14 }}>
         Deploying the Elastic Search AI Platform and M-26-14 Compliance Pack delivers full data
-        retention compliance on Day 1 — the technical foundation for all four maturity levels.
-        Progression through Initial, Intermediate, Advanced, and Optimal then proceeds as data
+        retention compliance on Day 1 — the technical foundation for all five maturity levels
+        (Ineffective through Optimal). Progression from Ineffective through Initial, Intermediate,
+        Advanced, and Optimal then proceeds as data
         sources, detections, and operational coverage are layered in over days and weeks.
       </p>
 

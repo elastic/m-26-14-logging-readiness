@@ -1,0 +1,30 @@
+{
+  "index_patterns": ["m_26_14-host-alert-summary*"],
+  "priority": 200,
+  "_meta": {
+    "pack": "m_26_14",
+    "purpose": "Destination index for the m_26_14-host-alert-summary transform — the COMPUTED rogue signal (Security alerts pivoted per host.name). Pre-created at bootstrap so the m_26_14-host-alert-lookup enrich policy can be PUT before the transform's first checkpoint (PUT _enrich/policy validates its source index exists). host.name MUST be keyword for the enrich match_field; the remaining pivot fields (alert_count, max_risk_score, last_alert, severities, rule_names) map dynamically.",
+    "dependency_order": "Created in the templates stage; the index itself is created (empty) at the start of the triage stage, then the transform writes into it."
+  },
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 1
+    },
+    "mappings": {
+      "dynamic": true,
+      "properties": {
+        "host": {
+          "properties": {
+            "name": { "type": "keyword" }
+          }
+        },
+        "alert_count":    { "type": "long" },
+        "max_risk_score": { "type": "float" },
+        "last_alert":     { "type": "date" },
+        "severities":     { "type": "keyword" },
+        "rule_names":     { "type": "keyword" }
+      }
+    }
+  }
+}

@@ -6,6 +6,9 @@ import MaturityView from './components/MaturityView.jsx'
 import AssetInventory from './components/AssetInventory.jsx'
 import CompliancePage from './components/CompliancePage.jsx'
 import DemoGuide from './components/DemoGuide.jsx'
+import EnablementHub from './components/EnablementHub.jsx'
+import SalesEnablement from './components/SalesEnablement.jsx'
+import SAEnablement from './components/SAEnablement.jsx'
 
 function MaturitySizeRedirect() {
   const { size } = useParams()
@@ -38,6 +41,11 @@ export default function App() {
         {/* Browse nav stub pages */}
         <Route path="/asset-inventory" element={<AssetInventory />} />
         <Route path="/demo-guide" element={<DemoGuide />} />
+
+        {/* Field enablement — reached via the hidden logo link */}
+        <Route path="/enablement" element={<EnablementHub />} />
+        <Route path="/enablement/sales" element={<SalesEnablement />} />
+        <Route path="/enablement/sa" element={<SAEnablement />} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

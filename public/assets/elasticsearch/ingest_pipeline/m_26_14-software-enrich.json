@@ -1,0 +1,30 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m_26_14",
+    "m_26_14": {
+      "workstream": 3,
+      "description": "Default pipeline for the common software-inventory stream (logs-m_26_14.software_inventory-*). Applies the authorized-software (SWAM) catalog enrich to software records rerouted from ANY source (osquery via m_26_14-osquery-normalize, or a customer CMDB/EDR feed via m_26_14-asset-normalize). Source-agnostic: matches on package.name only. Does NOT reroute (terminal stage — avoids a reroute loop)."
+    }
+  },
+  "description": "Enrich M-26-14 software inventory records with the authorized-software catalog (Element 2 / SWAM) regardless of collection source",
+  "processors": [
+    {
+      "enrich": {
+        "description": "Enrich software docs with the authorized software catalog (authorized/category/publisher/eol + CDM approval provenance)",
+        "policy_name": "m_26_14-authorized-software",
+        "field": "package.name",
+        "target_field": "m_26_14.software",
+        "ignore_missing": true,
+        "ignore_failure": true
+      }
+    },
+    {
+      "script": {
+        "description": "Promote package.publisher and package.category from software catalog enrichment",
+        "lang": "painless",
+        "source": "if (!ctx.containsKey('package') || ctx.package == null) return;\nMap pkg = ctx.package;\nif (!ctx.containsKey('m_26_14') || ctx.m_26_14 == null) return;\nMap m_26_14 = ctx.m_26_14;\nif (!m_26_14.containsKey('software') || m_26_14.software == null) return;\nMap sw = m_26_14.software;\n// Promote publisher: catalog enrichment wins if present, otherwise keep existing\nif (sw.containsKey('publisher') && sw.publisher != null && !pkg.containsKey('publisher')) {\n  pkg['publisher'] = sw.publisher;\n}\n// Promote category: catalog enrichment wins; normalize to lowercase\nif (sw.containsKey('category') && sw.category != null && !pkg.containsKey('category')) {\n  pkg['category'] = sw.category.toString().toLowerCase();\n}"
+      }
+    }
+  ]
+}

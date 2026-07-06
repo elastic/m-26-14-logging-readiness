@@ -164,7 +164,7 @@ export default function MaturityView() {
                 }
               >
                 <p className="text-sm font-semibold">{SIZE_LABELS[s]}</p>
-                <p className="text-xs text-text-muted mt-0.5">{sizingTable[s].ingestRange} / day</p>
+                <p className="text-xs text-text-muted mt-0.5">{sizingTable[s].ingestRange}</p>
               </Link>
             )
           })}

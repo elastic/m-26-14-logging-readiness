@@ -7,7 +7,9 @@
       "description": "Software inventory data stream for M-26-14 Element 2 (SWAM)"
     }
   },
-  "index_patterns": ["logs-m_26_14_osquery.software_inventory-*"],
+  "index_patterns": [
+    "logs-m_26_14_osquery.software_inventory-*"
+  ],
   "data_stream": {},
   "priority": 300,
   "template": {
@@ -19,64 +21,135 @@
     "mappings": {
       "dynamic": true,
       "properties": {
-        "@timestamp": { "type": "date" },
+        "@timestamp": {
+          "type": "date"
+        },
         "agent": {
           "properties": {
-            "id":       { "type": "keyword" },
-            "name":     { "type": "keyword" },
-            "hostname": { "type": "keyword" },
-            "version":  { "type": "keyword" },
-            "type":     { "type": "keyword" }
+            "id": {
+              "type": "keyword"
+            },
+            "name": {
+              "type": "keyword"
+            },
+            "hostname": {
+              "type": "keyword"
+            },
+            "version": {
+              "type": "keyword"
+            },
+            "type": {
+              "type": "keyword"
+            }
           }
         },
         "host": {
           "properties": {
-            "id":   { "type": "keyword" },
-            "name": { "type": "keyword" }
+            "id": {
+              "type": "keyword"
+            },
+            "name": {
+              "type": "keyword"
+            },
+            "type": {
+              "type": "keyword"
+            }
           }
         },
         "package": {
           "properties": {
-            "name":         { "type": "keyword" },
-            "version":      { "type": "keyword" },
-            "type":         { "type": "keyword" },
-            "architecture": { "type": "keyword" },
-            "install_path": { "type": "keyword" },
-            "publisher":    { "type": "keyword" },
-            "category":     { "type": "keyword" }
+            "name": {
+              "type": "keyword"
+            },
+            "version": {
+              "type": "keyword"
+            },
+            "type": {
+              "type": "keyword"
+            },
+            "architecture": {
+              "type": "keyword"
+            },
+            "install_path": {
+              "type": "keyword"
+            },
+            "publisher": {
+              "type": "keyword"
+            },
+            "category": {
+              "type": "keyword"
+            }
           }
         },
         "osquery": {
           "properties": {
-            "name":   { "type": "keyword" },
-            "action": { "type": "keyword" }
+            "name": {
+              "type": "keyword"
+            },
+            "action": {
+              "type": "keyword"
+            }
           }
         },
         "m_26_14": {
           "properties": {
-            "managed":           { "type": "boolean" },
-            "hwam_source":       { "type": "keyword" },
-            "asset_fingerprint": { "type": "keyword" },
+            "managed": {
+              "type": "boolean"
+            },
+            "hwam_source": {
+              "type": "keyword"
+            },
+            "asset_fingerprint": {
+              "type": "keyword"
+            },
             "software": {
               "properties": {
-                "authorized": { "type": "boolean" },
-                "category":   { "type": "keyword" },
-                "publisher":  { "type": "keyword" },
-                "eol":        { "type": "boolean" }
+                "authorized": {
+                  "type": "boolean"
+                },
+                "category": {
+                  "type": "keyword"
+                },
+                "publisher": {
+                  "type": "keyword"
+                },
+                "eol": {
+                  "type": "boolean"
+                },
+                "approved_by": {
+                  "type": "keyword"
+                },
+                "approval_ref": {
+                  "type": "keyword"
+                },
+                "min_version": {
+                  "type": "keyword"
+                }
               }
             }
           }
         },
         "asset": {
           "properties": {
-            "id":       { "type": "keyword" },
-            "name":     { "type": "keyword" },
-            "source":   { "type": "keyword" },
-            "managed":  { "type": "boolean" },
-            "last_seen":{ "type": "date" }
+            "id": {
+              "type": "keyword"
+            },
+            "name": {
+              "type": "keyword"
+            },
+            "source": {
+              "type": "keyword"
+            },
+            "managed": {
+              "type": "boolean"
+            },
+            "last_seen": {
+              "type": "date"
+            }
           }
         }
-      }
+      },
+      "date_detection": false
     }
   }
 }

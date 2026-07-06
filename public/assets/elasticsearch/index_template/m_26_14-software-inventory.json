@@ -1,0 +1,91 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m_26_14",
+    "m_26_14": {
+      "workstream": 3,
+      "description": "Common (source-agnostic) software inventory stream for M-26-14 Element 2 (SWAM). Software records from ANY collector converge here via reroute: osquery (m_26_14-osquery-normalize), customer CMDB/EDR (m_26_14-asset-normalize), etc. Default pipeline m_26_14-software-enrich applies the authorized-software catalog. SWAM dashboards query this pattern."
+    }
+  },
+  "index_patterns": [
+    "logs-m_26_14.software_inventory-*"
+  ],
+  "data_stream": {},
+  "priority": 300,
+  "template": {
+    "settings": {
+      "index.mode": "logsdb",
+      "index.default_pipeline": "m_26_14-software-enrich",
+      "index.lifecycle.name": "m_26_14-asset-inventory"
+    },
+    "mappings": {
+      "dynamic": true,
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "agent": {
+          "properties": {
+            "id": { "type": "keyword" },
+            "name": { "type": "keyword" },
+            "hostname": { "type": "keyword" },
+            "version": { "type": "keyword" },
+            "type": { "type": "keyword" }
+          }
+        },
+        "host": {
+          "properties": {
+            "id": { "type": "keyword" },
+            "name": { "type": "keyword" },
+            "type": { "type": "keyword" }
+          }
+        },
+        "package": {
+          "properties": {
+            "name": { "type": "keyword" },
+            "version": { "type": "keyword" },
+            "type": { "type": "keyword" },
+            "architecture": { "type": "keyword" },
+            "install_path": { "type": "keyword" },
+            "publisher": { "type": "keyword" },
+            "category": { "type": "keyword" }
+          }
+        },
+        "osquery": {
+          "properties": {
+            "name": { "type": "keyword" },
+            "action": { "type": "keyword" }
+          }
+        },
+        "m_26_14": {
+          "properties": {
+            "managed": { "type": "boolean" },
+            "hwam_source": { "type": "keyword" },
+            "asset_fingerprint": { "type": "keyword" },
+            "software": {
+              "properties": {
+                "authorized": { "type": "boolean" },
+                "category": { "type": "keyword" },
+                "publisher": { "type": "keyword" },
+                "eol": { "type": "boolean" },
+                "approved_by": { "type": "keyword" },
+                "approval_ref": { "type": "keyword" },
+                "min_version": { "type": "keyword" }
+              }
+            }
+          }
+        },
+        "asset": {
+          "properties": {
+            "id": { "type": "keyword" },
+            "name": { "type": "keyword" },
+            "source": { "type": "keyword" },
+            "managed": { "type": "boolean" },
+            "last_seen": { "type": "date" }
+          }
+        }
+      },
+      "date_detection": false
+    }
+  }
+}

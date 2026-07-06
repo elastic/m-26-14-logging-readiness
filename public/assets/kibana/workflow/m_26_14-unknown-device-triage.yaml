@@ -1,0 +1,207 @@
+# =============================================================================
+# Elastic Workflow: M-26-14 Unknown-Device Triage (route + gate)
+# Category: compliance/asset-management
+#
+# Closes the loop on a previously-unknown / unmanaged entity that the
+# m_26_14-asset-triage-classify pipeline has already classified into one of:
+#   rogue -> escalate_ir | decommissioned -> retire |
+#   new_uninventoried -> enroll | shadow_it -> exception | needs_review -> review
+#
+# This workflow ROUTES and GATES — it never enforces. It opens a disposition-
+# specific Kibana Case (recommended action + evidence pre-filled), records the
+# routing state in the m_26_14-asset-triage ledger, and notifies. A human
+# executes the gated next step and closes the case.
+#
+# The disposition/action/confidence/signals are computed upstream and surfaced
+# on the triage ledger and HWAM Gaps dashboard. Set them as consts below
+# (read them off the ledger doc for the target asset) before enabling — same
+# operator UX as the other M-26-14 workflows.
+#
+# Reversible auto-actions (decommissioned -> suppress, new_uninventoried ->
+# draft-enroll) are documented as READY-TO-ENABLE examples in
+# docs/runbooks/unknown-device-automation-examples.md. They are NOT wired here.
+#
+# Schema: github.com/elastic/workflows
+# Author: Elastic / M-26-14 Compliance Pack
+# Tags: M-26-14, Compliance, HWAM, Element 1, Asset Triage, Manual
+# =============================================================================
+version: "1"
+name: M-26-14 Unknown-Device Triage
+description: >
+  Manual workflow that routes a classified unknown/unmanaged device to a
+  disposition-specific Kibana Case (rogue / decommissioned / new_uninventoried
+  / shadow_it / needs_review) with the recommended next step and evidence,
+  records routing state in the m_26_14-asset-triage ledger, and notifies the
+  responder. All enforcement is human-gated. Satisfies M-26-14 Element 1
+  (detect + action unauthorized/unknown assets).
+enabled: false
+tags:
+  - M-26-14
+  - Compliance
+  - HWAM
+  - Element 1
+  - Asset Triage
+  - Manual
+
+# ---------------------------------------------------------------------------
+# CONSTANTS — read these off the m_26_14-asset-triage ledger doc for the
+# target asset, then update before enabling.
+#   GET m_26_14-asset-triage/_doc/<asset.id>
+# ---------------------------------------------------------------------------
+consts:
+  asset_id: YOUR-ASSET-ID
+  host_name: YOUR-HOST-NAME
+  asset_name: YOUR-ASSET-NAME
+  disposition: needs_review              # rogue|decommissioned|new_uninventoried|shadow_it|needs_review
+  recommended_action: review             # escalate_ir|retire|enroll|exception|review
+  confidence: "0.0"
+  signals: "unmanaged"                    # pipe-joined evidence from the ledger
+  triage_index: m_26_14-asset-triage
+  notification_connector_id: YOUR-SLACK-OR-EMAIL-CONNECTOR-ID
+  responder_team: security-operations
+
+# ---------------------------------------------------------------------------
+# TRIGGERS — manual; run per flagged device (or wire a scheduled trigger that
+# iterates the ledger for state=proposed once foreach is validated on-cluster).
+# ---------------------------------------------------------------------------
+triggers:
+  - type: manual
+
+# ---------------------------------------------------------------------------
+# STEPS
+# ---------------------------------------------------------------------------
+steps:
+
+  # -------------------------------------------------------------------------
+  # STEP 1: open_triage_case
+  # -------------------------------------------------------------------------
+  - name: open_triage_case
+    type: cases.createCase
+    with:
+      title: "M-26-14 Unknown-Device Triage [{{ consts.disposition }}]: {{ consts.asset_name }} ({{ consts.host_name }})"
+      description: |
+        ## M-26-14 Element 1 — Unknown / Unmanaged Device Triage
+
+        A previously-unknown or unmanaged entity has been detected and
+        classified. Confirm the disposition and execute the **gated** next
+        step. This workflow does not enforce — you do, after review.
+
+        | Field | Value |
+        |-------|-------|
+        | **Asset** | `{{ consts.asset_name }}` |
+        | **host.name** | `{{ consts.host_name }}` |
+        | **asset.id** | `{{ consts.asset_id }}` |
+        | **Computed disposition** | **{{ consts.disposition }}** |
+        | **Recommended action** | **{{ consts.recommended_action }}** |
+        | **Confidence** | {{ consts.confidence }} |
+        | **Evidence (signals)** | `{{ consts.signals }}` |
+        | **Routed** | {{ execution.startedAt | date: '%Y-%m-%d %H:%M UTC' }} |
+        | **Ledger** | `{{ consts.triage_index }}` / `_doc/{{ consts.asset_id }}` |
+
+        ---
+        ### Disposition decision tree (for context)
+
+        | Disposition | Means | Gated next step |
+        |-------------|-------|-----------------|
+        | **rogue** | Unmanaged **and** correlated high-severity Security alerts | **Escalate to IR.** Isolate network segment, preserve evidence, open IR case. |
+        | **decommissioned** | Marked retired/inactive (or stale >45d) but still on the wire | **Retire.** Confirm physically offline, then suppress from active inventory. |
+        | **new_uninventoried** | Real device, strong identity (serial + enterprise vendor), no alerts | **Enroll.** Add to HWAM, deploy Elastic Agent, assign owner + criticality. |
+        | **shadow_it** | Unmanaged consumer/BYOD device, no alerts | **Exception (policy).** Owner contact; allow-list with expiry **or** remove. |
+        | **needs_review** | Signals ambiguous/conflicting | **Review.** Manual identification before choosing a path. |
+
+        ---
+        ### Gated next step for **{{ consts.recommended_action }}**
+
+        > Execute only after review/sign-off. None of the steps below run
+        > automatically. Reversible automation examples (auto-suppress,
+        > auto-draft-enroll) are in
+        > `docs/runbooks/unknown-device-automation-examples.md` — enable per
+        > policy, not by default.
+
+        **escalate_ir** — Quarantine + investigate:
+        1. Cross-reference `host.name` / serial against `m_26_14-assets` and `logs-m_26_14_osquery.network_inventory-*`.
+        2. Pull the firing rules from the evidence; open/link an IR case (HIGH).
+        3. Isolate the switch port / VLAN (network team) — **manual, gated**.
+
+        **retire** — Confirm offline + suppress:
+        1. Verify the device is physically decommissioned with the owning component.
+        2. After sign-off, suppress from active inventory (see runbook §Auto-suppress).
+
+        **enroll** — Bring into inventory:
+        1. Validate the device + owner; assign `asset.component` + criticality.
+        2. Deploy Elastic Agent / add the HWAM inventory row (see runbook §Auto-draft-enroll).
+
+        **exception** — Policy decision:
+        1. Contact the apparent owner; confirm business justification.
+        2. Add a time-boxed allow-list entry **or** schedule removal — **manual, gated**.
+
+        **review** — Identify first:
+        1. Use the Threat Investigation agent + osquery hardware/network inventory to resolve identity.
+        2. Re-run the classifier once identity is established; the disposition will sharpen.
+
+        ---
+        *Auto-generated by M-26-14 Unknown-Device Triage workflow. Classification by `m_26_14-asset-triage-classify`.*
+      owner: securitySolution
+      settings:
+        syncAlerts: false
+      severity: high
+      tags:
+        - m_26_14
+        - hwam
+        - element-1
+        - asset-triage
+        - "{{ consts.disposition }}"
+
+  # -------------------------------------------------------------------------
+  # STEP 2: record_triage_routed
+  # -------------------------------------------------------------------------
+  # Updates the ledger doc to state=routed so the device is not re-cased.
+  # Idempotent: same _id as the classify pipeline (asset.id).
+  # -------------------------------------------------------------------------
+  - name: record_triage_routed
+    type: elasticsearch.index
+    with:
+      index: "{{ consts.triage_index }}"
+      id: "{{ consts.asset_id }}"
+      document:
+        "@timestamp": "{{ execution.startedAt | date: '%Y-%m-%dT%H:%M:%S.000Z' }}"
+        state: routed
+        case_opened_at: "{{ execution.startedAt | date: '%Y-%m-%dT%H:%M:%S.000Z' }}"
+        host:
+          name: "{{ consts.host_name }}"
+        asset:
+          id: "{{ consts.asset_id }}"
+          name: "{{ consts.asset_name }}"
+        m_26_14:
+          triage:
+            disposition: "{{ consts.disposition }}"
+            recommended_action: "{{ consts.recommended_action }}"
+        workflow_execution_id: "{{ execution.id }}"
+    on-failure:
+      continue: true
+
+  # -------------------------------------------------------------------------
+  # STEP 3: notify_responder
+  # -------------------------------------------------------------------------
+  - name: notify_responder
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/actions/connector/{{ consts.notification_connector_id }}/_execute
+      body:
+        params:
+          message: |
+            [M-26-14] Unknown-Device Triage — {{ consts.disposition }}
+            Asset: {{ consts.asset_name }} ({{ consts.host_name }})
+            Recommended (gated) action: {{ consts.recommended_action }}
+            A Kibana Case has been opened. Execute the gated step after review.
+    on-failure:
+      continue: true
+
+  # -------------------------------------------------------------------------
+  # STEP 4: log_completion
+  # -------------------------------------------------------------------------
+  - name: log_completion
+    type: console
+    with:
+      message: "Unknown-device triage routed. Asset: {{ consts.asset_name }} ({{ consts.host_name }}). Disposition: {{ consts.disposition }}. Case opened; ledger state=routed in {{ consts.triage_index }}."

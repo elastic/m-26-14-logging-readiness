@@ -4,10 +4,10 @@
     "managed_by": "m_26_14",
     "m_26_14": {
       "workstream": 3,
-      "description": "Authorized software catalog (SWAM allowlist) — enrich source index for the m_26_14-authorized-software enrich policy used by the m_26_14-osquery-normalize pipeline. One doc per authorized package name."
+      "description": "Authorized software catalog (SWAM allowlist) — enrich source index for the m_26_14-authorized-software enrich policy used by the m_26_14-osquery-normalize pipeline. One doc per package name; carries authorization state, category, publisher, EOL flag, and CDM approval provenance (approved_by / approval_ref / min_version)."
     }
   },
-  "index_patterns": ["m_26_14-authorized-software"],
+  "index_patterns": ["m_26_14-authorized-software-catalog"],
   "priority": 500,
   "template": {
     "settings": {
@@ -23,16 +23,14 @@
             "name": { "type": "keyword" }
           }
         },
-        "software": {
-          "properties": {
-            "authorized":   { "type": "boolean" },
-            "category":     { "type": "keyword" },
-            "approved_by":  { "type": "keyword" },
-            "approval_ref": { "type": "keyword" },
-            "min_version":  { "type": "keyword" }
-          }
-        },
-        "updated_at": { "type": "date" }
+        "authorized":   { "type": "boolean" },
+        "category":     { "type": "keyword" },
+        "publisher":    { "type": "keyword" },
+        "eol":          { "type": "boolean" },
+        "approved_by":  { "type": "keyword" },
+        "approval_ref": { "type": "keyword" },
+        "min_version":  { "type": "keyword" },
+        "updated_at":   { "type": "date" }
       }
     }
   }

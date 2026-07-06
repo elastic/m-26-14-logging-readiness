@@ -40,9 +40,9 @@ Click any row in the Unmanaged Assets table to open a Discover view filtered to 
 
 Knowing devices exist is one requirement. Knowing they're compliant is another. This dashboard answers the posture question: encrypted? MDM-enrolled? Running authorized software?
 
-You'll see two gap metrics immediately: **5 unencrypted managed devices** and **3 not enrolled in MDM**. Click either metric tile to open a Discover view showing exactly which devices — names, OS versions, last-seen times. This is what you hand the ISO instead of a manual audit spreadsheet.
+Four gap tiles line the top row: **No Element 1 Coverage (5)**, **No Element 2 Coverage (5)**, **Unknown Encryption Status (5)**, and **No MDM Enrollment (3)** — devices missing a hardware inventory record, a software inventory, a confirmed disk-encryption state, or MDM enrollment. Click any tile to open a Discover view showing exactly which devices — names, OS versions, last-seen times. This is what you hand the ISO instead of a manual audit spreadsheet.
 
-> **Where this data comes from:** Encryption status is reported by osquery's `disk_encryption` table query, which runs every few hours on each enrolled endpoint and returns the state of every mounted volume. MDM enrollment status comes separately from the Microsoft Intune integration, which pushes device compliance records directly to Elasticsearch without requiring a query agent on the device. The `m_26_14-asset-entity-resolution` transform merges both sources into a single posture record per device — if osquery sees a device as unencrypted and Intune has no record of MDM enrollment, the combined record reflects both gaps simultaneously. Both the Coverage Gaps and the Asset Inventory dashboard draw from the same `m_26_14-assets` index — [you can navigate between them using the links at the bottom of each dashboard](https://m-26-14-7ae75d.kb.us-east-1.aws.found.io/app/dashboards#/view/m_26_14-hwam-overview).
+> **Where this data comes from:** Encryption status is reported by osquery's `disk_encryption` table query, which runs every few hours on each enrolled endpoint and returns the state of every mounted volume. MDM enrollment status comes separately from the Microsoft Intune integration, which pushes device compliance records directly to Elasticsearch without requiring a query agent on the device. The `m_26_14-asset-entity-resolution` transform merges both sources into a single posture record per device — if osquery can't confirm a device's encryption state and Intune has no record of MDM enrollment, the combined record reflects both gaps simultaneously. Both the Coverage Gaps and the Asset Inventory dashboard draw from the same `m_26_14-assets` index — [you can navigate between them using the links at the top of each dashboard](https://m-26-14-7ae75d.kb.us-east-1.aws.found.io/app/dashboards#/view/m_26_14-hwam-overview).
 
 ---
 
@@ -70,7 +70,7 @@ Click either unauthorized title to drill into which specific endpoints are affec
 
 At enrollment, every managed device gets a baseline snapshot — a cryptographic fingerprint of its OS version, disk encryption status, and serial number. If any of those fields change on a live device, it gets flagged.
 
-You'll see **4 drifted assets** on this dashboard. Click the metric tile and the Discover view shows you which ones: LAPTOP-001, WKSTN-003, WKSTN-013, and WKSTN-015. Each record shows the baseline timestamp and what changed.
+You'll see a set of **drifted assets** flagged on this dashboard — 8 in the current dataset, a mix of workstations, laptops, and servers. Click the metric tile and the Discover view shows exactly which ones, each with its baseline timestamp and what changed.
 
 These could be routine OS updates, intentional policy changes, or something to investigate. The important thing is the system caught them — not a quarterly audit.
 
@@ -116,7 +116,7 @@ Green means all three. Yellow means partial. Red means a gap that needs to be ad
 
 THIRF requires at least six months of log retention. Level 3 requires three months to be immediately searchable — not just archived, actually queryable without a restore operation. This dashboard proves both, per data stream.
 
-The bars show each index's searchable days (hot tier — immediate query, no latency) versus its full retention window including frozen tier. The ILM policies ship pre-configured with the pack: `m_26_14-logs-l3-hot-frozen` keeps 90 days on hot then transitions to frozen for a 1-year total window; `m_26_14-logs-l4-hot-frozen` keeps 30 days hot with a 6-month total.
+The bars show each index's searchable days (hot tier — immediate query, no latency) versus its full retention window including frozen tier. The ILM policies ship pre-configured with the pack: `m_26_14-logs-l3-hot-frozen` keeps 90 days on hot then transitions to frozen for a 1-year total window; `m_26_14-logs-l4-hot-frozen` keeps 180 days hot then transitions to frozen for a 1-year total.
 
 When an index reaches the end of its retention window, it can't be deleted automatically. The pack enforces a two-gate human approval workflow:
 
@@ -135,7 +135,7 @@ Every retirement action is recorded in `m_26_14-retirement-requests` — a compl
 
 ![Log Management (Element 5)](/screenshots/05-log-management.png)
 
-M-26-14 requires log integrity — evidence that log documents haven't been altered after collection. The pack handles this at ingest: the `m_26_14-log-integrity-hash` pipeline computes a SHA-256 of each log document the moment it arrives and writes the hash to `m_26_14.log_hash`. If anyone modifies the document later, the hash won't match.
+M-26-14 requires log integrity — evidence that log documents haven't been altered after collection. The pack handles this at ingest: the `m_26_14-log-integrity-hash` pipeline computes a SHA-256 of each log document the moment it arrives, writes it to `event.hash`, and flags the record with `event.integrity.hashed: true`. If anyone modifies the document later, the hash won't match.
 
 The bars here show hash coverage by host. Click any bar to open Discover filtered to that host's integrity records — you'll see the raw hash values alongside the original log fields. Gaps in this chart are a compliance finding.
 

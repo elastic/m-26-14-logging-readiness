@@ -1,0 +1,19 @@
+{
+  "id": "m_26_14-classification-audit-query",
+  "type": "esql",
+  "description": "Queries the M-26-14 data classification audit index (m_26_14-data-classification-requests) using ES|QL. Use to find data streams awaiting a sensitivity determination (state = classification_pending) or to review completed classifications. Each classification_pending record is a potential POA&M item under Appendix A incidental sensitive-data exposure / Log Management.",
+  "tags": ["m_26_14", "compliance", "data-classification", "log-management", "poam"],
+  "configuration": {
+    "query": "FROM m_26_14-data-classification-requests | WHERE state == ?state | KEEP index_name, state, @timestamp, submitted_by, data_steward | SORT @timestamp DESC | LIMIT ?limit",
+    "params": {
+      "state": {
+        "type": "string",
+        "description": "Classification state to filter on. Valid values: classification_pending, classified. Use classification_pending to surface open gaps."
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Maximum number of records to return. Default: 50."
+      }
+    }
+  }
+}

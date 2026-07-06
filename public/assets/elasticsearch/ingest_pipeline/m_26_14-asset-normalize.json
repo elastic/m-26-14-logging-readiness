@@ -10,6 +10,13 @@
   "description": "Normalize asset inventory events from any source (osquery, CrowdStrike, Tenable, Qualys, Intune, Jamf, ServiceNow) to the unified asset.* schema. Called by source-specific sub-pipelines after their own field extraction.",
   "processors": [
     {
+      "lowercase": {
+        "field": "host.name",
+        "ignore_missing": true,
+        "description": "Normalize host.name to lowercase for consistent entity resolution (Entity Store keys on host.name; case-sensitive keyword match)"
+      }
+    },
+    {
       "script": {
         "description": "Ensure asset object exists; set source-agnostic defaults",
         "lang": "painless",
@@ -32,8 +39,10 @@
     },
     {
       "fingerprint": {
-        "description": "Deterministic asset.id: same device → same ID across all sources and over time",
-        "fields": ["_asset_resolution_key"],
+        "description": "Deterministic asset.id: same device \u2192 same ID across all sources and over time",
+        "fields": [
+          "_asset_resolution_key"
+        ],
         "target_field": "asset.id",
         "method": "SHA-256",
         "ignore_missing": true
@@ -41,15 +50,18 @@
     },
     {
       "remove": {
-        "field": ["_asset_resolution_key", "asset._resolution_confidence"],
+        "field": [
+          "_asset_resolution_key",
+          "asset._resolution_confidence"
+        ],
         "ignore_missing": true
       }
     },
     {
       "script": {
-        "description": "Cross-populate os.build and os.eol: asset.os.* ↔ top-level os.*",
+        "description": "Cross-populate os.build and os.eol: asset.os.* \u2194 top-level os.*",
         "lang": "painless",
-        "source": "Map assetOs = (ctx.containsKey('asset') && ctx.asset != null) ? ctx.asset.get('os') : null;\nMap topOs = ctx.containsKey('os') ? ctx.os : null;\n\n// Ensure top-level os object exists if asset.os has data\nif (assetOs != null && assetOs.size() > 0) {\n  if (topOs == null) {\n    topOs = new HashMap();\n    ctx['os'] = topOs;\n  }\n  // asset.os → top-level os (fill gaps only)\n  for (String k : new String[]{'name','version','build','platform','architecture','eol','kernel'}) {\n    if (assetOs.containsKey(k) && assetOs.get(k) != null && !topOs.containsKey(k)) {\n      topOs.put(k, assetOs.get(k));\n    }\n  }\n}\n\n// top-level os → asset.os (fill gaps in reverse)\nif (topOs != null && topOs.size() > 0 && assetOs != null) {\n  for (String k : new String[]{'build','eol'}) {\n    if (topOs.containsKey(k) && topOs.get(k) != null && !assetOs.containsKey(k)) {\n      assetOs.put(k, topOs.get(k));\n    }\n  }\n}"
+        "source": "Map assetOs = (ctx.containsKey('asset') && ctx.asset != null) ? ctx.asset.get('os') : null;\nMap topOs = ctx.containsKey('os') ? ctx.os : null;\n\n// Ensure top-level os object exists if asset.os has data\nif (assetOs != null && assetOs.size() > 0) {\n  if (topOs == null) {\n    topOs = new HashMap();\n    ctx['os'] = topOs;\n  }\n  // asset.os \u2192 top-level os (fill gaps only)\n  for (String k : new String[]{'name','version','build','platform','architecture','eol','kernel'}) {\n    if (assetOs.containsKey(k) && assetOs.get(k) != null && !topOs.containsKey(k)) {\n      topOs.put(k, assetOs.get(k));\n    }\n  }\n}\n\n// top-level os \u2192 asset.os (fill gaps in reverse)\nif (topOs != null && topOs.size() > 0 && assetOs != null) {\n  for (String k : new String[]{'build','eol'}) {\n    if (topOs.containsKey(k) && topOs.get(k) != null && !assetOs.containsKey(k)) {\n      assetOs.put(k, topOs.get(k));\n    }\n  }\n}"
       }
     },
     {
@@ -62,10 +74,22 @@
     {
       "fingerprint": {
         "description": "Log integrity hash covering asset identity + state + ingest time",
-        "fields": ["asset.id", "asset.os.version", "asset.hardware.serial_number", "@timestamp"],
+        "fields": [
+          "asset.id",
+          "asset.os.version",
+          "asset.hardware.serial_number",
+          "@timestamp"
+        ],
         "target_field": "m_26_14.integrity_hash",
         "method": "SHA-256",
         "ignore_missing": true
+      }
+    },
+    {
+      "reroute": {
+        "description": "Converge software records from any source (customer CMDB/EDR feed, etc.) into the common SWAM stream (logs-m_26_14.software_inventory-*), where m_26_14-software-enrich applies the authorized-software catalog. No-op on hardware records (no package.name); those stay in logs-m_26_14_asset.inventory-* for the canonical asset transform. Terminal step.",
+        "if": "ctx.package != null && ctx.package.name != null",
+        "dataset": "m_26_14.software_inventory"
       }
     }
   ]

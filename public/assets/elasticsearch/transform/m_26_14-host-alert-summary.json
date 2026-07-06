@@ -1,0 +1,58 @@
+{
+  "_meta": {
+    "pack": "m_26_14",
+    "purpose": "Computes the ROGUE signal for unknown-device triage. Pivots the Security detection alerts (.alerts-security.alerts-*) by host.name into one summary doc per host: alert_count, max_risk_score, max_severity, last_alert, and the set of firing rule names. The m_26_14-asset-triage-classify pipeline enriches against this summary (via the m_26_14-host-alert-lookup enrich policy) so an unmanaged asset with correlated high-severity alerts is routed 'rogue' from REAL detections rather than a seeded flag. host.name MUST be keyword on the dest index (see m_26_14-asset-triage index template) for the enrich match to work.",
+    "dependency_order": "Run before m_26_14-asset-triage-classify. Execute the m_26_14-host-alert-lookup enrich AFTER this transform has populated the dest index.",
+    "space_id": "default",
+    "on_cluster_validation": "The transform service principal needs read access to .alerts-security.alerts-default (Security alerts data). If the alias is not visible, point source.index at .internal.alerts-security.alerts-default-* or grant 'read' on the alerts index to the transform role."
+  },
+  "source": {
+    "index": [".alerts-security.alerts-default"],
+    "query": {
+      "bool": {
+        "filter": [
+          { "exists": { "field": "host.name" } }
+        ]
+      }
+    }
+  },
+  "dest": {
+    "index": "m_26_14-host-alert-summary"
+  },
+  "pivot": {
+    "group_by": {
+      "host.name": { "terms": { "field": "host.name" } }
+    },
+    "aggregations": {
+      "alert_count":    { "value_count": { "field": "kibana.alert.uuid" } },
+      "max_risk_score": { "max":         { "field": "kibana.alert.risk_score" } },
+      "last_alert":     { "max":         { "field": "@timestamp" } },
+      "severities": {
+        "scripted_metric": {
+          "init_script": "state.s = new HashSet();",
+          "map_script": "if (doc.containsKey('kibana.alert.severity') && doc['kibana.alert.severity'].size() > 0) { state.s.add(doc['kibana.alert.severity'].value); }",
+          "combine_script": "return new ArrayList(state.s);",
+          "reduce_script": "Set out = new HashSet(); for (a in states) { if (a != null) { out.addAll(a); } } return new ArrayList(out);"
+        }
+      },
+      "rule_names": {
+        "scripted_metric": {
+          "init_script": "state.s = new HashSet();",
+          "map_script": "if (doc.containsKey('kibana.alert.rule.name') && doc['kibana.alert.rule.name'].size() > 0) { state.s.add(doc['kibana.alert.rule.name'].value); }",
+          "combine_script": "return new ArrayList(state.s);",
+          "reduce_script": "Set out = new HashSet(); for (a in states) { if (a != null) { out.addAll(a); } } return new ArrayList(out);"
+        }
+      }
+    }
+  },
+  "sync": {
+    "time": {
+      "field": "@timestamp",
+      "delay": "120s"
+    }
+  },
+  "frequency": "5m",
+  "settings": {
+    "unattended": true
+  }
+}

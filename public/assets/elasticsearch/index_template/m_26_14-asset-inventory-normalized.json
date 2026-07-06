@@ -4,10 +4,12 @@
     "managed_by": "m_26_14",
     "m_26_14": {
       "workstream": 7,
-      "description": "Layer 2 normalized asset events — all sources mapped to unified asset.* schema"
+      "description": "Layer 2 normalized asset events \u2014 all sources mapped to unified asset.* schema"
     }
   },
-  "index_patterns": ["logs-m_26_14_asset.inventory-*"],
+  "index_patterns": [
+    "logs-m_26_14_asset.inventory-*"
+  ],
   "data_stream": {},
   "priority": 400,
   "template": {
@@ -19,179 +21,387 @@
     "mappings": {
       "dynamic": true,
       "properties": {
-        "@timestamp": { "type": "date" },
+        "@timestamp": {
+          "type": "date"
+        },
         "agent": {
           "properties": {
-            "id":       { "type": "keyword" },
-            "name":     { "type": "keyword" },
-            "hostname": { "type": "keyword" },
-            "version":  { "type": "keyword" },
-            "type":     { "type": "keyword" }
+            "id": {
+              "type": "keyword"
+            },
+            "name": {
+              "type": "keyword"
+            },
+            "hostname": {
+              "type": "keyword"
+            },
+            "version": {
+              "type": "keyword"
+            },
+            "type": {
+              "type": "keyword"
+            }
           }
         },
         "host": {
           "properties": {
-            "id":       { "type": "keyword" },
-            "name":     { "type": "keyword" },
-            "hostname": { "type": "keyword" },
-            "ip":       { "type": "ip" },
-            "mac":      { "type": "keyword" },
+            "id": {
+              "type": "keyword"
+            },
+            "name": {
+              "type": "keyword"
+            },
+            "hostname": {
+              "type": "keyword"
+            },
+            "type": {
+              "type": "keyword"
+            },
+            "ip": {
+              "type": "ip"
+            },
+            "mac": {
+              "type": "keyword"
+            },
             "os": {
               "properties": {
-                "name":     { "type": "keyword" },
-                "version":  { "type": "keyword" },
-                "family":   { "type": "keyword" },
-                "platform": { "type": "keyword" }
+                "name": {
+                  "type": "keyword"
+                },
+                "version": {
+                  "type": "keyword"
+                },
+                "family": {
+                  "type": "keyword"
+                },
+                "platform": {
+                  "type": "keyword"
+                }
               }
             }
           }
         },
         "asset": {
           "properties": {
-            "id":          { "type": "keyword" },
-            "name":        { "type": "keyword" },
-            "fqdn":        { "type": "keyword" },
-            "type":        { "type": "keyword" },
-            "criticality": { "type": "keyword" },
-            "status":      { "type": "keyword" },
-            "managed":     { "type": "boolean" },
-            "first_seen":  { "type": "date" },
-            "last_seen":   { "type": "date" },
-            "source":      { "type": "keyword" },
-            "source_id":   { "type": "keyword" },
+            "id": {
+              "type": "keyword"
+            },
+            "name": {
+              "type": "keyword"
+            },
+            "fqdn": {
+              "type": "keyword"
+            },
+            "type": {
+              "type": "keyword"
+            },
+            "criticality": {
+              "type": "keyword"
+            },
+            "status": {
+              "type": "keyword"
+            },
+            "managed": {
+              "type": "boolean"
+            },
+            "first_seen": {
+              "type": "date"
+            },
+            "last_seen": {
+              "type": "date"
+            },
+            "source": {
+              "type": "keyword"
+            },
+            "source_id": {
+              "type": "keyword"
+            },
             "hardware": {
               "properties": {
-                "manufacturer":      { "type": "keyword" },
-                "model":             { "type": "keyword" },
-                "serial_number":     { "type": "keyword" },
-                "bios_uuid":         { "type": "keyword" },
-                "bios_version":      { "type": "keyword" },
-                "bios_manufacturer": { "type": "keyword" },
+                "manufacturer": {
+                  "type": "keyword"
+                },
+                "model": {
+                  "type": "keyword"
+                },
+                "serial_number": {
+                  "type": "keyword"
+                },
+                "bios_uuid": {
+                  "type": "keyword"
+                },
+                "bios_version": {
+                  "type": "keyword"
+                },
+                "bios_manufacturer": {
+                  "type": "keyword"
+                },
                 "cpu": {
                   "properties": {
-                    "brand":          { "type": "keyword" },
-                    "cores_physical": { "type": "integer" },
-                    "cores_logical":  { "type": "integer" }
+                    "brand": {
+                      "type": "keyword"
+                    },
+                    "cores_physical": {
+                      "type": "integer"
+                    },
+                    "cores_logical": {
+                      "type": "integer"
+                    }
                   }
                 },
-                "memory_bytes": { "type": "long" },
-                "chassis_type": { "type": "keyword" }
+                "memory_bytes": {
+                  "type": "long"
+                },
+                "chassis_type": {
+                  "type": "keyword"
+                }
               }
             },
             "os": {
               "properties": {
-                "name":         { "type": "keyword" },
-                "version":      { "type": "keyword" },
-                "build":        { "type": "keyword" },
-                "platform":     { "type": "keyword" },
-                "architecture": { "type": "keyword" },
-                "eol":          { "type": "boolean" },
-                "patch_level":  { "type": "keyword" }
+                "name": {
+                  "type": "keyword"
+                },
+                "version": {
+                  "type": "keyword"
+                },
+                "build": {
+                  "type": "keyword"
+                },
+                "platform": {
+                  "type": "keyword"
+                },
+                "architecture": {
+                  "type": "keyword"
+                },
+                "eol": {
+                  "type": "boolean"
+                },
+                "patch_level": {
+                  "type": "keyword"
+                }
               }
             },
             "network": {
               "type": "nested",
               "properties": {
-                "interface": { "type": "keyword" },
-                "ip":        { "type": "ip" },
-                "mac":       { "type": "keyword" },
-                "type":      { "type": "keyword" }
+                "interface": {
+                  "type": "keyword"
+                },
+                "ip": {
+                  "type": "ip"
+                },
+                "mac": {
+                  "type": "keyword"
+                },
+                "type": {
+                  "type": "keyword"
+                }
               }
             },
             "compliance": {
               "properties": {
-                "encrypted":              { "type": "boolean" },
-                "mdm_enrolled":           { "type": "boolean" },
-                "mdm_compliant":          { "type": "boolean" },
-                "patch_compliant":        { "type": "boolean" },
-                "app_allowlist_enforced": { "type": "boolean" },
-                "aad_join_type":          { "type": "keyword" },
-                "last_check":             { "type": "date" }
+                "encrypted": {
+                  "type": "boolean"
+                },
+                "mdm_enrolled": {
+                  "type": "boolean"
+                },
+                "mdm_compliant": {
+                  "type": "boolean"
+                },
+                "patch_compliant": {
+                  "type": "boolean"
+                },
+                "app_allowlist_enforced": {
+                  "type": "boolean"
+                },
+                "aad_join_type": {
+                  "type": "keyword"
+                },
+                "last_check": {
+                  "type": "date"
+                }
               }
             },
             "organization": {
               "properties": {
-                "owner":      { "type": "keyword" },
-                "department": { "type": "keyword" },
-                "location":   { "type": "keyword" },
-                "asset_tag":  { "type": "keyword" },
-                "tags":       { "type": "keyword" }
+                "owner": {
+                  "type": "keyword"
+                },
+                "department": {
+                  "type": "keyword"
+                },
+                "location": {
+                  "type": "keyword"
+                },
+                "asset_tag": {
+                  "type": "keyword"
+                },
+                "tags": {
+                  "type": "keyword"
+                }
               }
             },
             "risk": {
               "properties": {
-                "criticality_score": { "type": "float" },
-                "exposure_score":    { "type": "float" },
-                "scanner_score":     { "type": "float" }
+                "criticality_score": {
+                  "type": "float"
+                },
+                "exposure_score": {
+                  "type": "float"
+                },
+                "scanner_score": {
+                  "type": "float"
+                }
               }
             },
             "identity": {
               "type": "nested",
               "properties": {
-                "source":     { "type": "keyword" },
-                "id":         { "type": "keyword" },
-                "confidence": { "type": "float" },
-                "last_seen":  { "type": "date" }
+                "source": {
+                  "type": "keyword"
+                },
+                "id": {
+                  "type": "keyword"
+                },
+                "confidence": {
+                  "type": "float"
+                },
+                "last_seen": {
+                  "type": "date"
+                }
               }
             },
-            "discovery_method": { "type": "keyword" }
+            "discovery_method": {
+              "type": "keyword"
+            }
           }
         },
         "os": {
           "properties": {
-            "name":     { "type": "keyword" },
-            "version":  { "type": "keyword" },
-            "build":    { "type": "keyword" },
-            "family":   { "type": "keyword" },
-            "platform": { "type": "keyword" },
-            "kernel":   { "type": "keyword" },
-            "eol":      { "type": "boolean" }
+            "name": {
+              "type": "keyword"
+            },
+            "version": {
+              "type": "keyword"
+            },
+            "build": {
+              "type": "keyword"
+            },
+            "family": {
+              "type": "keyword"
+            },
+            "platform": {
+              "type": "keyword"
+            },
+            "kernel": {
+              "type": "keyword"
+            },
+            "eol": {
+              "type": "boolean"
+            }
           }
         },
         "vulnerability": {
           "properties": {
-            "id":                { "type": "keyword" },
-            "severity":          { "type": "keyword" },
-            "first_found":       { "type": "date" },
-            "last_found":        { "type": "date" },
-            "age_days":          { "type": "long" },
-            "exploit_available": { "type": "boolean" },
-            "patch_available":   { "type": "boolean" },
-            "risk_accepted":     { "type": "boolean" },
+            "id": {
+              "type": "keyword"
+            },
+            "severity": {
+              "type": "keyword"
+            },
+            "first_found": {
+              "type": "date"
+            },
+            "last_found": {
+              "type": "date"
+            },
+            "age_days": {
+              "type": "long"
+            },
+            "exploit_available": {
+              "type": "boolean"
+            },
+            "patch_available": {
+              "type": "boolean"
+            },
+            "risk_accepted": {
+              "type": "boolean"
+            },
             "score": {
               "properties": {
-                "base":    { "type": "float" },
-                "version": { "type": "keyword" }
+                "base": {
+                  "type": "float"
+                },
+                "version": {
+                  "type": "keyword"
+                }
               }
             }
           }
         },
         "package": {
           "properties": {
-            "name":         { "type": "keyword" },
-            "version":      { "type": "keyword" },
-            "type":         { "type": "keyword" },
-            "architecture": { "type": "keyword" },
-            "publisher":    { "type": "keyword" },
-            "category":     { "type": "keyword" },
-            "path":         { "type": "keyword" }
+            "name": {
+              "type": "keyword"
+            },
+            "version": {
+              "type": "keyword"
+            },
+            "type": {
+              "type": "keyword"
+            },
+            "architecture": {
+              "type": "keyword"
+            },
+            "publisher": {
+              "type": "keyword"
+            },
+            "category": {
+              "type": "keyword"
+            },
+            "path": {
+              "type": "keyword"
+            }
           }
         },
         "m_26_14": {
           "properties": {
-            "managed":           { "type": "boolean" },
-            "hwam_source":       { "type": "keyword" },
-            "asset_type":        { "type": "keyword" },
-            "asset_fingerprint": { "type": "keyword" },
-            "integrity_hash":    { "type": "keyword" },
-            "element1_covered":  { "type": "boolean" },
-            "element2_covered":  { "type": "boolean" },
-            "drift_detected":    { "type": "boolean" },
-            "baseline_hash":     { "type": "keyword" },
-            "baseline_timestamp":{ "type": "date" }
+            "managed": {
+              "type": "boolean"
+            },
+            "hwam_source": {
+              "type": "keyword"
+            },
+            "asset_type": {
+              "type": "keyword"
+            },
+            "asset_fingerprint": {
+              "type": "keyword"
+            },
+            "integrity_hash": {
+              "type": "keyword"
+            },
+            "element1_covered": {
+              "type": "boolean"
+            },
+            "element2_covered": {
+              "type": "boolean"
+            },
+            "drift_detected": {
+              "type": "boolean"
+            },
+            "baseline_hash": {
+              "type": "keyword"
+            },
+            "baseline_timestamp": {
+              "type": "date"
+            }
           }
         }
-      }
+      },
+      "date_detection": false
     }
   }
 }

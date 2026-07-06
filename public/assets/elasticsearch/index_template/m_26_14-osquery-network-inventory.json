@@ -7,7 +7,9 @@
       "description": "Network interface inventory data stream for M-26-14 network visibility"
     }
   },
-  "index_patterns": ["logs-m_26_14_osquery.network_inventory-*"],
+  "index_patterns": [
+    "logs-m_26_14_osquery.network_inventory-*"
+  ],
   "data_stream": {},
   "priority": 300,
   "template": {
@@ -19,62 +21,121 @@
     "mappings": {
       "dynamic": true,
       "properties": {
-        "@timestamp": { "type": "date" },
+        "@timestamp": {
+          "type": "date"
+        },
         "agent": {
           "properties": {
-            "id":       { "type": "keyword" },
-            "name":     { "type": "keyword" },
-            "hostname": { "type": "keyword" },
-            "version":  { "type": "keyword" },
-            "type":     { "type": "keyword" }
+            "id": {
+              "type": "keyword"
+            },
+            "name": {
+              "type": "keyword"
+            },
+            "hostname": {
+              "type": "keyword"
+            },
+            "version": {
+              "type": "keyword"
+            },
+            "type": {
+              "type": "keyword"
+            }
           }
         },
         "host": {
           "properties": {
-            "id":  { "type": "keyword" },
-            "name":{ "type": "keyword" },
-            "ip":  { "type": "ip" },
-            "mac": { "type": "keyword" }
+            "id": {
+              "type": "keyword"
+            },
+            "name": {
+              "type": "keyword"
+            },
+            "type": {
+              "type": "keyword"
+            },
+            "ip": {
+              "type": "ip"
+            },
+            "mac": {
+              "type": "keyword"
+            }
           }
         },
         "network": {
           "properties": {
-            "interface": { "type": "keyword" },
-            "type":      { "type": "keyword" },
-            "mtu":       { "type": "integer" }
+            "interface": {
+              "type": "keyword"
+            },
+            "type": {
+              "type": "keyword"
+            },
+            "mtu": {
+              "type": "integer"
+            }
           }
         },
         "osquery": {
           "properties": {
-            "name":   { "type": "keyword" },
-            "action": { "type": "keyword" }
+            "name": {
+              "type": "keyword"
+            },
+            "action": {
+              "type": "keyword"
+            }
           }
         },
         "m_26_14": {
           "properties": {
-            "managed":           { "type": "boolean" },
-            "hwam_source":       { "type": "keyword" },
-            "asset_fingerprint": { "type": "keyword" }
+            "managed": {
+              "type": "boolean"
+            },
+            "hwam_source": {
+              "type": "keyword"
+            },
+            "asset_fingerprint": {
+              "type": "keyword"
+            }
           }
         },
         "asset": {
           "properties": {
-            "id":      { "type": "keyword" },
-            "name":    { "type": "keyword" },
-            "source":  { "type": "keyword" },
-            "managed": { "type": "boolean" },
+            "id": {
+              "type": "keyword"
+            },
+            "name": {
+              "type": "keyword"
+            },
+            "source": {
+              "type": "keyword"
+            },
+            "managed": {
+              "type": "boolean"
+            },
+            "last_seen": {
+              "type": "date"
+            },
             "network": {
               "type": "nested",
               "properties": {
-                "interface": { "type": "keyword" },
-                "ip":        { "type": "ip" },
-                "mac":       { "type": "keyword" },
-                "type":      { "type": "keyword" }
+                "interface": {
+                  "type": "keyword"
+                },
+                "ip": {
+                  "type": "ip"
+                },
+                "mac": {
+                  "type": "keyword"
+                },
+                "type": {
+                  "type": "keyword"
+                }
               }
             }
           }
         }
-      }
+      },
+      "date_detection": false
     }
   }
 }

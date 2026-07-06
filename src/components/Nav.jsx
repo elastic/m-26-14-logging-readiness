@@ -62,11 +62,14 @@ export default function Nav() {
       <div className="mx-auto max-w-[1800px] px-8 py-4 flex items-center gap-6">
         {/* Logo + title */}
         <div className="flex items-center gap-3 shrink-0">
-          <img
-            src={theme === 'dark' ? logoReverse : logoColor}
-            alt="Elastic"
-            className="h-8 w-auto"
-          />
+          {/* Hidden entry point to field enablement — logo doubles as the door. */}
+          <Link to="/enablement" aria-label="Field enablement" title="" className="shrink-0">
+            <img
+              src={theme === 'dark' ? logoReverse : logoColor}
+              alt="Elastic"
+              className="h-8 w-auto"
+            />
+          </Link>
           <div className="h-7 w-px bg-line" />
           <h1 className="text-xl font-bold text-text-primary leading-tight">
             Elastic M-26-14 Reference Architecture
@@ -145,7 +148,7 @@ const PRINTABLES = [
   },
   {
     title: 'Elastic M-26-14 Reference Architecture',
-    description: 'Architecture diagrams and deployment guidance across all four maturity levels.',
+    description: 'Architecture diagrams and deployment guidance across all five maturity levels.',
     detail: 'PDF · Reference Architecture',
     href: '/docs/Elastic%20M-26-14%20Reference%20Architectures.pdf',
   },

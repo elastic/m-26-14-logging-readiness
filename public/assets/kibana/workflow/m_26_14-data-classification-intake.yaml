@@ -8,7 +8,7 @@
 # and notifies the responsible team.
 #
 # Run before any retention policy or access controls are applied to a new
-# data stream — satisfies M-26-14 Data pillar categorization requirement.
+# data stream — satisfies M-26-14 sensitive-data-exposure and log-management requirements.
 #
 # NOTE: Update consts before running. The workflow does not modify the
 # index itself — the steward applies the classification label via the
@@ -16,7 +16,7 @@
 #
 # Schema: github.com/elastic/workflows
 # Author: Elastic / M-26-14 Compliance Pack
-# Tags: M-26-14, Compliance, Data Classification, Data Pillar, Manual
+# Tags: M-26-14, Compliance, Data Classification, Log Management, Manual
 # =============================================================================
 version: "1"
 name: M-26-14 Data Classification Intake
@@ -25,13 +25,13 @@ description: >
   discovered index or data stream. Opens a Kibana Case assigned to the
   data steward with classification guidance, records classification_pending
   state in the audit index, and sends a notification. Satisfies M-26-14
-  Data pillar categorization requirements before access controls are applied.
+  sensitive-data classification requirements before access controls are applied.
 enabled: false
 tags:
   - M-26-14
   - Compliance
   - Data Classification
-  - Data Pillar
+  - Log Management
   - Manual
 
 # ---------------------------------------------------------------------------
@@ -71,7 +71,7 @@ steps:
         A new index or data stream has been discovered without an assigned
         data classification label. Classification must be completed before
         retention policies, access controls, and encryption requirements
-        can be applied per M-26-14 Data pillar requirements.
+        can be applied per M-26-14 sensitive-data-handling requirements.
 
         | Field | Value |
         |-------|-------|
@@ -124,9 +124,9 @@ steps:
         5. Close this case with the assigned classification tier.
 
         ---
-        ### M-26-14 Data Pillar Requirement
+        ### M-26-14 Sensitive Data Handling Requirement
 
-        M-26-14 Section 4 — Data pillar: agencies must categorize data and
+        M-26-14 (Appendix A, incidental sensitive-data exposure; Log Management element): agencies must categorize data and
         limit access based on that categorization. Unclassified data streams
         must not be accessible to broad user roles or subject to default
         retention policies until a sensitivity determination is made.
@@ -140,7 +140,7 @@ steps:
       tags:
         - m_26_14
         - data-classification
-        - data-pillar
+        - log-management
         - compliance
 
   # -------------------------------------------------------------------------

@@ -1,0 +1,64 @@
+{
+  "index_patterns": ["m_26_14-asset-triage*"],
+  "priority": 200,
+  "_meta": {
+    "pack": "m_26_14",
+    "purpose": "Disposition ledger for unknown-device triage. One doc per asset.id (idempotent _id), written by _reindex from m_26_14-assets through the m_26_14-asset-triage-classify pipeline. Holds the computed m_26_14.triage.* disposition + evidence and the case-routing state (proposed -> routed -> actioned -> closed). The m_26_14-unknown-device-triage workflow reads this ledger to open disposition-specific Kibana Cases and records routing state here. The canonical store m_26_14-assets is NEVER mutated by triage — keeping the classification out of the continuous entity-resolution transform's latest-wins path (see project_demo_data_sources clobber note). host.name and disposition are keyword for aggregation/enrich.",
+    "refresh_cmd": "POST _reindex {\"source\":{\"index\":\"m_26_14-assets\",\"query\":{\"term\":{\"asset.managed\":false}}},\"dest\":{\"index\":\"m_26_14-asset-triage\",\"pipeline\":\"m_26_14-asset-triage-classify\"}}  (add managed:true OR alert-flagged hosts to also surface compromised managed assets)"
+  },
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 1
+    },
+    "mappings": {
+      "dynamic": false,
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "state":      { "type": "keyword" },
+        "case_id":    { "type": "keyword" },
+        "decided_by": { "type": "keyword" },
+        "host": {
+          "properties": {
+            "name": { "type": "keyword" }
+          }
+        },
+        "asset": {
+          "properties": {
+            "id":        { "type": "keyword" },
+            "name":      { "type": "keyword" },
+            "component": { "type": "keyword" },
+            "managed":   { "type": "boolean" },
+            "status":    { "type": "keyword" },
+            "first_seen":{ "type": "date" },
+            "last_seen": { "type": "date" },
+            "hardware": {
+              "properties": {
+                "manufacturer":  { "type": "keyword" },
+                "model":         { "type": "keyword" },
+                "serial_number": { "type": "keyword" }
+              }
+            }
+          }
+        },
+        "m_26_14": {
+          "properties": {
+            "hwam_source": { "type": "keyword" },
+            "triage": {
+              "properties": {
+                "disposition":        { "type": "keyword" },
+                "recommended_action": { "type": "keyword" },
+                "confidence":         { "type": "float" },
+                "signals":            { "type": "keyword" },
+                "auto_actionable":    { "type": "boolean" },
+                "alert_count":        { "type": "long" },
+                "max_risk_score":     { "type": "float" },
+                "classified_at":      { "type": "date" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

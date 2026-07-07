@@ -1,0 +1,49 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m_26_14",
+    "m_26_14": {
+      "workstream": 5,
+      "description": "Adds the geo_point 'location' coordinate to source/destination on network flow docs (logs-network_traffic.flow-*) so the Security Network map renders. Geoips into a temp field and copies ONLY .location into src/dst geo, so any pre-existing destination.geo.country_iso_code / country_name enrichment (consumed by the network_traffic_to_rare_country ML job) is preserved -- the country fields are NOT re-derived, avoiding GeoLite2-version drift across reseeds. Private/reserved source IPs do not resolve and are silently skipped (ignore_missing). Idempotent."
+    }
+  },
+  "description": "M-26-14 WS5: geo_point location for network flow src/dst (location-only merge; preserves existing country fields).",
+  "processors": [
+    {
+      "geoip": {
+        "field": "destination.ip",
+        "target_field": "_tmp.dst_geo",
+        "properties": ["location"],
+        "ignore_missing": true
+      }
+    },
+    {
+      "set": {
+        "if": "ctx._tmp?.dst_geo?.location != null",
+        "field": "destination.geo.location",
+        "copy_from": "_tmp.dst_geo.location"
+      }
+    },
+    {
+      "geoip": {
+        "field": "source.ip",
+        "target_field": "_tmp.src_geo",
+        "properties": ["location"],
+        "ignore_missing": true
+      }
+    },
+    {
+      "set": {
+        "if": "ctx._tmp?.src_geo?.location != null",
+        "field": "source.geo.location",
+        "copy_from": "_tmp.src_geo.location"
+      }
+    },
+    {
+      "remove": {
+        "field": "_tmp",
+        "ignore_missing": true
+      }
+    }
+  ]
+}

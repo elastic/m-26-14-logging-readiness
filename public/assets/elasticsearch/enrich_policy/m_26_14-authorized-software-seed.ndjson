@@ -1,24 +1,50 @@
-{"index": {"_index": "m_26_14-authorized-software", "_id": "openssh-server"}}
-{"package": {"name": "openssh-server"}, "software": {"authorized": true, "category": "remote-access", "approved_by": "isso", "approval_ref": "SWAM-2026-001", "min_version": "9.0"}, "updated_at": "2026-06-12T00:00:00Z"}
-{"index": {"_index": "m_26_14-authorized-software", "_id": "elastic-agent"}}
-{"package": {"name": "elastic-agent"}, "software": {"authorized": true, "category": "security-tooling", "approved_by": "isso", "approval_ref": "SWAM-2026-002", "min_version": "8.16.0"}, "updated_at": "2026-06-12T00:00:00Z"}
-{"index": {"_index": "m_26_14-authorized-software", "_id": "osqueryd"}}
-{"package": {"name": "osqueryd"}, "software": {"authorized": true, "category": "security-tooling", "approved_by": "isso", "approval_ref": "SWAM-2026-003", "min_version": "5.10"}, "updated_at": "2026-06-12T00:00:00Z"}
-{"index": {"_index": "m_26_14-authorized-software", "_id": "chrony"}}
-{"package": {"name": "chrony"}, "software": {"authorized": true, "category": "infrastructure", "approved_by": "isso", "approval_ref": "SWAM-2026-004", "min_version": "4.0"}, "updated_at": "2026-06-12T00:00:00Z"}
-{"index": {"_index": "m_26_14-authorized-software", "_id": "rsyslog"}}
-{"package": {"name": "rsyslog"}, "software": {"authorized": true, "category": "logging", "approved_by": "isso", "approval_ref": "SWAM-2026-005", "min_version": "8.0"}, "updated_at": "2026-06-12T00:00:00Z"}
-{"index": {"_index": "m_26_14-authorized-software", "_id": "auditd"}}
-{"package": {"name": "auditd"}, "software": {"authorized": true, "category": "security-tooling", "approved_by": "isso", "approval_ref": "SWAM-2026-006", "min_version": "3.0"}, "updated_at": "2026-06-12T00:00:00Z"}
-{"index": {"_index": "m_26_14-authorized-software", "_id": "docker-ce"}}
-{"package": {"name": "docker-ce"}, "software": {"authorized": true, "category": "platform", "approved_by": "isso", "approval_ref": "SWAM-2026-007", "min_version": "24.0"}, "updated_at": "2026-06-12T00:00:00Z"}
-{"index": {"_index": "m_26_14-authorized-software", "_id": "nginx"}}
-{"package": {"name": "nginx"}, "software": {"authorized": true, "category": "web", "approved_by": "isso", "approval_ref": "SWAM-2026-008", "min_version": "1.24"}, "updated_at": "2026-06-12T00:00:00Z"}
-{"index": {"_index": "m_26_14-authorized-software", "_id": "postgresql-15"}}
-{"package": {"name": "postgresql-15"}, "software": {"authorized": true, "category": "database", "approved_by": "isso", "approval_ref": "SWAM-2026-009", "min_version": "15.0"}, "updated_at": "2026-06-12T00:00:00Z"}
-{"index": {"_index": "m_26_14-authorized-software", "_id": "tcpdump"}}
-{"package": {"name": "tcpdump"}, "software": {"authorized": false, "category": "network-tooling", "approved_by": "isso", "approval_ref": "SWAM-2026-DENY-001", "min_version": ""}, "updated_at": "2026-06-12T00:00:00Z"}
-{"index": {"_index": "m_26_14-authorized-software", "_id": "nmap"}}
-{"package": {"name": "nmap"}, "software": {"authorized": false, "category": "network-tooling", "approved_by": "isso", "approval_ref": "SWAM-2026-DENY-002", "min_version": ""}, "updated_at": "2026-06-12T00:00:00Z"}
-{"index": {"_index": "m_26_14-authorized-software", "_id": "netcat"}}
-{"package": {"name": "netcat"}, "software": {"authorized": false, "category": "network-tooling", "approved_by": "isso", "approval_ref": "SWAM-2026-DENY-003", "min_version": ""}, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "microsoft-teams"}}
+{"package": {"name": "Microsoft Teams"}, "authorized": true, "category": "collaboration", "publisher": "Microsoft Corporation", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-001", "min_version": "1.6", "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "microsoft-office-365"}}
+{"package": {"name": "Microsoft Office 365"}, "authorized": true, "category": "productivity", "publisher": "Microsoft Corporation", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-002", "min_version": "16.0", "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "microsoft-edge"}}
+{"package": {"name": "Microsoft Edge"}, "authorized": true, "category": "browser", "publisher": "Microsoft Corporation", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-003", "min_version": "120.0", "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "google-chrome"}}
+{"package": {"name": "Google Chrome"}, "authorized": true, "category": "browser", "publisher": "Google LLC", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-004", "min_version": "120.0", "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "mozilla-firefox"}}
+{"package": {"name": "Mozilla Firefox"}, "authorized": true, "category": "browser", "publisher": "Mozilla Foundation", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-005", "min_version": "115.0", "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "crowdstrike-falcon"}}
+{"package": {"name": "CrowdStrike Falcon"}, "authorized": true, "category": "security", "publisher": "CrowdStrike Inc.", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-006", "min_version": "7.0", "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "elastic-agent"}}
+{"package": {"name": "Elastic Agent"}, "authorized": true, "category": "security", "publisher": "Elastic N.V.", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-007", "min_version": "8.14", "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "cisco-anyconnect"}}
+{"package": {"name": "Cisco AnyConnect"}, "authorized": true, "category": "vpn", "publisher": "Cisco Systems Inc.", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-008", "min_version": "4.10", "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "zoom"}}
+{"package": {"name": "Zoom"}, "authorized": true, "category": "collaboration", "publisher": "Zoom Video Communications", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-009", "min_version": "5.17", "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "slack"}}
+{"package": {"name": "Slack"}, "authorized": true, "category": "collaboration", "publisher": "Slack Technologies LLC", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-010", "min_version": "4.36", "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "adobe-acrobat-reader-dc"}}
+{"package": {"name": "Adobe Acrobat Reader DC"}, "authorized": true, "category": "productivity", "publisher": "Adobe Inc.", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-011", "min_version": "23.0", "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "7-zip"}}
+{"package": {"name": "7-Zip"}, "authorized": false, "category": "utility", "publisher": "Igor Pavlov", "eol": false, "approved_by": null, "approval_ref": null, "min_version": null, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "vlc-media-player"}}
+{"package": {"name": "VLC media player"}, "authorized": false, "category": "media", "publisher": "VideoLAN", "eol": false, "approved_by": null, "approval_ref": null, "min_version": null, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "notepad"}}
+{"package": {"name": "Notepad++"}, "authorized": false, "category": "editor", "publisher": "Notepad++ Team", "eol": false, "approved_by": null, "approval_ref": null, "min_version": null, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "winrar"}}
+{"package": {"name": "WinRAR"}, "authorized": false, "category": "utility", "publisher": "win.rar GmbH", "eol": false, "approved_by": null, "approval_ref": null, "min_version": null, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "teamviewer"}}
+{"package": {"name": "TeamViewer"}, "authorized": false, "category": "remote_access", "publisher": "TeamViewer AG", "eol": false, "approved_by": null, "approval_ref": null, "min_version": null, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "java-8-update-301"}}
+{"package": {"name": "Java 8 Update 301"}, "authorized": false, "category": "runtime", "publisher": "Oracle Corporation", "eol": true, "approved_by": null, "approval_ref": null, "min_version": null, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "adobe-flash-player"}}
+{"package": {"name": "Adobe Flash Player"}, "authorized": false, "category": "plugin", "publisher": "Adobe Inc.", "eol": true, "approved_by": null, "approval_ref": null, "min_version": null, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "python-3-11-0"}}
+{"package": {"name": "Python 3.11.0"}, "authorized": true, "category": "runtime", "publisher": "Python Software Foundation", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-012", "min_version": "3.11", "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "git"}}
+{"package": {"name": "Git"}, "authorized": true, "category": "developer", "publisher": "The Git Development Community", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-013", "min_version": "2.40", "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "visual-studio-code"}}
+{"package": {"name": "Visual Studio Code"}, "authorized": true, "category": "developer", "publisher": "Microsoft Corporation", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-014", "min_version": "1.85", "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "docker-desktop"}}
+{"package": {"name": "Docker Desktop"}, "authorized": true, "category": "developer", "publisher": "Docker Inc.", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-015", "min_version": "4.26", "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "splunk-universal-forwarder"}}
+{"package": {"name": "Splunk Universal Forwarder"}, "authorized": false, "category": "logging", "publisher": "Splunk Inc.", "eol": false, "approved_by": null, "approval_ref": null, "min_version": null, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "utorrent"}}
+{"package": {"name": "uTorrent"}, "authorized": false, "category": "p2p", "publisher": "BitTorrent Inc.", "eol": false, "approved_by": null, "approval_ref": null, "min_version": null, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "keepass-password-safe"}}
+{"package": {"name": "KeePass Password Safe"}, "authorized": true, "category": "security", "publisher": "Dominik Reichl", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-016", "min_version": "2.55", "updated_at": "2026-06-12T00:00:00Z"}

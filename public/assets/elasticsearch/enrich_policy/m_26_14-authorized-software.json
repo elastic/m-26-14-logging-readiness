@@ -1,15 +1,17 @@
 {
-  "_meta_comment": "Enrich policy referenced by m_26_14-osquery-normalize ingest pipeline. Deploy order: (1) PUT index template m_26_14-authorized-software-catalog, (2) index catalog docs (see m_26_14-authorized-software-seed.ndjson for a starter set — replace with your agency's authorized software list), (3) PUT /_enrich/policy/m_26_14-authorized-software with the 'policy' body below, (4) POST /_enrich/policy/m_26_14-authorized-software/_execute. Re-execute the policy whenever the catalog changes.",
+  "_meta_comment": "Enrich policy referenced by the m_26_14-osquery-normalize ingest pipeline. Match is on package.name, so ANY collector that emits package.name (osquery, a customer CMDB/EDR feed, our netobserved-devices network monitor, or a combination) gets SWAM enrichment. Deploy order: (1) PUT index template m_26_14-authorized-software-catalog, (2) index catalog docs (see m_26_14-authorized-software-seed.ndjson for a starter set — replace with your agency's authorized software list), (3) PUT /_enrich/policy/m_26_14-authorized-software with the 'policy' body below, (4) POST /_enrich/policy/m_26_14-authorized-software/_execute. Re-execute the policy whenever the catalog changes.",
   "policy": {
     "match": {
-      "indices": "m_26_14-authorized-software",
+      "indices": "m_26_14-authorized-software-catalog",
       "match_field": "package.name",
       "enrich_fields": [
-        "software.authorized",
-        "software.category",
-        "software.approved_by",
-        "software.approval_ref",
-        "software.min_version"
+        "authorized",
+        "category",
+        "publisher",
+        "eol",
+        "approved_by",
+        "approval_ref",
+        "min_version"
       ]
     }
   }

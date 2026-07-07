@@ -1023,7 +1023,7 @@ export const ASSET_FILES = [
     format: 'yaml',
     levels: [1, 2, 3, 4],
     file: '/assets/kibana/workflow/m_26_14-data-classification-intake.yaml',
-    desc: 'Manual Elastic Workflow: opens a Kibana Case for data steward review when a new unclassified index or data stream is discovered. Records classification_pending in the m_26_14-data-classification-requests audit index. Satisfies M-26-14 Data pillar categorization requirement.',
+    desc: 'Manual Elastic Workflow: opens a Kibana Case for data steward review when a new unclassified index or data stream is discovered. Records classification_pending in the m_26_14-data-classification-requests audit index. Satisfies M-26-14 sensitive-data-exposure and log-management requirements.',
   },
 
   // ── Agent Builder Agents ──────────────────────────────────────────────────
@@ -1035,7 +1035,7 @@ export const ASSET_FILES = [
     format: 'json',
     levels: [2, 3, 4],
     file: '/assets/kibana/agent/m_26_14-threat-investigation-agent.json',
-    desc: 'Elastic Agent Builder agent: autonomously investigates security alerts by querying entity risk scores, asset inventory, related logs, and attack discoveries. Produces a structured, compliance-ready investigation summary with M-26-14 pillar/element impact mapping for the Kibana Case.',
+    desc: 'Elastic Agent Builder agent: autonomously investigates security alerts by querying entity risk scores, asset inventory, related logs, and attack discoveries. Produces a structured, compliance-ready investigation summary with M-26-14 element impact mapping for the Kibana Case.',
   },
   {
     id: 'agent-poam-drafting',

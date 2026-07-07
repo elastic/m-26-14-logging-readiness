@@ -24,6 +24,13 @@
         "@timestamp": {
           "type": "date"
         },
+        "data_stream": {
+          "properties": {
+            "type": { "type": "constant_keyword" },
+            "dataset": { "type": "constant_keyword" },
+            "namespace": { "type": "constant_keyword" }
+          }
+        },
         "agent": {
           "properties": {
             "id": { "type": "keyword" },

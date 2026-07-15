@@ -1,0 +1,25 @@
+# Build and push this repo's image to its EBC/GPS Image Repository, keylessly.
+#
+# Calls the platform's reusable workflow (public: elastic/ebc-hosting-actions). No
+# secrets to configure — it authenticates via Workload Identity Federation, which the
+# platform grants to THIS repo when the workload manifest (repo: eric-cobb/
+# ms2614-reference-architecture) is merged to main in elastic/ebc-hosting-platform.
+# On each push to main it pushes <image>:<sha> and <image>:latest; ArgoCD Image
+# Updater then rolls the running workload forward to the new digest.
+name: build-push
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  image:
+    uses: elastic/ebc-hosting-actions/.github/workflows/build-push-image.yml@v1
+    permissions:
+      contents: read
+      id-token: write
+    with:
+      ar_repo: gps-eric-cobb-ms2614-reference-architecture
+      image: ms2614-reference-architecture
+      project: elastic-ce-tools
+      wif_provider: projects/14485593664/locations/global/workloadIdentityPools/github-demos/providers/github

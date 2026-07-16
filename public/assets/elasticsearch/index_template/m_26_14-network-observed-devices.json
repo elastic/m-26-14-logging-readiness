@@ -1,0 +1,193 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m2614_compliance",
+    "m_26_14": {
+      "workstream": 3,
+      "description": "Passively-observed network device inventory data stream (OT/IoT network visibility). Fed by NetFlow/IPFIX, DHCP, DNS, ARP, Packetbeat, Suricata observations via the m_26_14-network-device-normalize pipeline. Every source.mac/ip on the wire becomes an unmanaged asset + Entity Store host entity \u2014 the passive complement to osquery HWAM (agent-based). M-26-14 Appendix A HWAM / network visibility."
+    }
+  },
+  "index_patterns": [
+    "logs-m_26_14_netobserved.devices-*"
+  ],
+  "data_stream": {},
+  "priority": 300,
+  "template": {
+    "settings": {
+      "index.mode": "logsdb",
+      "index.default_pipeline": "m_26_14-network-device-normalize",
+      "index.lifecycle.name": "m_26_14-asset-inventory"
+    },
+    "mappings": {
+      "dynamic": true,
+      "date_detection": false,
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "event": {
+          "properties": {
+            "kind": {
+              "type": "keyword"
+            },
+            "dataset": {
+              "type": "keyword"
+            },
+            "module": {
+              "type": "keyword"
+            },
+            "action": {
+              "type": "keyword"
+            }
+          }
+        },
+        "source": {
+          "properties": {
+            "ip": {
+              "type": "ip"
+            },
+            "mac": {
+              "type": "keyword"
+            },
+            "port": {
+              "type": "long"
+            }
+          }
+        },
+        "destination": {
+          "properties": {
+            "ip": {
+              "type": "ip"
+            },
+            "port": {
+              "type": "long"
+            }
+          }
+        },
+        "network": {
+          "properties": {
+            "protocol": {
+              "type": "keyword"
+            },
+            "transport": {
+              "type": "keyword"
+            },
+            "type": {
+              "type": "keyword"
+            },
+            "segment": {
+              "type": "keyword"
+            }
+          }
+        },
+        "dhcp": {
+          "properties": {
+            "option55": {
+              "type": "keyword"
+            },
+            "vendor_class": {
+              "type": "keyword"
+            },
+            "hostname": {
+              "type": "keyword"
+            }
+          }
+        },
+        "dns": {
+          "properties": {
+            "question": {
+              "properties": {
+                "name": {
+                  "type": "keyword"
+                }
+              }
+            }
+          }
+        },
+        "device": {
+          "properties": {
+            "vendor": {
+              "type": "keyword"
+            },
+            "class": {
+              "type": "keyword"
+            }
+          }
+        },
+        "host": {
+          "properties": {
+            "name": {
+              "type": "keyword"
+            },
+            "type": {
+              "type": "keyword"
+            },
+            "id": {
+              "type": "keyword"
+            },
+            "ip": {
+              "type": "ip"
+            },
+            "mac": {
+              "type": "keyword"
+            }
+          }
+        },
+        "related": {
+          "properties": {
+            "ip": {
+              "type": "ip"
+            },
+            "hosts": {
+              "type": "keyword"
+            }
+          }
+        },
+        "asset": {
+          "properties": {
+            "id": {
+              "type": "keyword"
+            },
+            "name": {
+              "type": "keyword"
+            },
+            "source": {
+              "type": "keyword"
+            },
+            "managed": {
+              "type": "boolean"
+            },
+            "last_seen": {
+              "type": "date"
+            }
+          }
+        },
+        "m_26_14": {
+          "properties": {
+            "managed": {
+              "type": "boolean"
+            },
+            "device_source": {
+              "type": "keyword"
+            },
+            "hwam_source": {
+              "type": "keyword"
+            },
+            "observed_via": {
+              "type": "keyword"
+            },
+            "asset_fingerprint": {
+              "type": "keyword"
+            },
+            "ot": {
+              "type": "boolean"
+            },
+            "ot_protocol": {
+              "type": "keyword"
+            }
+          }
+        }
+      }
+    }
+  }
+}

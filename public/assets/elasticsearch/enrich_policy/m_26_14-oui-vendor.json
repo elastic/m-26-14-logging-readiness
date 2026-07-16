@@ -1,0 +1,10 @@
+{
+  "_meta_comment": "Enrich policy referenced by the m_26_14-network-device-normalize ingest pipeline. Deploy order: (1) PUT index template m_26_14-oui-catalog, (2) bulk-index m_26_14-oui-vendor-seed.ndjson into m_26_14-oui-catalog, (3) PUT /_enrich/policy/m_26_14-oui-vendor with the 'policy' body below, (4) POST /_enrich/policy/m_26_14-oui-vendor/_execute. Re-execute whenever the catalog changes. scripts/deploy.py --only enrich does steps 2-4 automatically.",
+  "policy": {
+    "match": {
+      "indices": "m_26_14-oui-catalog",
+      "match_field": "oui",
+      "enrich_fields": ["vendor", "device_class", "ot"]
+    }
+  }
+}

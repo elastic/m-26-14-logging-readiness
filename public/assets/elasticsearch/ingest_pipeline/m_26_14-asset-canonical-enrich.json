@@ -61,7 +61,12 @@
     {
       "fingerprint": {
         "description": "Baseline state hash: OS version + serial + encryption status. Changes when asset state drifts.",
-        "fields": ["asset.os.version", "asset.os.build", "asset.hardware.serial_number", "asset.compliance.encrypted"],
+        "fields": [
+          "asset.os.version",
+          "asset.os.build",
+          "asset.hardware.serial_number",
+          "asset.compliance.encrypted"
+        ],
         "target_field": "m_26_14.baseline_hash",
         "method": "SHA-256",
         "ignore_missing": true
@@ -75,27 +80,10 @@
       }
     },
     {
-      "enrich": {
-        "description": "Look up the certified baseline hash for this asset (by asset.id) from the frozen m_26_14-asset-baselines snapshot. The baseline-snapshot transform is run-once/stopped so this hash is a fixed point-in-time certification.",
-        "policy_name": "m_26_14-asset-baseline-lookup",
-        "field": "asset.id",
-        "target_field": "_baseline",
-        "max_matches": 1,
-        "ignore_missing": true
-      }
-    },
-    {
-      "script": {
-        "description": "Derive m_26_14.drift_detected (and mirror to asset.compliance.drift_detected): true when the asset's current baseline_hash diverges from its certified baseline. Computed on every transform checkpoint so it is stable across re-enrichment (replaces the never-built WS3 drift watcher).",
-        "lang": "painless",
-        "source": "if (!(ctx.get('m_26_14') instanceof Map)) ctx['m_26_14'] = new HashMap();\ndef cur = ((Map)ctx.get('m_26_14')).get('baseline_hash');\ndef base = null;\ndef b = ctx.get('_baseline');\nif (b instanceof Map) {\n  def bm = ((Map)b).get('m_26_14');\n  if (bm instanceof Map) base = ((Map)bm).get('baseline_hash');\n}\nboolean drift = (base != null && cur != null && !base.equals(cur));\n((Map)ctx.get('m_26_14'))['drift_detected'] = drift;\ndef asset = ctx.asset;\nif (asset instanceof Map) {\n  if (!(asset.get('compliance') instanceof Map)) asset['compliance'] = new HashMap();\n  ((Map)asset.get('compliance'))['drift_detected'] = drift;\n}"
-      }
-    },
-    {
-      "remove": {
-        "description": "Drop the temporary enrich lookup payload",
-        "field": "_baseline",
-        "ignore_missing": true
+      "pipeline": {
+        "name": "m_26_14-asset-drift",
+        "ignore_missing_pipeline": true,
+        "description": "Apply derived config-drift (baseline_hash lookup + drift_detected) via the bootstrap-delivered m_26_14-asset-drift sub-pipeline. Inlined enrich stays out of the EPR package (enrich processor not package-spec valid)."
       }
     }
   ]

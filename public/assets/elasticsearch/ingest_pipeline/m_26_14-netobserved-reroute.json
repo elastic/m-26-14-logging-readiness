@@ -1,0 +1,37 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m2614_compliance",
+    "m_26_14": {
+      "workstream": 3,
+      "description": "OPT-IN router: maps stock integration data (NetFlow/IPFIX, Suricata/Snort, DHCP, Packetbeat) to the M-26-14 network-observed device schema and REROUTES it into logs-m_26_14_netobserved.devices, where the m_26_14-network-device-normalize pipeline enriches it (OUI vendor, OT tagging, asset/host entity). Attach this from a dedicated sensor integration's `logs-<dataset>@custom` pipeline via a {pipeline} processor. NOTE: reroute MOVES the document out of its original stream — use only for dedicated inventory/flow/IDS sensors whose data exists solely for network visibility. To COPY instead of move, use a continuous transform (see docs/ot-iot-network-visibility.md)."
+    }
+  },
+  "description": "Map + reroute stock network-integration events into the M-26-14 network-observed device inventory (opt-in; attach via logs-<dataset>@custom).",
+  "processors": [
+    {
+      "script": {
+        "description": "Set m_26_14.observed_via from the source integration; map app protocol.",
+        "lang": "painless",
+        "ignore_failure": true,
+        "source": "if (ctx.m_26_14 == null) { ctx.m_26_14 = new HashMap(); }\ndef mod = '';\nif (ctx.event != null && ctx.event.module != null) { mod = ctx.event.module.toString().toLowerCase(); }\nelse if (ctx.event != null && ctx.event.dataset != null) { mod = ctx.event.dataset.toString().toLowerCase(); }\ndef via = 'netflow';\nif (mod.contains('suricata') || mod.contains('snort')) { via = 'suricata'; }\nelse if (mod.contains('dhcp')) { via = 'dhcp'; }\nelse if (mod.contains('packetbeat') || mod.contains('network_traffic')) { via = 'packetbeat'; }\nctx.m_26_14.observed_via = via;"
+      }
+    },
+    {
+      "set": {
+        "description": "Derive network.segment from the observing sensor's zone when the integration provides one (operator maps observer.ingress.zone to a VLAN/segment label).",
+        "field": "network.segment",
+        "copy_from": "observer.ingress.zone",
+        "ignore_empty_value": true,
+        "override": false
+      }
+    },
+    {
+      "reroute": {
+        "description": "Route into the M-26-14 network-observed device inventory data stream.",
+        "dataset": "m_26_14_netobserved.devices",
+        "namespace": "default"
+      }
+    }
+  ]
+}

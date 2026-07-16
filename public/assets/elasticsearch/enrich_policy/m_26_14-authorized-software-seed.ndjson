@@ -48,3 +48,27 @@
 {"package": {"name": "uTorrent"}, "authorized": false, "category": "p2p", "publisher": "BitTorrent Inc.", "eol": false, "approved_by": null, "approval_ref": null, "min_version": null, "updated_at": "2026-06-12T00:00:00Z"}
 {"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "keepass-password-safe"}}
 {"package": {"name": "KeePass Password Safe"}, "authorized": true, "category": "security", "publisher": "Dominik Reichl", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-016", "min_version": "2.55", "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "openssh-server"}}
+{"package": {"name": "openssh-server"}, "authorized": true, "category": "remote-access", "approved_by": "isso", "approval_ref": "SWAM-2026-001", "min_version": "9.0", "eol": false, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "elastic-agent"}}
+{"package": {"name": "elastic-agent"}, "authorized": true, "category": "security-tooling", "approved_by": "isso", "approval_ref": "SWAM-2026-002", "min_version": "8.16.0", "eol": false, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "osqueryd"}}
+{"package": {"name": "osqueryd"}, "authorized": true, "category": "security-tooling", "approved_by": "isso", "approval_ref": "SWAM-2026-003", "min_version": "5.10", "eol": false, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "chrony"}}
+{"package": {"name": "chrony"}, "authorized": true, "category": "infrastructure", "approved_by": "isso", "approval_ref": "SWAM-2026-004", "min_version": "4.0", "eol": false, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "rsyslog"}}
+{"package": {"name": "rsyslog"}, "authorized": true, "category": "logging", "approved_by": "isso", "approval_ref": "SWAM-2026-005", "min_version": "8.0", "eol": false, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "auditd"}}
+{"package": {"name": "auditd"}, "authorized": true, "category": "security-tooling", "approved_by": "isso", "approval_ref": "SWAM-2026-006", "min_version": "3.0", "eol": false, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "docker-ce"}}
+{"package": {"name": "docker-ce"}, "authorized": true, "category": "platform", "approved_by": "isso", "approval_ref": "SWAM-2026-007", "min_version": "24.0", "eol": false, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "nginx"}}
+{"package": {"name": "nginx"}, "authorized": true, "category": "web", "approved_by": "isso", "approval_ref": "SWAM-2026-008", "min_version": "1.24", "eol": false, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "postgresql-15"}}
+{"package": {"name": "postgresql-15"}, "authorized": true, "category": "database", "approved_by": "isso", "approval_ref": "SWAM-2026-009", "min_version": "15.0", "eol": false, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "tcpdump"}}
+{"package": {"name": "tcpdump"}, "authorized": false, "category": "network-tooling", "approved_by": "isso", "approval_ref": "SWAM-2026-DENY-001", "min_version": "", "eol": false, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "nmap"}}
+{"package": {"name": "nmap"}, "authorized": false, "category": "network-tooling", "approved_by": "isso", "approval_ref": "SWAM-2026-DENY-002", "min_version": "", "eol": false, "updated_at": "2026-06-12T00:00:00Z"}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "netcat"}}
+{"package": {"name": "netcat"}, "authorized": false, "category": "network-tooling", "approved_by": "isso", "approval_ref": "SWAM-2026-DENY-003", "min_version": "", "eol": false, "updated_at": "2026-06-12T00:00:00Z"}

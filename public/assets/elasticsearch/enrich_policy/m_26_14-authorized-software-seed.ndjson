@@ -10,7 +10,7 @@
 {"package": {"name": "Mozilla Firefox"}, "authorized": true, "category": "browser", "publisher": "Mozilla Foundation", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-005", "min_version": "115.0", "updated_at": "2026-06-12T00:00:00Z"}
 {"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "crowdstrike-falcon"}}
 {"package": {"name": "CrowdStrike Falcon"}, "authorized": true, "category": "security", "publisher": "CrowdStrike Inc.", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-006", "min_version": "7.0", "updated_at": "2026-06-12T00:00:00Z"}
-{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "elastic-agent"}}
+{"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "elastic-agent-display"}}
 {"package": {"name": "Elastic Agent"}, "authorized": true, "category": "security", "publisher": "Elastic N.V.", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-007", "min_version": "8.14", "updated_at": "2026-06-12T00:00:00Z"}
 {"index": {"_index": "m_26_14-authorized-software-catalog", "_id": "cisco-anyconnect"}}
 {"package": {"name": "Cisco AnyConnect"}, "authorized": true, "category": "vpn", "publisher": "Cisco Systems Inc.", "eol": false, "approved_by": "isso", "approval_ref": "SWAM-2026-008", "min_version": "4.10", "updated_at": "2026-06-12T00:00:00Z"}

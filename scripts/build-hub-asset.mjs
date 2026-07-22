@@ -38,7 +38,7 @@ description: Interactive reference architecture viewer for OMB M-26-14 — matur
 type: html
 author: james@jgarside.co.uk
 authorName: James Garside
-createdAt: "${new Date().toISOString()}"
+createdAt: "2026-07-22T00:00:00Z"
 version: "1"
 tags:
   - m-26-14

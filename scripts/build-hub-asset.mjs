@@ -1,13 +1,11 @@
 #!/usr/bin/env node
-// Builds the Elastic Hub "HTML Page" library asset (elastic/elastic-hub#123):
-// generate inline content → vite build --mode hub (single self-contained HTML) →
-// validate fence-safety → wrap in the Hub's markdown asset envelope.
-//
-// Outputs:
-//   dist-hub/index.html                                  — the standalone page
-//   dist-hub/m-26-14-reference-architecture-viewer.md    — Hub library asset
+// Builds the single self-contained HTML page for the Elastic Hub's "HTML Page"
+// asset type (elastic/elastic-hub#123): generate inline content → vite build
+// --mode hub → validate fence-safety. The Hub asset itself is created manually by
+// pasting dist-hub/index.html into a ```html block, so the file must stay free of
+// literal ``` and </script> sequences — validated here.
 import { execFileSync } from 'node:child_process'
-import { readFileSync, writeFileSync, statSync } from 'node:fs'
+import { readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -32,32 +30,5 @@ if (/fonts\.googleapis|fonts\.gstatic/.test(html)) {
   process.exit(1)
 }
 
-const asset = `---
-title: M-26-14 Federal Logging Reference Architecture Viewer
-description: Interactive reference architecture viewer for OMB M-26-14 — maturity levels, sizing, compliance mappings, and the full deployable asset inventory with docs and screenshots. Click "Present" to open full-screen.
-type: html
-author: james@jgarside.co.uk
-authorName: James Garside
-createdAt: "2026-07-22T00:00:00Z"
-version: "1"
-tags:
-  - m-26-14
-  - reference-architecture
-  - compliance
-  - logging
-language: html
-status: draft
-featured: false
----
-
-\`\`\`html
-${html.trimEnd()}
-\`\`\`
-`
-const assetPath = join(root, 'dist-hub', 'm-26-14-reference-architecture-viewer.md')
-writeFileSync(assetPath, asset)
-
 const mb = p => (statSync(p).size / 1024 / 1024).toFixed(1)
-console.log(`\nhub asset built:`)
-console.log(`  dist-hub/index.html  ${mb(htmlPath)} MB`)
-console.log(`  ${assetPath.replace(root, '').replace(/^\//, '')}  ${mb(assetPath)} MB`)
+console.log(`\nhub page built: dist-hub/index.html  ${mb(htmlPath)} MB`)

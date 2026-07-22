@@ -1,12 +1,12 @@
-# Regenerates the Elastic Hub "HTML Page" library asset (single-file build of this
-# viewer, see elastic/elastic-hub#123) on every push to main, and commits it to
-# hub/ when its content actually changed. The committed file is what gets
-# contributed to the Hub's Tools Library; its raw URL always reflects main:
-# https://raw.githubusercontent.com/elastic/m-26-14-logging-readiness/main/hub/m-26-14-reference-architecture-viewer.md
+# Regenerates the single-file HTML page for the Elastic Hub's "HTML Page" asset
+# type (see elastic/elastic-hub#123) on every push to main, and commits it to
+# hub/ when its content actually changed. The Hub library asset is created
+# manually from this file; its raw URL always reflects main:
+# https://raw.githubusercontent.com/elastic/m-26-14-logging-readiness/main/hub/m-26-14-reference-architecture-viewer.html
 #
-# The build is deterministic (fixed createdAt, locked deps), so the diff check
-# only fires on real content changes. The bot commit touches only hub/**, which
-# this workflow ignores — no self-trigger loop.
+# The build is deterministic (locked deps), so the diff check only fires on real
+# content changes. The bot commit touches only hub/**, which this workflow
+# ignores — no self-trigger loop.
 name: build-hub-asset
 
 on:
@@ -36,7 +36,7 @@ jobs:
       - name: Commit regenerated asset if changed
         run: |
           mkdir -p hub
-          cp dist-hub/m-26-14-reference-architecture-viewer.md hub/
+          cp dist-hub/index.html hub/m-26-14-reference-architecture-viewer.html
           if git diff --quiet -- hub/; then
             echo "Hub asset unchanged — nothing to commit."
             exit 0

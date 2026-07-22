@@ -10,6 +10,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { ASSET_FILE_MAP, ASSET_TYPE_META, classifyNdjsonLine } from '../data/assets.js'
 import { liveClusterUrl, liveLinkIsListing } from '../data/liveLinks.js'
+import { loadText, assetUrl, docHref } from '@app-content'
 
 const MIN_WIDTH = 400
 const MAX_WIDTH = 1400
@@ -58,11 +59,7 @@ export default function AssetViewer({ assetId, onClose }) {
     setDocView(null)
     setDocText(null)
     setScreenshotExpanded(true)
-    fetch(asset.file)
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`)
-        return r.text()
-      })
+    loadText(asset.file)
       .then(t => { setRawText(t); setLoading(false) })
       .catch(e => { setError(e.message); setLoading(false) })
   }, [assetId])
@@ -73,11 +70,7 @@ export default function AssetViewer({ assetId, onClose }) {
     if (docView.file.endsWith('.pdf')) return // PDFs open externally
     setDocLoading(true)
     setDocText(null)
-    fetch(docView.file)
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`)
-        return r.text()
-      })
+    loadText(docView.file)
       .then(t => { setDocText(t); setDocLoading(false) })
       .catch(() => setDocLoading(false))
   }, [docView])
@@ -118,16 +111,25 @@ export default function AssetViewer({ assetId, onClose }) {
   }, [rawText, asset])
 
   const openDocExternal = useCallback((doc) => {
-    window.open(doc.file, '_blank', 'noopener')
+    window.open(docHref(doc.file), '_blank', 'noopener')
   }, [])
 
   const downloadDoc = useCallback((doc) => {
-    const a = document.createElement('a')
-    a.href = doc.file
-    a.download = doc.file.split('/').pop()
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
+    // Serve from the content bundle so this works in the single-file Hub build;
+    // files not bundled there (PDFs) open from the source repo instead.
+    loadText(doc.file)
+      .then(text => {
+        const blob = new Blob([text], { type: 'text/plain' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = doc.file.split('/').pop()
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        setTimeout(() => URL.revokeObjectURL(url), 500)
+      })
+      .catch(() => window.open(docHref(doc.file), '_blank', 'noopener'))
   }, [])
 
   const typeMeta = asset ? (ASSET_TYPE_META[asset.type] ?? { label: asset.type, color: 'text-text-muted', bg: 'bg-ink-700 border-line' }) : null
@@ -321,7 +323,7 @@ export default function AssetViewer({ assetId, onClose }) {
                       {screenshotExpanded && (
                         <div style={{ borderTop: '1px solid rgb(var(--color-line))' }}>
                           <img
-                            src={asset.screenshot}
+                            src={assetUrl(asset.screenshot)}
                             alt={`${asset.label} dashboard preview`}
                             className="w-full block"
                             style={{ maxHeight: 300, objectFit: 'cover', objectPosition: 'top' }}
@@ -389,7 +391,12 @@ function DocViewer({ doc, text, loading }) {
       [&_th]:text-xs [&_th]:font-semibold [&_th]:text-text-muted [&_th]:text-left [&_th]:pb-2 [&_th]:border-b [&_th]:border-line
       [&_td]:text-sm [&_td]:text-text-primary [&_td]:py-2 [&_td]:border-b [&_td]:border-line/30 [&_td]:align-top
       [&_hr]:border-line [&_hr]:my-6 [&_hr]:border-t">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          img: ({ src, alt }) => <img src={assetUrl(src)} alt={alt} className="rounded-lg my-4 max-w-full" />,
+        }}
+      >
         {text}
       </ReactMarkdown>
     </div>

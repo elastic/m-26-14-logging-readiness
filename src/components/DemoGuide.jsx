@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { loadText, assetUrl } from '@app-content'
 
 function ScreenshotImage({ src, alt }) {
   return (
     <figure className="my-8">
       <img
-        src={src}
+        src={assetUrl(src)}
         alt={alt}
         className="rounded-xl border border-line/40 shadow-xl w-full"
         loading="lazy"
@@ -29,8 +30,7 @@ export default function DemoGuide() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/docs/demo-guide.md')
-      .then(r => r.text())
+    loadText('/docs/demo-guide.md')
       .then(t => { setText(t); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])

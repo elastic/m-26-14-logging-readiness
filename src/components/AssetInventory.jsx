@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import JSZip from 'jszip'
 import { ASSET_FILES, ASSET_COLUMNS, ASSET_TYPE_META } from '../data/assets.js'
+import { loadText } from '@app-content'
 import AssetViewer from './AssetViewer.jsx'
 
 const LEVELS = [1, 2, 3, 4]
@@ -91,16 +92,12 @@ export default function AssetInventory() {
     // Bundle documentation: generated manifest + maturity progression checklist
     folder.file('README.md', buildBundleReadme(visible, filterLevel))
     try {
-      const res = await fetch('/docs/maturity-progression-checklist.md')
-      if (res.ok) folder.file('docs/maturity-progression-checklist.md', await res.text())
+      folder.file('docs/maturity-progression-checklist.md', await loadText('/docs/maturity-progression-checklist.md'))
     } catch (_) { /* skip if unavailable */ }
     await Promise.all(
       visible.map(async f => {
         try {
-          const res = await fetch(f.file)
-          if (!res.ok) return
-          const text = await res.text()
-          const filename = f.file.split('/').pop()
+          const text = await loadText(f.file)
           // Recreate subdirectory structure inside zip
           const subpath = f.file.replace('/assets/', '')
           folder.file(subpath, text)

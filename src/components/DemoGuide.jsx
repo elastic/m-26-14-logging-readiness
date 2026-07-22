@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { Link } from 'react-router-dom'
+import { loadText, assetUrl, docHref } from '@app-content'
 import { LIVE_KIBANA_BASE, withAnonHint } from '../data/liveLinks.js'
 
 function ScreenshotImage({ src, alt }) {
   return (
     <figure className="my-8">
       <img
-        src={src}
+        src={assetUrl(src)}
         alt={alt}
         className="rounded-xl border border-line/40 shadow-xl w-full"
         loading="lazy"
@@ -81,6 +83,15 @@ const MD_CLASS = `
 const MD_COMPONENTS = {
   // Demo-cluster links open as the anonymous read-only viewer.
   a: ({ href, children }) => {
+    // The single-file Hub build routes in memory, so a link to one of this
+    // app's pages goes through the router and a link to a site-hosted file
+    // opens it from the source repo.
+    if (__HUB_BUILD__ && href?.startsWith('/')) {
+      if (/\.[a-z0-9]+$/i.test(href.split(/[?#]/)[0])) {
+        return <a href={docHref(href)} target="_blank" rel="noopener noreferrer">{children}</a>
+      }
+      return <Link to={href}>{children}</Link>
+    }
     const demo = href?.startsWith(LIVE_KIBANA_BASE)
     return <a href={demo ? withAnonHint(href) : href} {...(demo ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{children}</a>
   },
@@ -107,8 +118,7 @@ export default function DemoGuide({ src = '/docs/demo-guide.md', embedded = fals
   const { intro, rest } = useMemo(() => splitIntro(text, showToc), [text, showToc])
 
   useEffect(() => {
-    fetch(src)
-      .then(r => r.text())
+    loadText(src)
       .then(t => { setText(t); setLoading(false) })
       .catch(() => setLoading(false))
   }, [src])

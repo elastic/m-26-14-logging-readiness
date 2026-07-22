@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { OverviewContent } from './Overview.jsx'
+import { docHref } from '@app-content'
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
 
@@ -961,7 +962,7 @@ function RequirementModal({ row, onClose }) {
               <div className="rounded-lg border border-line/50 overflow-hidden" style={{ borderStyle: 'solid' }}>
                 {row.modalCapabilities.map((cap, ci) => (
                   <div key={ci} className={`px-6 py-5 ${ci < row.modalCapabilities.length - 1 ? 'border-b border-line/30' : ''} ${ci % 2 === 0 ? 'bg-ink-800/40' : ''}`}>
-                    <a href={cap.href} target="_blank" rel="noopener noreferrer"
+                    <a href={docHref(cap.href)} target="_blank" rel="noopener noreferrer"
                       className="text-sm font-semibold text-accent-blue hover:underline">
                       {cap.name} ↗
                     </a>

@@ -141,6 +141,12 @@ export default function Nav() {
 
 const PRINTABLES = [
   {
+    title: 'From M-21-31 to M-26-14: What CISOs Need to Do Now',
+    description: 'CISO briefing on the shift from M-21-31 to M-26-14 — what changed, compliance deadlines, and how to build a prioritized action plan with Elastic.',
+    detail: 'PDF · CISO Briefing',
+    href: '/docs/Elastic%20M-26-14%20for%20CISOs.pdf',
+  },
+  {
     title: 'CXO — Elastic M-26-14 Reference Architecture',
     description: 'Executive briefing deck for agency CXO and leadership audiences.',
     detail: 'PDF · Executive Briefing',
@@ -164,6 +170,12 @@ const PRINTABLES = [
     detail: 'Web · Interactive Walkthrough',
     href: '/demo-guide',
     internal: true,
+  },
+  {
+    title: 'Elastic Blog: M-26-14 Memorandum Explained',
+    description: "Elastic's official blog post on how M-26-14 shifts federal logging from compliance-driven tiering to outcome-focused CEM and THIRF.",
+    detail: 'Web · Elastic Blog · June 2026',
+    href: 'https://www.elastic.co/blog/m-26-14-memorandum',
   },
   { type: 'separator' },
   {

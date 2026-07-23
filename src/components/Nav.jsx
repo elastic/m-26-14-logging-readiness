@@ -2,8 +2,16 @@ import React, { useRef, useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { EuiToolTip } from '@elastic/eui'
 import { useTheme } from '../ThemeContext.jsx'
+import { docHref } from '@app-content'
 import logoColor from '../img/logo-elastic-horizontal-color.svg'
 import logoReverse from '../img/logo-elastic-horizontal-color-reverse.svg'
+
+// In the single-file Hub build, internal routes are hash-based and site-hosted
+// files (PDFs) resolve to the source repo via docHref.
+const printableHref = (p) => {
+  if (p.internal) return __HUB_BUILD__ ? `#${p.href}` : p.href
+  return docHref(p.href)
+}
 
 const HomeIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor">
@@ -258,7 +266,7 @@ function PrintablesFlyout({ onClose }) {
             return (
               <a
                 key={p.title}
-                href={p.href}
+                href={printableHref(p)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded-lg bg-ink-800 p-5 flex flex-col gap-2 hover:bg-ink-700 transition-colors group"

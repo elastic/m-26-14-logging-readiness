@@ -1,5 +1,7 @@
 node_modules
 dist
+dist-hub
+src/generated
 .DS_Store
 *.log
 .vite

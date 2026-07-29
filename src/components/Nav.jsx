@@ -89,7 +89,7 @@ export default function Nav() {
             }
           >
             <HomeIcon />
-            <span>M-26-14 Compliance</span>
+            <span>M-26-14 Readiness</span>
           </Link>
 
           {NAV_ITEMS.map((item) => (
@@ -142,7 +142,7 @@ export default function Nav() {
 const PRINTABLES = [
   {
     title: 'From M-21-31 to M-26-14: What CISOs Need to Do Now',
-    description: 'CISO briefing on the shift from M-21-31 to M-26-14 — what changed, compliance deadlines, and how to build a prioritized action plan with Elastic.',
+    description: 'CISO briefing on the shift from M-21-31 to M-26-14 — what changed, readiness deadlines, and how to build a prioritized action plan with Elastic.',
     detail: 'PDF · CISO Briefing',
     href: '/docs/Elastic%20M-26-14%20for%20CISOs.pdf',
   },
@@ -159,8 +159,14 @@ const PRINTABLES = [
     href: '/docs/Elastic%20M-26-14%20Reference%20Architectures.pdf',
   },
   {
+    title: 'M-26-14 Level 2 Readiness',
+    description: 'M-26-14 Level 2 Readiness deck.',
+    detail: 'PDF · Level 2 Readiness',
+    href: '/docs/Elastic%20M-26-14%20Level%202%20Readiness.pdf',
+  },
+  {
     title: 'Live Demo Cluster — Kibana (Read-Only)',
-    description: 'Every compliance pack asset running live on Elastic Cloud. Read-only — credentials from the Elastic team on request.',
+    description: 'Every readiness pack asset running live on Elastic Cloud. Read-only — credentials from the Elastic team on request.',
     detail: 'Web · Live Elastic Cluster · Kibana 9.4',
     href: 'https://m-26-14-7ae75d.kb.us-east-1.aws.found.io',
   },
@@ -173,7 +179,7 @@ const PRINTABLES = [
   },
   {
     title: 'Elastic Blog: M-26-14 Memorandum Explained',
-    description: "Elastic's official blog post on how M-26-14 shifts federal logging from compliance-driven tiering to outcome-focused CEM and THIRF.",
+    description: "Elastic's official blog post on how M-26-14 shifts federal logging from readiness-driven tiering to outcome-focused CEM and THIRF.",
     detail: 'Web · Elastic Blog · June 2026',
     href: 'https://www.elastic.co/blog/m-26-14-memorandum',
   },
@@ -231,7 +237,7 @@ function PrintablesFlyout({ onClose }) {
         </div>
 
         <p className="px-6 pt-4 pb-2 text-sm text-text-muted leading-relaxed">
-          Reference guides, architecture docs, and live resources for the Elastic M-26-14 compliance pack.
+          Reference guides, architecture docs, and live resources for the Elastic M-26-14 readiness pack.
         </p>
 
         {/* Doc cards */}

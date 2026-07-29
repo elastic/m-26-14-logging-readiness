@@ -17,11 +17,11 @@ Each category is rendered as a color-coded tile — teal for fully covered, yell
 
 ### Where It Fits Among the Companion Dashboards
 
-This dashboard is **Element 3** of the M-26-14 compliance pack and is reached as a drill-down from the **M-26-14 Maturity Overview** hub (`m_26_14-maturity-overview`). A links panel at the top of the matrix ("← Back: M-26-14 Maturity Overview") returns you to the hub, preserving your time range and filters.
+This dashboard is **Element 3** of the M-26-14 readiness pack and is reached as a drill-down from the **M-26-14 Maturity Overview** hub (`m_26_14-maturity-overview`). A links panel at the top of the matrix ("← Back: M-26-14 Maturity Overview") returns you to the hub, preserving your time range and filters.
 
 It is a companion to:
 
-- **Compliance Attestation Dashboard** (`m_26_14-compliance-attestation-dash`) — same data source, oriented toward evidence-package generation. See `../detection-rules/compliance-dashboard-guide.md`.
+- **Readiness Attestation Dashboard** (`m_26_14-compliance-attestation-dash`) — same data source, oriented toward evidence-package generation. See `../detection-rules/compliance-dashboard-guide.md`.
 - **Alert Coverage** views in Elastic Security — raw alert investigation once the matrix identifies which category needs attention.
 
 Use the matrix for *visual gap identification*; use the Attestation Dashboard for *evidence export*.
@@ -115,7 +115,7 @@ Categories A–J each map to one or more dedicated detection rules; Category K i
 2. **Read the KPI row first.** A clean submission shows Fully Covered = 11, Partial = 0, No Coverage = 0. Any non-zero "No Coverage" value blocks submission until remediated or documented.
 3. **Scan the tile grid for non-teal tiles.** Each yellow or orange tile is a finding. The subtitle tells you whether the issue is missing rules (e.g., "0 rules | no coverage") or rules without evidence (e.g., "1 rule | no alerts yet").
 4. **Use the two bar charts to distinguish gap types.** A category present in the *Rules* chart but absent from the *Alerts* chart means rules are deployed but silent — verify the data source is flowing before concluding the rule is broken.
-5. **Export the Full Detail table** (panel menu → *Download as CSV*) as the per-category evidence artifact. Its five columns (`category`, `label`, `status`, `rules`, `alerts`) map directly to an Appendix B compliance worksheet.
+5. **Export the Full Detail table** (panel menu → *Download as CSV*) as the per-category evidence artifact. Its five columns (`category`, `label`, `status`, `rules`, `alerts`) map directly to an Appendix B readiness worksheet.
 6. **Document residual gaps.** Any `partial` or `none` row requires a POA&M entry with a remediation date; attach the exported CSV and a dashboard screenshot to the AO package.
 7. **Return to the Maturity Overview** via the back link to capture the agency-wide maturity score in the same evidence package.
 
@@ -131,7 +131,7 @@ Categories A–J each map to one or more dedicated detection rules; Category K i
 | Refresh cadence | Transform syncs hourly; dashboard reflects the latest transform checkpoint |
 | Query language | All panels use ES|QL against the metrics index — none query raw alert indices directly |
 
-Because every panel reads the same pre-aggregated index, the matrix and the Compliance Attestation Dashboard always agree; discrepancies between them indicate a stale transform, not a data problem.
+Because every panel reads the same pre-aggregated index, the matrix and the Readiness Attestation Dashboard always agree; discrepancies between them indicate a stale transform, not a data problem.
 
 ---
 
@@ -184,8 +184,8 @@ POST _transform/m_26_14-alert-coverage-daily/_reset
 POST _transform/m_26_14-alert-coverage-daily/_start
 ```
 
-**Back link does not navigate.** The hub dashboard `m_26_14-maturity-overview` must be installed in the same space; re-import the compliance pack saved objects if it is missing.
+**Back link does not navigate.** The hub dashboard `m_26_14-maturity-overview` must be installed in the same space; re-import the readiness pack saved objects if it is missing.
 
 ---
 
-*This guide covers the M-26-14 Appendix B Coverage Matrix as shipped in the `m_26_14` pack. For the companion Compliance Attestation Dashboard and detection rule documentation, see `../detection-rules/compliance-dashboard-guide.md`.*
+*This guide covers the M-26-14 Appendix B Coverage Matrix as shipped in the `m_26_14` pack. For the companion Readiness Attestation Dashboard and detection rule documentation, see `../detection-rules/compliance-dashboard-guide.md`.*

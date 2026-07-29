@@ -1,19 +1,19 @@
-# M-26-14 Compliance Attestation Dashboard — User Guide
+# M-26-14 Readiness Attestation Dashboard — User Guide
 
 ## 1. Overview
 
-The **M-26-14 Compliance Attestation Dashboard** is a live, continuously-updated view of your agency's detection coverage across all eleven Appendix B event categories required by OMB Memorandum M-26-14 §5. It reads from a continuously-running Elasticsearch Transform (`m_26_14-metrics-alert-coverage`) that aggregates alert activity across the ten threat-category rules (A–J) plus the meta-coverage Rule K. The result is a single-screen answer to the question every AO asks before an ATO renewal: "Is the detection layer actually working right now, and can you prove it?"
+The **M-26-14 Readiness Attestation Dashboard** is a live, continuously-updated view of your agency's detection coverage across all eleven Appendix B event categories required by OMB Memorandum M-26-14 §5. It reads from a continuously-running Elasticsearch Transform (`m_26_14-metrics-alert-coverage`) that aggregates alert activity across the ten threat-category rules (A–J) plus the meta-coverage Rule K. The result is a single-screen answer to the question every AO asks before an ATO renewal: "Is the detection layer actually working right now, and can you prove it?"
 
 ### Who Uses This Dashboard
 
 | Role | Primary Use |
 |------|-------------|
 | **ISSO** | Daily health check; generates evidence package for AO submissions; documents gaps and POA&M entries |
-| **CISO** | Executive posture view; confirms compliance posture before ATO milestones; escalation decision support |
+| **CISO** | Executive posture view; confirms readiness posture before ATO milestones; escalation decision support |
 | **Authorizing Official (AO)** | Receives dashboard link or exported PDF as primary M-26-14 evidence; can query live posture directly |
 | **SOC Lead** | Monitors for category-level coverage degradation before it becomes an audit finding |
 
-### Where It Fits in the Continuous Compliance Workflow
+### Where It Fits in the Continuous Readiness Workflow
 
 The dashboard is the final stage of a fully automated pipeline:
 
@@ -31,7 +31,7 @@ This architecture is identical to how Elastic's own Cloud Security Posture Manag
 
 The dashboard (`m_26_14-compliance-attestation-dash`) contains three primary panel groups. All panels read from the `m_26_14-metrics-alert-coverage` index, not from the raw `.alerts-security.*` store, which keeps load times fast regardless of total alert volume.
 
-![M-26-14 Compliance Attestation dashboard — three coverage KPI metrics at top, 11-category evidence table in the middle, and alert volume bar chart at the bottom](../screenshots/07-compliance-attestation.png)
+![M-26-14 Readiness Attestation dashboard — three coverage KPI metrics at top, 11-category evidence table in the middle, and alert volume bar chart at the bottom](../screenshots/07-compliance-attestation.png)
 
 ### Panel Group 1 — Coverage KPI Metrics (top row)
 
@@ -47,7 +47,7 @@ The three panels always sum to 11. Any non-zero Coverage Gaps value requires inv
 
 ### Panel Group 2 — Category Evidence Table
 
-A data table showing one row per Appendix B category (A through K). This is the primary compliance evidence panel.
+A data table showing one row per Appendix B category (A through K). This is the primary readiness evidence panel.
 
 | Column | What It Shows |
 |--------|---------------|
@@ -87,7 +87,7 @@ The status color for each category in the Coverage Table and Score Gauge is dete
 
 **Condition:** At least one alert fired in the last 30 days.
 
-**What it means:** The detection rule is enabled, the required integrations are delivering telemetry, and the rule evaluated that telemetry within the compliance window. This category satisfies the M-26-14 continuous monitoring requirement.
+**What it means:** The detection rule is enabled, the required integrations are delivering telemetry, and the rule evaluated that telemetry within the readiness window. This category satisfies the M-26-14 continuous monitoring requirement.
 
 **Action required:** None. Document the GREEN status in the evidence package.
 
@@ -119,9 +119,9 @@ The following procedure produces a complete M-26-14 evidence package. Allow 30�
 
 ### Step 1 — Open the Dashboard and Verify Time Range
 
-Navigate to **Kibana > Dashboards > M-26-14 Compliance Attestation — Appendix B Detection Coverage**.
+Navigate to **Kibana > Dashboards > M-26-14 Readiness Attestation — Appendix B Detection Coverage**.
 
-Verify the time picker in the upper right is set to **Last 30 days**. The compliance score and category table use a 30-day window by convention. Changing this range will alter what is shown in the Alert Volume Trend but should not affect the Category Coverage Table (which uses absolute timestamps from the transform) or the Compliance Score (which is based on the 30-day status field).
+Verify the time picker in the upper right is set to **Last 30 days**. The readiness score and category table use a 30-day window by convention. Changing this range will alter what is shown in the Alert Volume Trend but should not affect the Category Coverage Table (which uses absolute timestamps from the transform) or the Readiness Score (which is based on the 30-day status field).
 
 ### Step 2 — Review the Category Coverage Table
 
@@ -160,7 +160,7 @@ The PDF captures all three dashboard panels in a format suitable for attachment 
 
 Attach to your M-26-14 submission package:
 
-- The exported PDF (compliance score, coverage table, alert volume trend).
+- The exported PDF (readiness score, coverage table, alert volume trend).
 - Any POA&M entries created or updated during the review.
 - For YELLOW/RED categories: the investigation notes and remediation documentation.
 - The Rule K attestation record (visible in the dashboard as the last Rule K fire timestamp), which confirms the meta-coverage health check ran successfully.
@@ -171,13 +171,13 @@ Submit the package to the AO per your agency's ATO submission process.
 
 ## 5. The "Wow" Scenario
 
-It is 3:15 PM on a Friday. The Authorizing Official has just emailed requesting M-26-14 compliance evidence by end of business.
+It is 3:15 PM on a Friday. The Authorizing Official has just emailed requesting M-26-14 readiness evidence by end of business.
 
 Two years ago, this email would have triggered a three-week cycle: the ISSO emails the security team lead, the security team lead pulls alert counts from the SIEM, the ISSO reformats the data into a spreadsheet, the security director reviews the spreadsheet, the CISO signs off, the package is emailed to the AO's office on week three — and sometimes the AO asks a follow-up question that restarts the cycle.
 
 Today the ISSO opens a browser.
 
-The M-26-14 Compliance Attestation Dashboard loads. The Compliance Score Gauge reads **82%**. Nine of eleven categories are GREEN. The ISSO checks the Category Coverage Table.
+The M-26-14 Readiness Attestation Dashboard loads. The Readiness Score Gauge reads **82%**. Nine of eleven categories are GREEN. The ISSO checks the Category Coverage Table.
 
 Category I (Exfiltration Volume) is YELLOW. Last alert: 34 days ago. Days since: 34.
 
@@ -189,17 +189,17 @@ The ISSO re-deploys the Zeek integration via Fleet. The Fleet policy update roll
 
 The ISSO waits. The Zeek `logs-zeek.connection-*` data stream begins indexing within five minutes. Twenty minutes later, the Category I exfiltration volume rule completes its next hourly evaluation. It fires on the resumed network traffic — backup jobs running on the usual Friday afternoon schedule.
 
-The ISSO refreshes the compliance dashboard. Category I is GREEN. Compliance Score: **100%**.
+The ISSO refreshes the readiness dashboard. Category I is GREEN. Readiness Score: **100%**.
 
 The ISSO clicks **Share > PDF Reports**, selects the last 30 days, and generates the export. Three minutes later, the PDF is downloaded: all eleven categories GREEN, score 100%, all three dashboard panels captured.
 
 Total elapsed time: 47 minutes. Total active ISSO effort: approximately 12 minutes of investigation, 3 minutes of Zeek redeployment, 5 minutes of report generation.
 
-The ISSO attaches the PDF to an email to the AO: "Please find the M-26-14 compliance evidence attached. All eleven Appendix B categories are actively monitored as of this afternoon. A brief gap in Category I (Exfiltration Volume) between April 25 and today was caused by an inadvertent Fleet policy change; Zeek has been redeployed and Category I is confirmed active. I am documenting the gap and root cause in a POA&M entry."
+The ISSO attaches the PDF to an email to the AO: "Please find the M-26-14 readiness evidence attached. All eleven Appendix B categories are actively monitored as of this afternoon. A brief gap in Category I (Exfiltration Volume) between April 25 and today was caused by an inadvertent Fleet policy change; Zeek has been redeployed and Category I is confirmed active. I am documenting the gap and root cause in a POA&M entry."
 
 The AO responds in 20 minutes: evidence accepted, condition noted in the ATO renewal.
 
-**The old process: 3 weeks. The new process: 47 minutes.** The difference is not heroic effort by the ISSO. The difference is that the compliance evidence was already assembled, continuously, by the pipeline — the ISSO just had to look at it and press Export.
+**The old process: 3 weeks. The new process: 47 minutes.** The difference is not heroic effort by the ISSO. The difference is that the readiness evidence was already assembled, continuously, by the pipeline — the ISSO just had to look at it and press Export.
 
 ---
 
@@ -245,7 +245,7 @@ GET .alerts-security.*/_search
   "size": 1
 }
 ```
-If this returns zero results, no M-26-14-tagged alerts exist. Confirm the detection rules were imported from the compliance pack and not manually recreated without the required tags.
+If this returns zero results, no M-26-14-tagged alerts exist. Confirm the detection rules were imported from the readiness pack and not manually recreated without the required tags.
 
 ### Transform Not Running or Showing Health Errors
 
@@ -258,7 +258,7 @@ Common causes:
 
 ### Coverage Score Is Wrong (Not Matching Category Count)
 
-The Compliance Score Gauge calculates `(GREEN categories) / 11 × 100%`. If the denominator appears wrong (e.g., the score shows 9/10 but ten categories are GREEN), the `m_26_14-rule-registry` index may be missing one or more category documents.
+The Readiness Score Gauge calculates `(GREEN categories) / 11 × 100%`. If the denominator appears wrong (e.g., the score shows 9/10 but ten categories are GREEN), the `m_26_14-rule-registry` index may be missing one or more category documents.
 
 **Check:**
 ```

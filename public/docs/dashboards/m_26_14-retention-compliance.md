@@ -1,20 +1,20 @@
-# M-26-14 Retention Compliance Dashboard — User Guide
+# M-26-14 Retention Readiness Dashboard — User Guide
 
 ## 1. Overview
 
-The **M-26-14 Retention Compliance Dashboard** (`m_26_14-retention-compliance`) is the evidence view for **Element 4** of OMB Memorandum M-26-14: logs must remain *searchable* (online, queryable in the active cluster) and *retrievable* (recoverable from snapshot or frozen storage) for the durations required at each maturity level. The dashboard answers, per data stream, two questions an auditor will always ask:
+The **M-26-14 Retention Readiness Dashboard** (`m_26_14-retention-compliance`) is the evidence view for **Element 4** of OMB Memorandum M-26-14: logs must remain *searchable* (online, queryable in the active cluster) and *retrievable* (recoverable from snapshot or frozen storage) for the durations required at each maturity level. The dashboard answers, per data stream, two questions an auditor will always ask:
 
 1. **How long is this data searchable today?**
 2. **How long is it retrievable in total, and does that meet the L3 / L4 maturity thresholds?**
 
-Every panel reads from the `m_26_14-metrics-retention` index, which is populated by the compliance pack's retention metrics pipeline. The thresholds enforced by the dashboard (taken directly from the panel definitions) are:
+Every panel reads from the `m_26_14-metrics-retention` index, which is populated by the readiness pack's retention metrics pipeline. The thresholds enforced by the dashboard (taken directly from the panel definitions) are:
 
 | Maturity Level | Searchable Window | Retrievable Window |
 |----------------|-------------------|--------------------|
 | **L3** | ≥ 90 days | ≥ 365 days |
 | **L4** | ≥ 180 days | ≥ 365 days |
 
-> These are the thresholds encoded in the compliance pack's metrics. If your agency's records schedule or M-26-14 implementation plan mandates longer windows, adjust the metric pipeline and ILM policies accordingly — the dashboard will reflect the new values automatically.
+> These are the thresholds encoded in the readiness pack's metrics. If your agency's records schedule or M-26-14 implementation plan mandates longer windows, adjust the metric pipeline and ILM policies accordingly — the dashboard will reflect the new values automatically.
 
 ### Who Uses This Dashboard
 
@@ -33,9 +33,9 @@ This dashboard is a drill-down from the **M-26-14 Maturity Overview** hub dashbo
 
 ## 2. Dashboard Layout
 
-The dashboard contains seven panels: the back-link, three KPI metrics, two horizontal bar charts, and one compliance data table. All read from `m_26_14-metrics-retention` via ES|QL.
+The dashboard contains seven panels: the back-link, three KPI metrics, two horizontal bar charts, and one readiness data table. All read from `m_26_14-metrics-retention` via ES|QL.
 
-![M-26-14 Retention Compliance dashboard — back-link at top, three retention KPI metrics, searchable/retrievable bar charts, and per-stream compliance table](../screenshots/04-retention-compliance.png)
+![M-26-14 Retention Readiness dashboard — back-link at top, three retention KPI metrics, searchable/retrievable bar charts, and per-stream readiness table](../screenshots/04-retention-compliance.png)
 
 | # | Panel | Type | What It Shows |
 |---|-------|------|---------------|
@@ -45,24 +45,24 @@ The dashboard contains seven panels: the back-link, three KPI metrics, two horiz
 | 4 | **L4-Compliant Data Streams** | Metric (teal) | Count of streams where `m_26_14.retention.l4_compliant == true`. Subtitle: *≥180d searchable + ≥365d retrievable* |
 | 5 | **Searchable Days by Data Stream** | Horizontal bar | `MAX(m_26_14.retention.searchable_days)` per `m_26_14.data_stream`, sorted ascending — shortest (riskiest) windows at the top |
 | 6 | **Retrievable Days by Data Stream** | Horizontal bar | `MAX(m_26_14.retention.retrievable_days)` per stream, sorted ascending |
-| 7 | **Retention Compliance by Data Stream** | Data table | One row per stream: searchable days, retrievable days, L3 flag, L4 flag. Sorted with non-compliant (L3 = `false`) rows first. Limit 50 rows |
+| 7 | **Retention Readiness by Data Stream** | Data table | One row per stream: searchable days, retrievable days, L3 flag, L4 flag. Sorted with non-compliant (L3 = `false`) rows first. Limit 50 rows |
 
-The three metric panels (2–4) form the top KPI row; the two bar charts sit side by side below them; the full-width compliance table anchors the bottom of the dashboard.
+The three metric panels (2–4) form the top KPI row; the two bar charts sit side by side below them; the full-width readiness table anchors the bottom of the dashboard.
 
 ---
 
 ## 3. How to Read It
 
-### Retention window compliance
+### Retention window readiness
 
-A data stream is **L3-compliant** when its measured searchable window is at least **90 days** *and* its total retrievable window is at least **365 days**. **L4 compliance** raises the searchable requirement to **180 days** with the same 365-day retrievable floor. Both flags are computed in the metrics pipeline and surfaced as booleans (`m_26_14.retention.l3_compliant`, `m_26_14.retention.l4_compliant`), so the dashboard shows pass/fail directly — no mental arithmetic during an audit.
+A data stream is **L3-compliant** when its measured searchable window is at least **90 days** *and* its total retrievable window is at least **365 days**. **L4 readiness** raises the searchable requirement to **180 days** with the same 365-day retrievable floor. Both flags are computed in the metrics pipeline and surfaced as booleans (`m_26_14.retention.l3_compliant`, `m_26_14.retention.l4_compliant`), so the dashboard shows pass/fail directly — no mental arithmetic during an audit.
 
 A healthy posture looks like:
 
 - **Non-Compliant Streams = 0** and **L3-Compliant** equals the total number of in-scope streams.
 - Every bar in **Searchable Days** extends past 90 (or 180 for L4 targets).
 - Every bar in **Retrievable Days** extends past 365.
-- The compliance table shows `true` in both flag columns for every row.
+- The readiness table shows `true` in both flag columns for every row.
 
 ### What a violation looks like
 
@@ -75,7 +75,7 @@ Because both bar charts sort **ascending**, violations surface at the top of eac
 | Retrievable days < 365 with searchable days fine | Searchable snapshot or SLM retention misconfigured; snapshots being pruned from `found-snapshots` |
 | Stream missing from the table entirely | Stream not yet enrolled in the retention metrics pipeline — a coverage gap, not a pass |
 
-The compliance table sorts L3 = `false` rows first, so the table's first rows are always your work queue. A newly onboarded stream that has not yet aged 90/365 days is *expected* to show `false`; document the onboarding date and projected compliance date rather than treating it as a control failure.
+The readiness table sorts L3 = `false` rows first, so the table's first rows are always your work queue. A newly onboarded stream that has not yet aged 90/365 days is *expected* to show `false`; document the onboarding date and projected readiness date rather than treating it as a control failure.
 
 ---
 
@@ -96,7 +96,7 @@ The dashboard reports on outcomes; the following pack components produce them.
 
 ### ILM tiers and searchable snapshots
 
-The compliance pack ships two ILM policies:
+The readiness pack ships two ILM policies:
 
 - **`m_26_14-logs-l3-no-delete`** — L3 retention profile
 - **`m_26_14-logs-l4-no-delete`** — L4 retention profile

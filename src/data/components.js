@@ -185,7 +185,7 @@ export const COMPONENTS = {
     role:
       'ILM automates index transitions across Hot → Cold (L3+) → Frozen → Delete. SLM runs scheduled snapshots into the object-store repo and prunes expired snapshots. Together they enforce M-26-14 retention without human intervention.',
     requirement:
-      'M-26-14 compliance requires demonstrable, auditable retention. ILM/SLM policies ARE the audit artifact — they prove how long data lived in each state.',
+      'M-26-14 readiness requires demonstrable, auditable retention. ILM/SLM policies ARE the audit artifact — they prove how long data lived in each state.',
     config:
       'SLM: schedule daily snapshots, set `retention.expire_after` to `180d` (6-month) or `365d` (12-month). ILM: align phase durations with the policy.',
     docs: [
@@ -386,7 +386,7 @@ export const COMPONENTS = {
     optional: true,
     euiIcon: 'crossClusterReplicationApp',
     role:
-      'Optional alternative or complement to CCS. Replicates selected indices to a central cluster for resilience or compliance-driven full visibility. Use when query latency or sub-agency cluster availability is a concern.',
+      'Optional alternative or complement to CCS. Replicates selected indices to a central cluster for resilience or readiness-driven full visibility. Use when query latency or sub-agency cluster availability is a concern.',
     requirement:
       'M-26-14 permits replication-based topologies provided retention and access requirements are still met at every replica.',
     config:

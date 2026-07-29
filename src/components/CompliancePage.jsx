@@ -8,8 +8,8 @@ import AssetViewer from './AssetViewer.jsx'
 
 const TABS = [
   { label: 'Requirements' },
-  { label: 'Achieve Compliance in Days' },
-  { label: 'Compliance Coverage Matrix' },
+  { label: 'Achieve Readiness in Days' },
+  { label: 'Readiness Coverage Matrix' },
   { label: "What's Not Covered?" },
 ]
 
@@ -63,10 +63,10 @@ const ACID_PHASES = [
   {
     label: 'Day 1',
     title: 'Deploy Elastic',
-    desc: 'Deploy Elasticsearch, Kibana, and Fleet Server, then load the M-26-14 Compliance Pack. ILM retention policies are configured from day one, satisfying data retention requirements across all maturity levels.',
+    desc: 'Deploy Elasticsearch, Kibana, and Fleet Server, then load the M-26-14 Readiness Pack. ILM retention policies are configured from day one, satisfying data retention requirements across all maturity levels.',
     items: [
-      'Configure ILM policies for hot/cold/frozen tiering and snapshot-based retrievable retention — data retention compliance achieved ✓',
-      'Install compliance pack assets: index templates, ingest pipelines, and data stream policies',
+      'Configure ILM policies for hot/cold/frozen tiering and snapshot-based retrievable retention — data retention readiness achieved ✓',
+      'Install readiness pack assets: index templates, ingest pipelines, and data stream policies',
       'Enable Kibana with the SIEM app and Fleet Server — platform ready to begin collecting',
     ],
   },
@@ -76,19 +76,19 @@ const ACID_PHASES = [
     desc: 'Enroll endpoints and systems with Elastic Agent via Fleet, covering all Appendix B log categories. Adding the Osquery integration immediately begins building the asset inventory required by the Agency Logging Plan.',
     items: [
       'Enroll endpoints with Elastic Agent via Fleet — Appendix B log collection begins immediately across all 11 required categories',
-      'Add the Osquery integration from the compliance pack to begin hardware, software, and network asset inventory (HWAM/SWAM)',
-      'Install and enable Appendix B detection rules, ML anomaly jobs, and compliance attestation dashboards',
+      'Add the Osquery integration from the readiness pack to begin hardware, software, and network asset inventory (HWAM/SWAM)',
+      'Install and enable Appendix B detection rules, ML anomaly jobs, and readiness attestation dashboards',
     ],
   },
   {
     label: 'Days 7–30',
     title: 'Expand Coverage',
-    desc: 'With collection and detection foundations in place, focus shifts to broadening coverage and validating compliance posture. Attestation dashboards surface remaining gaps against each maturity level.',
+    desc: 'With collection and detection foundations in place, focus shifts to broadening coverage and validating readiness posture. Attestation dashboards surface remaining gaps against each maturity level.',
     items: [
       'Add Threat Intelligence integrations (STIX/TAXII, CISA KEV) for real-time IoC matching across all log streams',
       'Monitor ML anomaly detection jobs and tune detection rules against your environment\'s baseline',
       'Expand collection and detection coverage across all Appendix B categories; use the Asset Coverage dashboard to identify enrollment gaps',
-      'Review maturity attestation dashboards to validate current compliance level and track progress toward the next',
+      'Review maturity attestation dashboards to validate current readiness level and track progress toward the next',
     ],
   },
   {
@@ -168,10 +168,10 @@ const MATRIX_ROWS = [
     phase: 1,
     firstLevel: 1,
     req: 'Two-gate data retirement with snapshot audit trail',
-    reqDesc: 'Before compliance log data can be permanently deleted, agencies must ensure a durable snapshot exists and obtain documented approvals — satisfying chain-of-custody requirements across all maturity levels.',
+    reqDesc: 'Before readiness log data can be permanently deleted, agencies must ensure a durable snapshot exists and obtain documented approvals — satisfying chain-of-custody requirements across all maturity levels.',
     cap: 'Kibana Workflows + SLM policy + Kibana Cases + Audit Index',
     capDesc: 'Automated two-gate workflow: daily scan identifies aged frozen indices → Gate 1 Kibana Case for human approval → ILM wait_for_snapshot ensures backup exists → Gate 2 Case for final deletion authorization. Manual Kibana Workflows execute each gate transition with full audit trail.',
-    modalHow: 'The M-26-14 compliance pack deploys a complete two-gate data retirement system built on Kibana Workflows, Kibana Cases, SLM, and an append-only audit index (m_26_14-retirement-requests). Detection alerts (Kibana Rules) fire when frozen indices exceed the configurable age threshold and open a Gate 1 Kibana Case for human review — no data is touched until a human approves. Once approved, the Gate 1 Kibana Workflow switches the index to a deletion-enabled ILM policy. ILM wait_for_snapshot then acts as a technical safeguard: deletion is blocked until the SLM policy confirms a durable snapshot exists in S3. Gate 2 requires a second explicit human approval before the Gate 2 Execution Workflow advances ILM past the snapshot gate to execute deletion. Every state transition — detect, approve, snapshot, delete — is recorded in the append-only m_26_14-retirement-requests audit index. The Legal Hold Workflow enables selective data preservation to a permanent no-delete retained index before retirement begins.',
+    modalHow: 'The M-26-14 readiness pack deploys a complete two-gate data retirement system built on Kibana Workflows, Kibana Cases, SLM, and an append-only audit index (m_26_14-retirement-requests). Detection alerts (Kibana Rules) fire when frozen indices exceed the configurable age threshold and open a Gate 1 Kibana Case for human review — no data is touched until a human approves. Once approved, the Gate 1 Kibana Workflow switches the index to a deletion-enabled ILM policy. ILM wait_for_snapshot then acts as a technical safeguard: deletion is blocked until the SLM policy confirms a durable snapshot exists in S3. Gate 2 requires a second explicit human approval before the Gate 2 Execution Workflow advances ILM past the snapshot gate to execute deletion. Every state transition — detect, approve, snapshot, delete — is recorded in the append-only m_26_14-retirement-requests audit index. The Legal Hold Workflow enables selective data preservation to a permanent no-delete retained index before retirement begins.',
     modalAssetIds: ['slm-compliance-snapshots', 'template-retirement-requests', 'watcher-gate1-detect', 'watcher-gate1-approve', 'watcher-gate2-execute', 'watcher-legal-hold-copy', 'rule-dm-gate1-pending', 'rule-dm-gate2-pending', 'workflow-gate1-detect', 'workflow-gate1-approval', 'workflow-gate2-execute', 'workflow-legal-hold'],
     modalCapabilities: [
       { name: 'Kibana Workflows', type: 'platform', desc: 'YAML-defined automation engine executing each gate transition: Gate 1 approval switches ILM policy; Gate 2 execution advances ILM past the snapshot gate; Legal Hold workflow reindexes data to a no-delete retained index. Each workflow records a full audit trail in the retirement audit index and opens a Kibana Case.', href: 'https://www.elastic.co/guide/en/kibana/current/workflows.html' },
@@ -189,7 +189,7 @@ const MATRIX_ROWS = [
     reqDesc: 'M-26-14 directs agencies to keep logs from capturing data in contravention of law and to protect the confidentiality and integrity of sensitive log data (Appendix A, Log Collection Containing Risk of Incidental Sensitive Data Exposure; Log Management element). New indices and data streams must be classified for sensitivity before retention policies and access controls are applied.',
     cap: 'Kibana Workflow — Data Classification Intake',
     capDesc: 'Manual Kibana Workflow opens a Kibana Case for data steward review when a new unclassified data stream is discovered, records classification_pending in audit index, and notifies the responsible team.',
-    modalHow: 'The M-26-14 compliance pack includes a Data Classification Intake Kibana Workflow that initiates a formal classification review whenever a new index or data stream is discovered without an assigned sensitivity label. The workflow opens a Kibana Case assigned to the data steward with M-26-14 sensitivity tier guidance (public → restricted), instructions for inspecting the index and applying the appropriate ILM policy, and records a classification_pending state in the m_26_14-data-classification-requests audit index. The M-26-14 POA&M Drafting Agent can query this index to surface unclassified data streams as open compliance findings. Classification must be completed before default retention policies or broad access roles are applied to the new data stream.',
+    modalHow: 'The M-26-14 readiness pack includes a Data Classification Intake Kibana Workflow that initiates a formal classification review whenever a new index or data stream is discovered without an assigned sensitivity label. The workflow opens a Kibana Case assigned to the data steward with M-26-14 sensitivity tier guidance (public → restricted), instructions for inspecting the index and applying the appropriate ILM policy, and records a classification_pending state in the m_26_14-data-classification-requests audit index. The M-26-14 POA&M Drafting Agent can query this index to surface unclassified data streams as open readiness findings. Classification must be completed before default retention policies or broad access roles are applied to the new data stream.',
     modalAssetIds: ['workflow-data-classification', 'agent-poam-drafting', 'agent-tool-compliance-posture'],
     modalCapabilities: [
       { name: 'Kibana Workflows', type: 'platform', desc: 'YAML-defined automation that opens a classification review Case, records audit state, and notifies the data steward team. No code required — operators update consts before running.', href: 'https://www.elastic.co/guide/en/kibana/current/workflows.html' },
@@ -214,12 +214,12 @@ const MATRIX_ROWS = [
       { id: 'E', name: 'Category E — Infrastructure Changes',  desc: 'Cloud config changes, firewall rule edits, routing changes, new device enrollment',                cap: 'AWS CloudTrail · Azure Activity Log · Osquery Manager',              capDesc: 'Cloud management-plane changes via AWS/Azure/GCP integrations; Osquery Manager tracks device enrollment state and network interface changes.' },
       { id: 'F', name: 'Category F — Security Tool Alerts',    desc: 'EDR/EPP detections, IDS/IPS alerts, DLP violations, vulnerability scanner findings',               cap: 'Elastic Defend · CrowdStrike · SentinelOne · Suricata',               capDesc: 'Native EDR via Elastic Defend; third-party EDR integrations for CrowdStrike Falcon, SentinelOne, and Microsoft Defender; Suricata IDS/IPS network alerts.' },
       { id: 'G', name: 'Category G — IoC Events',              desc: 'Matches against known-bad IPs, domains, file hashes, and URLs from threat intelligence feeds',     cap: 'Threat Intel (STIX/TAXII/MISP) + AppB-G detection rules',            capDesc: 'MISP/STIX/TAXII Threat Intel integration populates the indicator index; four AppB-G Detection Engine rules match live event streams against CISA KEV and threat feeds.' },
-      { id: 'H', name: 'Category H — Automated Alerts',        desc: 'SIEM rule-based detections, behavioral anomaly alerts, compliance degradation alerts',             cap: 'Detection Engine alert index · Winlogbeat',                           capDesc: 'Detection Engine rule execution writes to .alerts-security.*. Category H events are generated by Elastic — not collected from external sources.' },
+      { id: 'H', name: 'Category H — Automated Alerts',        desc: 'SIEM rule-based detections, behavioral anomaly alerts, readiness degradation alerts',             cap: 'Detection Engine alert index · Winlogbeat',                           capDesc: 'Detection Engine rule execution writes to .alerts-security.*. Category H events are generated by Elastic — not collected from external sources.' },
       { id: 'I', name: 'Category I — Anomalous Activity',      desc: 'ML-detected behavioral outliers, deviations from user/host baselines',                            cap: 'Elastic ML jobs (6 jobs + datafeeds)',                                capDesc: 'Category I events are produced by Elastic ML anomaly detection, not collected from external sources. Requires L3 ML jobs running against behavioral baselines.' },
       { id: 'J', name: 'Category J — Error/Crash Events',      desc: 'Application error logs, service crash reports, process termination events',                        cap: 'Filebeat System · Windows Event Log · Elastic APM',                  capDesc: 'Linux auth.log/syslog via Filebeat System module, Windows Application and System event channels, Elastic APM for service crash and error telemetry.' },
       { id: 'K', name: 'Category K — DNS Activity',            desc: 'Full DNS query/response logs, DNS-over-HTTPS, DNS tunneling indicators',                          cap: 'Packetbeat · Zeek · Elastic Defend · network syslog',                capDesc: 'DNS query/response via Packetbeat and Zeek; DNS-over-HTTPS and DNS-over-TLS detection via Elastic Defend; legacy DNS appliance logs via Logstash syslog input.' },
     ],
-    modalHow: 'Elastic Agent, managed through Fleet Server, provides a single enrollment point covering all 11 Appendix B log source categories. A single agent on an endpoint simultaneously activates Categories A, D, F, J, and K via Elastic Defend. Zeek handles Categories B and K for network infrastructure. Cloud integrations (AWS, Azure, GCP) cover Categories C and E. Categories G, H, and I are not collected from external sources — they are produced by Elastic\'s Threat Intel rules, Detection Engine, and ML jobs respectively, which are installed as part of the compliance pack. Logstash inputs bridge legacy OT/ICS sources and mainframes that cannot run native agents.',
+    modalHow: 'Elastic Agent, managed through Fleet Server, provides a single enrollment point covering all 11 Appendix B log source categories. A single agent on an endpoint simultaneously activates Categories A, D, F, J, and K via Elastic Defend. Zeek handles Categories B and K for network infrastructure. Cloud integrations (AWS, Azure, GCP) cover Categories C and E. Categories G, H, and I are not collected from external sources — they are produced by Elastic\'s Threat Intel rules, Detection Engine, and ML jobs respectively, which are installed as part of the readiness pack. Logstash inputs bridge legacy OT/ICS sources and mainframes that cannot run native agents.',
     modalAssetIds: ['fleet-osquery-pack', 'template-logs-data-streams'],
     modalCapabilities: [
       { name: 'Elastic Agent + Fleet Server', type: 'platform', desc: 'Central enrollment and policy management for all Appendix B log sources. Single agent binary covers Categories A, D, F, J, K via Elastic Defend.', href: 'https://www.elastic.co/guide/en/fleet/current/fleet-overview.html' },
@@ -234,7 +234,7 @@ const MATRIX_ROWS = [
     reqDesc: 'A complete, documented inventory of all log-producing systems must be maintained and reflected in the Agency Logging Plan submitted to CISA. Element 1 also requires detecting and acting on assets that appear on the network but are not in the inventory.',
     cap: 'Fleet + osquery + unknown-device triage loop',
     capDesc: 'Fleet enrollment auto-builds the inventory; osquery captures hardware/software/network state for HWAM/SWAM; the triage loop classifies every unmanaged device and routes it to a gated next step.',
-    modalHow: 'Every Elastic Agent enrollment writes an inventory record to the Fleet-managed asset index. The compliance pack\'s osquery Fleet pack then continuously queries each enrolled endpoint for hardware identity (HWAM), installed software (SWAM), network interfaces, and local user accounts, all resolved into one canonical asset per device. This populates the Asset Coverage dashboard — the evidence export format for the Agency Logging Plan submission to CISA. But inventory is only half of Element 1: the memo also requires detecting and acting on devices that are NOT in inventory. The compliance pack closes that loop. A device surfaces three ways — the first-seen rogue-device detection rule, the observed-vs-inventory quadrant (on the wire but not inventoried), and network-discovery rows. The triage classifier then routes each unmanaged device into exactly one disposition from real signals (a computed Security-alert correlation for rogue, asset status for decommissioned, identity strength and vendor for new-vs-shadow), writes it to the triage ledger, and opens a disposition-specific Kibana Case with the recommended next step pre-filled. Classification and routing are automatic; every enforcement step — isolate, enroll, allow-list, retire — is human-gated.',
+    modalHow: 'Every Elastic Agent enrollment writes an inventory record to the Fleet-managed asset index. The readiness pack\'s osquery Fleet pack then continuously queries each enrolled endpoint for hardware identity (HWAM), installed software (SWAM), network interfaces, and local user accounts, all resolved into one canonical asset per device. This populates the Asset Coverage dashboard — the evidence export format for the Agency Logging Plan submission to CISA. But inventory is only half of Element 1: the memo also requires detecting and acting on devices that are NOT in inventory. The readiness pack closes that loop. A device surfaces three ways — the first-seen rogue-device detection rule, the observed-vs-inventory quadrant (on the wire but not inventoried), and network-discovery rows. The triage classifier then routes each unmanaged device into exactly one disposition from real signals (a computed Security-alert correlation for rogue, asset status for decommissioned, identity strength and vendor for new-vs-shadow), writes it to the triage ledger, and opens a disposition-specific Kibana Case with the recommended next step pre-filled. Classification and routing are automatic; every enforcement step — isolate, enroll, allow-list, retire — is human-gated.',
     subsLabel: 'Unknown-Device Dispositions (detect → classify → route → gated action)',
     subs: [
       { id: '1', name: 'Rogue',              desc: 'Unmanaged device with a correlated high-severity Security alert. Computed from real detections, not a seeded flag.', cap: 'escalate to IR (gated: isolate)' },
@@ -269,13 +269,13 @@ const MATRIX_ROWS = [
       { id: 'H', name: 'Off-Hours Execution (1 rule)',         desc: 'Privileged process execution during non-business hours on sensitive hosts',                                    cap: 'rule-appendixb-h' },
       { id: 'I', name: 'Exfiltration Volume (1 rule)',         desc: 'Anomalous outbound data volume spike above rolling 30-day baseline',                                          cap: 'rule-appendixb-i' },
       { id: 'J', name: 'APT Kill Chain (2 rules)',             desc: 'Multi-stage attack correlating recon, initial access, and lateral movement events',                           cap: 'rule-appendixb-j' },
-      { id: 'K', name: 'Coverage Gap Meta-Rule (2 rules)',     desc: 'Fires when any Appendix B log category stops receiving events — compliance degradation early warning',        cap: 'rule-appendixb-k' },
+      { id: 'K', name: 'Coverage Gap Meta-Rule (2 rules)',     desc: 'Fires when any Appendix B log category stops receiving events — readiness degradation early warning',        cap: 'rule-appendixb-k' },
     ],
-    modalHow: 'The compliance pack installs 20+ pre-built Kibana Security detection rules organized into 11 category-specific rule sets (A–K). Each rule set maps to a specific Appendix B event category and MITRE ATT&CK technique, enabling immediate CEM coverage from the moment rules are enabled. Rules are ECS-normalized and work across all Appendix B log sources out of the box. The Category K meta-rules provide automated compliance monitoring — alerting when any category stops receiving events, giving teams early warning before CEM attestation breaks.',
+    modalHow: 'The readiness pack installs 20+ pre-built Kibana Security detection rules organized into 11 category-specific rule sets (A–K). Each rule set maps to a specific Appendix B event category and MITRE ATT&CK technique, enabling immediate CEM coverage from the moment rules are enabled. Rules are ECS-normalized and work across all Appendix B log sources out of the box. The Category K meta-rules provide automated readiness monitoring — alerting when any category stops receiving events, giving teams early warning before CEM attestation breaks.',
     modalAssetIds: ['dash-alert-coverage', 'dash-appendix-b-coverage', 'template-alert-coverage'],
     modalCapabilities: [
       { name: 'Kibana Security Detection Engine', type: 'platform', desc: 'Rule evaluation engine for KQL, EQL, ML, and threshold-based detection. Writes to .alerts-security.* index for dashboard consumption.', href: 'https://www.elastic.co/guide/en/security/current/detection-engine-overview.html' },
-      { name: 'MITRE ATT&CK Framework Mapping', type: 'platform', desc: 'All compliance pack rules include MITRE ATT&CK tactic and technique metadata for threat framework alignment and audit evidence.', href: 'https://www.elastic.co/guide/en/security/current/prebuilt-rules.html' },
+      { name: 'MITRE ATT&CK Framework Mapping', type: 'platform', desc: 'All readiness pack rules include MITRE ATT&CK tactic and technique metadata for threat framework alignment and audit evidence.', href: 'https://www.elastic.co/guide/en/security/current/prebuilt-rules.html' },
     ],
   },
   {
@@ -284,11 +284,11 @@ const MATRIX_ROWS = [
     req: 'Anomaly and behavioral detection (ML)',
     reqDesc: 'Level 3 requires ML-driven behavioral analysis running against historical baselines — not just signature-based rules, but detection of novel patterns producing Appendix B Category I events.',
     cap: 'Elastic ML anomaly jobs (6)',
-    capDesc: '6 ML anomaly detection jobs: DNS entropy, auth anomalies, rare processes, rare network destinations, and compliance metric drift.',
-    modalHow: 'The compliance pack deploys 6 pre-configured ML anomaly detection jobs. Each job includes its datafeed configuration — ML jobs build behavioral baselines automatically from historical log data with no manual tuning required at deployment. Jobs cover: DNS entropy anomalies (Category K), authentication anomalies and rare IP access patterns (Category A), rare process execution on Linux and Windows hosts, rare destination countries (Category B), and compliance metric drift detection for maturity monitoring. ML-generated anomaly records constitute Appendix B Category I events.',
+    capDesc: '6 ML anomaly detection jobs: DNS entropy, auth anomalies, rare processes, rare network destinations, and readiness metric drift.',
+    modalHow: 'The readiness pack deploys 6 pre-configured ML anomaly detection jobs. Each job includes its datafeed configuration — ML jobs build behavioral baselines automatically from historical log data with no manual tuning required at deployment. Jobs cover: DNS entropy anomalies (Category K), authentication anomalies and rare IP access patterns (Category A), rare process execution on Linux and Windows hosts, rare destination countries (Category B), and readiness metric drift detection for maturity monitoring. ML-generated anomaly records constitute Appendix B Category I events.',
     modalAssetIds: ['ml-job-catb-dns', 'ml-job-element1', 'ml-job-element2', 'ml-job-element3', 'ml-job-element4', 'ml-job-element5'],
     modalCapabilities: [
-      { name: 'Elastic Machine Learning — Anomaly Detection', type: 'platform', desc: 'Unsupervised behavioral baselines with automatic scoring — no labeled training data required. Covers auth, network, process, and compliance metrics.', href: 'https://www.elastic.co/guide/en/machine-learning/current/ml-ad-overview.html' },
+      { name: 'Elastic Machine Learning — Anomaly Detection', type: 'platform', desc: 'Unsupervised behavioral baselines with automatic scoring — no labeled training data required. Covers auth, network, process, and readiness metrics.', href: 'https://www.elastic.co/guide/en/machine-learning/current/ml-ad-overview.html' },
     ],
   },
   {
@@ -308,11 +308,11 @@ const MATRIX_ROWS = [
   {
     phase: 2,
     firstLevel: 3,
-    req: 'CEM compliance attestation dashboards',
+    req: 'CEM readiness attestation dashboards',
     reqDesc: 'Agencies need real-time, exportable evidence that detection rules are active and generating alerts across all 11 Appendix B categories — the primary AO attestation artifact.',
     cap: 'Kibana dashboards (5) + transforms',
-    capDesc: '5 pre-built dashboards: Maturity Overview, Asset Coverage, Alert Coverage (Appendix B), Appendix B Log Coverage, and Compliance Attestation.',
-    modalHow: 'The compliance pack installs five pre-built Kibana dashboards providing real-time visibility into all M-26-14 compliance dimensions. The Compliance Attestation dashboard is the primary ATO evidence artifact — it summarizes coverage percentages, retention windows, and detection status across all required Appendix B categories in an exportable format. Alert Coverage and Appendix B Log Coverage dashboards give granular per-category visibility for gap identification. All dashboards are export-ready via Kibana\'s built-in PDF/PNG reporting for inclusion in audit submissions and ATO packages.',
+    capDesc: '5 pre-built dashboards: Maturity Overview, Asset Coverage, Alert Coverage (Appendix B), Appendix B Log Coverage, and Readiness Attestation.',
+    modalHow: 'The readiness pack installs five pre-built Kibana dashboards providing real-time visibility into all M-26-14 readiness dimensions. The Readiness Attestation dashboard is the primary ATO evidence artifact — it summarizes coverage percentages, retention windows, and detection status across all required Appendix B categories in an exportable format. Alert Coverage and Appendix B Log Coverage dashboards give granular per-category visibility for gap identification. All dashboards are export-ready via Kibana\'s built-in PDF/PNG reporting for inclusion in audit submissions and ATO packages.',
     modalAssetIds: ['dash-maturity-overview', 'dash-asset-coverage', 'dash-alert-coverage', 'dash-appendix-b-coverage', 'dash-compliance-attestation'],
     modalCapabilities: [
       { name: 'Kibana Reporting (PDF/PNG)', type: 'platform', desc: 'Export dashboards as formatted PDFs or PNGs for ATO evidence packages and audit submissions.', href: 'https://www.elastic.co/guide/en/kibana/current/reporting-getting-started.html' },
@@ -323,10 +323,10 @@ const MATRIX_ROWS = [
     phase: 2,
     firstLevel: 2,
     req: 'AI-assisted threat investigation, POA&M drafting, and after-action reporting',
-    reqDesc: 'M-26-14 requires documented incident response, ongoing POA&M management, and auditable compliance reporting. These manual documentation burdens are the primary bottleneck for agency compliance teams.',
-    cap: 'Elastic Agent Builder — 3 AI compliance agents',
-    capDesc: 'Three pre-configured AI agents automate the most time-intensive compliance documentation tasks: threat investigation summaries, POA&M entry drafting from live findings, and after-action report generation from closed cases.',
-    modalHow: 'The M-26-14 compliance pack ships three Elastic Agent Builder agents, each pre-configured with M-26-14 context, the appropriate built-in Elastic tools, and custom ES|QL tools scoped to the compliance indices. The Threat Investigation Agent autonomously investigates security alerts — querying entity risk scores, asset inventory, related logs, and attack discoveries — and produces a structured investigation summary with M-26-14 element impact mapping, ready to attach to the Kibana Case. The POA&M Drafting Agent queries open cases, unclassified data streams, retirement audit gaps, and recurring unresolved alerts, then drafts FISMA-compliant POA&M entries with proper control references, risk ratings, milestones, and completion dates. The After-Action Report Agent reconstructs incident timelines from closed cases and log data, calculates detection gaps, maps affected assets to M-26-14 elements, and drafts a formal AAR document — reducing a 2–4 hour manual task to under 2 minutes. All three agents use custom ES|QL tools scoped to m_26_14-* indices for data-grounded, verifiable output. Agents are deployed via the included shell script using the Agent Builder REST API.',
+    reqDesc: 'M-26-14 requires documented incident response, ongoing POA&M management, and auditable readiness reporting. These manual documentation burdens are the primary bottleneck for agency readiness teams.',
+    cap: 'Elastic Agent Builder — 3 AI readiness agents',
+    capDesc: 'Three pre-configured AI agents automate the most time-intensive readiness documentation tasks: threat investigation summaries, POA&M entry drafting from live findings, and after-action report generation from closed cases.',
+    modalHow: 'The M-26-14 readiness pack ships three Elastic Agent Builder agents, each pre-configured with M-26-14 context, the appropriate built-in Elastic tools, and custom ES|QL tools scoped to the readiness indices. The Threat Investigation Agent autonomously investigates security alerts — querying entity risk scores, asset inventory, related logs, and attack discoveries — and produces a structured investigation summary with M-26-14 element impact mapping, ready to attach to the Kibana Case. The POA&M Drafting Agent queries open cases, unclassified data streams, retirement audit gaps, and recurring unresolved alerts, then drafts FISMA-compliant POA&M entries with proper control references, risk ratings, milestones, and completion dates. The After-Action Report Agent reconstructs incident timelines from closed cases and log data, calculates detection gaps, maps affected assets to M-26-14 elements, and drafts a formal AAR document — reducing a 2–4 hour manual task to under 2 minutes. All three agents use custom ES|QL tools scoped to m_26_14-* indices for data-grounded, verifiable output. Agents are deployed via the included shell script using the Agent Builder REST API.',
     modalAssetIds: ['agent-threat-investigation', 'agent-poam-drafting', 'agent-aar', 'agent-tool-asset-inventory', 'agent-tool-retirement-audit', 'agent-tool-compliance-posture'],
     modalCapabilities: [
       { name: 'Elastic Agent Builder', type: 'platform', desc: 'Custom AI agent platform with built-in tools for Elasticsearch, Kibana Cases, security alerts, entity risk scores, and Elastic Workflows. Agents are deployed via REST API with configurable system instructions and tool scoping.', href: 'https://www.elastic.co/docs/explore-analyze/ai-features/elastic-agent-builder' },
@@ -343,7 +343,7 @@ const MATRIX_ROWS = [
     reqDesc: 'Agencies must apply masking, redaction, or encryption to sensitive fields (PII, PHI, credentials) before logs reach searchable storage.',
     cap: 'Ingest pipeline processors',
     capDesc: 'The alert category enrichment pipeline includes configurable redact/hash processors. Agencies configure which fields are sensitive per their data classification policy.',
-    modalHow: 'Elastic ingest pipelines are deployed with the compliance pack and include pre-configured redact, hash, and drop processors that apply at indexing time — before data reaches searchable storage. Agencies configure which fields are classified as sensitive per their data classification policy, which is typically defined before Level 3 attestation. Field-level security in Elasticsearch then enforces role-based access to any residual sensitive fields post-index. The sensitive data configuration can be updated without redeploying the pipeline, only changing which fields the existing processors target.',
+    modalHow: 'Elastic ingest pipelines are deployed with the readiness pack and include pre-configured redact, hash, and drop processors that apply at indexing time — before data reaches searchable storage. Agencies configure which fields are classified as sensitive per their data classification policy, which is typically defined before Level 3 attestation. Field-level security in Elasticsearch then enforces role-based access to any residual sensitive fields post-index. The sensitive data configuration can be updated without redeploying the pipeline, only changing which fields the existing processors target.',
     modalAssetIds: ['pipeline-alert-category', 'pipeline-osquery-normalize', 'pipeline-log-integrity-hash'],
     modalCapabilities: [
       { name: 'Elasticsearch Ingest Pipelines', type: 'platform', desc: 'Pipeline processors: redact (field removal), hash (SHA-256 masking), and drop (record suppression) applied before indexing.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/ingest.html' },
@@ -356,8 +356,8 @@ const MATRIX_ROWS = [
     req: 'Alert correlation and risk scoring',
     reqDesc: 'Individual rule alerts must be aggregated into higher-confidence, risk-scored findings to reduce SOC false-positive burden before triage.',
     cap: 'Risk-score transforms (2)',
-    capDesc: 'Two Elasticsearch Transforms — daily rollup and latest-value — compute per-category coverage scores and compliance posture metrics in real time.',
-    modalHow: 'The compliance pack deploys two Elasticsearch Transforms that continuously aggregate individual detection rule alerts into risk-scored, per-entity summaries. The daily rollup transform computes coverage percentage scores per Appendix B category, tracking posture over time. The latest-value transform maintains current compliance state for the Maturity Overview dashboard. These transforms feed Kibana Security\'s entity risk scoring mechanism, enabling SOC analysts to triage high-confidence multi-alert entities before working low-signal individual alerts.',
+    capDesc: 'Two Elasticsearch Transforms — daily rollup and latest-value — compute per-category coverage scores and readiness posture metrics in real time.',
+    modalHow: 'The readiness pack deploys two Elasticsearch Transforms that continuously aggregate individual detection rule alerts into risk-scored, per-entity summaries. The daily rollup transform computes coverage percentage scores per Appendix B category, tracking posture over time. The latest-value transform maintains current readiness state for the Maturity Overview dashboard. These transforms feed Kibana Security\'s entity risk scoring mechanism, enabling SOC analysts to triage high-confidence multi-alert entities before working low-signal individual alerts.',
     modalAssetIds: ['transform-alert-coverage-daily', 'transform-alert-coverage-latest'],
     modalCapabilities: [
       { name: 'Elasticsearch Transforms', type: 'platform', desc: 'Continuous aggregation pipelines summarizing alert index data into pivot tables and risk-scored entity summaries.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/transforms.html' },
@@ -377,7 +377,7 @@ const MATRIX_ROWS = [
     modalAssetIds: [],
     modalCapabilities: [
       { name: 'Cross-Cluster Search (CCS)', type: 'platform', desc: 'Federated query across multiple Elasticsearch clusters — no data movement, full Kibana and KQL/EQL support.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-cross-cluster-search.html' },
-      { name: 'Cross-Cluster Replication (CCR)', type: 'platform', desc: 'Optional active replication for geo-redundancy or disaster recovery — not required for M-26-14 federated query compliance.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/xpack-ccr.html' },
+      { name: 'Cross-Cluster Replication (CCR)', type: 'platform', desc: 'Optional active replication for geo-redundancy or disaster recovery — not required for M-26-14 federated query readiness.', href: 'https://www.elastic.co/guide/en/elasticsearch/reference/current/xpack-ccr.html' },
     ],
   },
   {
@@ -429,19 +429,19 @@ const OBLIGATIONS = [
     title: 'Log Source Gap Remediation',
     when: 'Ongoing',
     desc: 'Elastic Agent covers every major Appendix B category, but you must ensure every applicable system in your environment is enrolled. Edge-case sources — legacy mainframes, custom OT systems, air-gapped enclaves — require agency-specific integration work.',
-    assist: 'The Log Coverage Gap dashboard surfaces every Appendix B category that has stopped receiving events, the Asset Coverage report shows un-enrolled hosts, and the compliance pack includes Logstash pipeline templates for syslog, WEF, and OT/ICS bridging to minimize custom integration work.',
+    assist: 'The Log Coverage Gap dashboard surfaces every Appendix B category that has stopped receiving events, the Asset Coverage report shows un-enrolled hosts, and the readiness pack includes Logstash pipeline templates for syslog, WEF, and OT/ICS bridging to minimize custom integration work.',
   },
   {
     title: 'CISA / FBI Log Sharing Procedure',
     when: 'Before L4 attestation',
     desc: 'Level 4 requires a documented, annually-tested procedure for producing logs on request to CISA and the FBI. This is a governance runbook — your ISSO, General Counsel, and mission owner own it, not your logging platform.',
-    assist: 'The Cross-Cluster Search configuration and CISA/FBI Export dashboard provide the technical mechanism for on-demand log export. The compliance pack includes a runbook template with the required data elements, test-drill checklist, and evidence capture steps — ready to be adapted to your agency\'s governance process.',
+    assist: 'The Cross-Cluster Search configuration and CISA/FBI Export dashboard provide the technical mechanism for on-demand log export. The readiness pack includes a runbook template with the required data elements, test-drill checklist, and evidence capture steps — ready to be adapted to your agency\'s governance process.',
   },
   {
     title: 'Authority to Operate (ATO)',
     when: 'Per FISMA cycle',
     desc: 'The ATO is your agency\'s formal authorization to operate the logging system under FISMA. Elastic provides the technical evidence — but the risk acceptance decision, system security plan, and authorization package belong to your Authorizing Official.',
-    assist: 'The Compliance Attestation Dashboard, Alert Coverage report, Retention Compliance view, and Appendix B Log Coverage dashboard together form a pre-structured ATO evidence package. All are exportable as PDF-ready Kibana reports and map directly to the control families auditors check.',
+    assist: 'The Readiness Attestation Dashboard, Alert Coverage report, Retention Readiness view, and Appendix B Log Coverage dashboard together form a pre-structured ATO evidence package. All are exportable as PDF-ready Kibana reports and map directly to the control families auditors check.',
   },
   {
     title: 'Incident Response Procedures',
@@ -475,7 +475,7 @@ export default function CompliancePage() {
       <section>
         <span className="inline-block text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-5"
           style={{ borderStyle: 'solid', border: '1px solid #F86B2F55', color: '#F86B2F', backgroundColor: '#F86B2F18' }}>
-          M-26-14 Compliance Accelerator
+          M-26-14 Readiness Accelerator
         </span>
         <div className="flex items-start justify-between gap-8 flex-wrap">
           <div className="flex flex-col gap-4 flex-1 min-w-0">
@@ -483,11 +483,11 @@ export default function CompliancePage() {
               Deploy Elastic,&nbsp;<span className="text-accent-teal">Leapfrog to Level 3.</span>
             </h1>
             <p className="text-lg text-text-muted leading-relaxed">
-              Most agencies treat M-26-14 compliance as a multi-year integration project. It doesn't have to be.
+              Most agencies treat M-26-14 readiness as a multi-year integration project. It doesn't have to be.
               Elastic's core platform — log collection, tiered storage, SIEM detection, and ML anomaly detection — maps
               directly to every technical requirement across Levels 1 through 3.{' '}
-              <span className="text-text-primary font-semibold">Deploy once, activate the compliance pack,
-              and your technical posture is compliance-ready from day one.</span>
+              <span className="text-text-primary font-semibold">Deploy once, activate the readiness pack,
+              and your technical posture is ready from day one.</span>
             </p>
           </div>
           <div className="shrink-0 flex flex-col gap-2 items-end">
@@ -503,7 +503,7 @@ export default function CompliancePage() {
               className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-accent-blue/50 bg-accent-blue/10 text-accent-blue font-semibold hover:bg-accent-blue/20 transition-colors text-sm whitespace-nowrap"
               style={{ borderStyle: 'solid' }}
             >
-              Browse compliance pack assets →
+              Browse readiness pack assets →
             </Link>
           </div>
         </div>
@@ -570,13 +570,13 @@ function ComplianceInDaysTab() {
     <div className="flex flex-col gap-6" style={{ minHeight: 'calc(100vh - 420px)' }}>
 
       <h2 className="font-semibold text-text-primary" style={{ fontSize: 26 }}>
-        Achieve Compliance in Days
+        Achieve Readiness in Days
       </h2>
 
       {/* Conops blurb */}
       <p className="text-sm leading-relaxed text-text-muted" style={{ fontSize: 14 }}>
-        Deploying the Elastic Search AI Platform and M-26-14 Compliance Pack delivers full data
-        retention compliance on Day 1 — the technical foundation for all five maturity levels
+        Deploying the Elastic Search AI Platform and M-26-14 Readiness Pack delivers full data
+        retention readiness on Day 1 — the technical foundation for all five maturity levels
         (Ineffective through Optimal). Progression from Ineffective through Initial, Intermediate,
         Advanced, and Optimal then proceeds as data
         sources, detections, and operational coverage are layered in over days and weeks.
@@ -638,7 +638,7 @@ function CoverageAssetsTab() {
 
       {/* Panel header */}
       <div className="px-8 py-6 border-b border-line shrink-0">
-        <h2 className="font-semibold text-text-primary" style={{ fontSize: 26 }}>Compliance Coverage Matrix</h2>
+        <h2 className="font-semibold text-text-primary" style={{ fontSize: 26 }}>Readiness Coverage Matrix</h2>
         <p className="text-text-muted mt-2 leading-relaxed" style={{ fontSize: 14 }}>
           M-26-14 requirements in the order achieved by the Elastic concept of operations. Click a row to view details about the requirement and the Elastic capability and assets available to achieve it.
         </p>
@@ -723,7 +723,7 @@ function CoverageAssetsTab() {
       {/* Footer */}
       <div className="px-8 py-3 border-t border-line/50 shrink-0">
         <p className="text-xs text-text-muted italic">
-          Requirements listed in ACID phase order. Click any row for capability breakdown and compliance pack assets.
+          Requirements listed in ACID phase order. Click any row for capability breakdown and readiness pack assets.
         </p>
       </div>
 
@@ -878,7 +878,7 @@ function RequirementModal({ row, onClose }) {
           {/* Compliance Pack Assets */}
           {packAssets.length > 0 && (
             <div>
-              <p className="text-sm font-semibold text-text-primary mb-3">Compliance Pack Assets</p>
+              <p className="text-sm font-semibold text-text-primary mb-3">Readiness Pack Assets</p>
               <div className="rounded-lg border border-line/50 overflow-hidden" style={{ borderStyle: 'solid' }}>
                 <table className="w-full border-collapse">
                   <colgroup>

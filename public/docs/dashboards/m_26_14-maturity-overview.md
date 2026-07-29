@@ -2,9 +2,9 @@
 
 ## 1. Overview
 
-The **M-26-14 Maturity Overview** dashboard (`m_26_14-maturity-overview`) is the executive hub of the Elastic M-26-14 compliance pack. It answers, on a single screen, the question that frames every maturity self-assessment under OMB Memorandum M-26-14: *"Where does the agency stand on each of the five compliance elements, and which elements are blocking advancement to the next maturity level?"*
+The **M-26-14 Maturity Overview** dashboard (`m_26_14-maturity-overview`) is the executive hub of the Elastic M-26-14 readiness pack. It answers, on a single screen, the question that frames every maturity self-assessment under OMB Memorandum M-26-14: *"Where does the agency stand on each of the five readiness elements, and which elements are blocking advancement to the next maturity level?"*
 
-The deployed demo configuration models a representative federal civilian agency progressing from **Event Logging Level 2 (L2) to Level 3 (L3)**. The dashboard's own description summarizes the posture it displays: Elements 1 and 4 are at L3; Elements 2, 3, and 5 are blocking L3 advancement. Every number on the dashboard ties back to one of the five M-26-14 compliance elements:
+The deployed demo configuration models a representative federal civilian agency progressing from **Event Logging Level 2 (L2) to Level 3 (L3)**. The dashboard's own description summarizes the posture it displays: Elements 1 and 4 are at L3; Elements 2, 3, and 5 are blocking L3 advancement. Every number on the dashboard ties back to one of the five M-26-14 readiness elements:
 
 | Element | Requirement Area |
 |---------|------------------|
@@ -64,7 +64,7 @@ Two navigation layers are built into the dashboard:
 | Elements 1 & 2 — Asset Coverage | `m_26_14-asset-coverage` | Which hardware assets and software sources are inventoried and actually shipping logs? Where are the collection gaps? |
 | Element 3 — Appendix B Matrix | `m_26_14-appendix-b-coverage` | Category by category (A–K): which required log types are being collected, and to what depth? |
 | Element 3 — Alert Coverage | `m_26_14-alert-coverage` | Which Appendix B categories have active detection rules and recent alert activity? Which are `partial` or `none`? |
-| Element 4 — Retention Compliance | `m_26_14-retention-compliance` | Per data stream: do active and cold-tier retention periods meet the L3 requirements? Which streams fall short? |
+| Element 4 — Retention Readiness | `m_26_14-retention-compliance` | Per data stream: do active and cold-tier retention periods meet the L3 requirements? Which streams fall short? |
 | Element 5 — Log Integrity | `m_26_14-log-management` | What fraction of log documents carry integrity hashes, and what produced the recorded violations? |
 | Attestation Report | `m_26_14-compliance-attestation-dash` | Is the evidence package complete and current for AO sign-off? |
 
@@ -130,7 +130,7 @@ GET m_26_14-demo-logs/_count
 GET m_26_14-integrity-violations-default/_count
 ```
 
-3. A `404` means the compliance pack's setup (index templates plus seed/transform) has not been run for that component. Re-run the pack installation for the affected asset.
+3. A `404` means the readiness pack's setup (index templates plus seed/transform) has not been run for that component. Re-run the pack installation for the affected asset.
 
 ### Counts exist but a score looks wrong or stale
 

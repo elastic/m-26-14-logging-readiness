@@ -480,7 +480,7 @@ export default function CompliancePage() {
         <div className="flex items-start justify-between gap-8 flex-wrap">
           <div className="flex flex-col gap-4 flex-1 min-w-0">
             <h1 className="text-4xl font-bold text-text-primary leading-tight">
-              Deploy Elastic,&nbsp;<span className="text-accent-teal">Leapfrog to Level 3.</span>
+              Deploy Elastic,&nbsp;<span className="text-accent-teal">Leapfrog to Level 2.</span>
             </h1>
             <p className="text-lg text-text-muted leading-relaxed">
               Most agencies treat M-26-14 readiness as a multi-year integration project. It doesn't have to be.

@@ -19,7 +19,7 @@ Beyond integrity, the bottom row provides general log-pipeline visibility (event
 
 ### Relation to the Maturity Overview Hub
 
-This dashboard is one spoke of the M-26-14 compliance pack's hub-and-spoke navigation. The **M-26-14 Maturity Overview** hub dashboard links here as **"Element 5 — Log Integrity"**, and the links panel at the top of this dashboard (**"← Back: M-26-14 Maturity Overview"**) returns you to the hub, preserving your time range and filters.
+This dashboard is one spoke of the M-26-14 readiness pack's hub-and-spoke navigation. The **M-26-14 Maturity Overview** hub dashboard links here as **"Element 5 — Log Integrity"**, and the links panel at the top of this dashboard (**"← Back: M-26-14 Maturity Overview"**) returns you to the hub, preserving your time range and filters.
 
 ---
 

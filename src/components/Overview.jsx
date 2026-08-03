@@ -22,7 +22,7 @@ export function OverviewContent() {
             <p className="text-base text-text-primary leading-relaxed mb-3">
               CEM requires agencies to maintain continuous, real-time visibility into network and system
               activity across all Appendix B log categories — enabling active threat detection, timely
-              alerting, and compliance reporting as events occur.
+              alerting, and readiness reporting as events occur.
             </p>
           </div>
           <div className="rounded-lg border border-accent-coral/40 bg-ink-800 p-7" style={{ borderStyle: 'solid' }}>

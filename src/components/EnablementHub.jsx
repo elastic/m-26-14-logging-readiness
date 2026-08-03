@@ -12,7 +12,7 @@ export default function EnablementHub() {
     <main className="mx-auto max-w-5xl px-8 py-12">
       <p className="text-xs uppercase tracking-widest text-accent-teal/80 font-semibold mb-3">Internal · Field Enablement</p>
       <h1 className="text-4xl font-bold text-text-primary leading-tight mb-4">{HUB.title}</h1>
-      <p className="text-xl text-text-muted leading-relaxed mb-10 max-w-3xl">{HUB.intro}</p>
+      <p className="text-xl text-text-muted leading-relaxed mb-10">{HUB.intro}</p>
 
       {/* Tracks */}
       <div className="grid gap-4 sm:grid-cols-3 mb-14">

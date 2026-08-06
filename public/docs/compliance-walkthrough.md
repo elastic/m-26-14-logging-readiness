@@ -177,7 +177,7 @@ The following subsections provide per-category implementation notes, prerequisit
 - Azure/Entra: `azure` Fleet integration with Sign-In Logs enabled. Requires Azure AD P1/P2 license for sign-in log API access.
 - Linux SSH: `system` Fleet integration with Auth module enabled on all SSH-accessible servers.
 
-**M-26-14 compliance note**: The "failure then success" pattern satisfies the §5(a) automated detection requirement at Element 3, Level 2. Level 4 ML coverage is provided by prebuilt Elastic Security jobs (`auth_rare_source_ip_for_a_user`, `auth_high_count_logon_fails_for_a_user`, `suspicious_login_activity`) wrapped by rules `m_26_14-ml-cata-rare-auth-ip`, `m_26_14-ml-cata-high-auth-failures`, and `m_26_14-ml-cata-ueba-login`.
+**M-26-14 compliance note**: The "failure then success" pattern satisfies the §5(a) automated detection requirement at Element 3, Level 2. Level 4 ML coverage is provided by Elastic Security `security_auth` module jobs installed with the `m_26_14_` prefix (`m_26_14_auth_rare_source_ip_for_a_user_ea`, `m_26_14_auth_high_count_logon_fails_ea`, `m_26_14_suspicious_login_activity_ea`) wrapped by rules `m_26_14-ml-cata-rare-auth-ip`, `m_26_14-ml-cata-high-auth-failures`, and `m_26_14-ml-cata-ueba-login`.
 
 **Key documentation links**:
 - [Elastic Defend endpoint policy](https://www.elastic.co/guide/en/security/current/configure-endpoint-integration-policy.html)

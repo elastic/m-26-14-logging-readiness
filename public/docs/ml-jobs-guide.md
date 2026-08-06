@@ -206,11 +206,11 @@ excessive alerts from routine lifecycle activity.
 
 ### 5.2 Behavioral Rules (Entity-Store + prebuilt job wrappers)
 
-Eight rules reference Elastic Security prebuilt / Entity-Store ML jobs. The auth, UEBA, and
-host-silent rules bind to the M-26-14 **Entity-Store** variants (`*_ea` job ids), which the pack's
-Entity-Store enablement (Host + Auth telemetry) provisions; the rare-process and rare-country rules
-still reference the raw prebuilt jobs, installed via the Kibana Security app. See
-[Deployment Steps](#6-deployment-steps).
+Eight rules reference Elastic Security ML module jobs. All seven behavioral wrappers bind to
+module jobs installed with the `m_26_14_` job-id prefix (the 9.4+ `_ea` Entity Analytics job
+generation; `rare_destination_country` keeps its unsuffixed historical id). The modules involved
+are `security_auth`, `security_host`, `security_network`, `security_linux_v3`, and
+`security_windows_v3`. See [Deployment Steps](#6-deployment-steps).
 
 | Rule ID | Kibana File | Job(s) Referenced | Appendix B Category | Maturity Level |
 |---|---|---|---|---|
@@ -218,9 +218,9 @@ still reference the raw prebuilt jobs, installed via the Kibana Security app. Se
 | `m_26_14-ml-cata-high-auth-failures` | `m_26_14-ml-cata-high-auth-failures.ndjson` | `m_26_14_auth_high_count_logon_fails_ea` | A — Identity | L4 |
 | `m_26_14-ml-cata-ueba-login` | `m_26_14-ml-cata-ueba-login.ndjson` | `m_26_14_suspicious_login_activity_ea` | A — Identity (UEBA) | L4 |
 | `m_26_14-ml-cath-host-silent` | `m_26_14-ml-cath-host-silent.ndjson` | `m_26_14_low_count_events_for_a_host_name_ea` | H — Anomalous activity | L4 |
-| `m_26_14-ml-cath-rare-process-windows` | `m_26_14-ml-cath-rare-process-windows.ndjson` | `v3_rare_process_by_host`, `rare_process_by_host_windows_ecs` | H — Anomalous activity | L4 |
-| `m_26_14-ml-cath-rare-process-linux` | `m_26_14-ml-cath-rare-process-linux.ndjson` | `v3_rare_process_by_host`, `rare_process_by_host_linux_ecs` | H — Anomalous activity | L4 |
-| `m_26_14-ml-catb-rare-country` | `m_26_14-ml-catb-rare-country.ndjson` | `network_traffic_to_rare_country` | B — Network/C2 | L4 |
+| `m_26_14-ml-cath-rare-process-windows` | `m_26_14-ml-cath-rare-process-windows.ndjson` | `m_26_14_v3_rare_process_by_host_windows_ea` | H — Anomalous activity | L4 |
+| `m_26_14-ml-cath-rare-process-linux` | `m_26_14-ml-cath-rare-process-linux.ndjson` | `m_26_14_v3_rare_process_by_host_linux_ea` | H — Anomalous activity | L4 |
+| `m_26_14-ml-catb-rare-country` | `m_26_14-ml-catb-rare-country.ndjson` | `m_26_14_rare_destination_country` | B — Network/C2 | L4 |
 | `m_26_14-ml-compliance-degradation` | `m_26_14-ml-compliance-degradation.ndjson` | All 6 compliance-health jobs (meta-rule) | Meta — All elements | L2 |
 
 **Compliance degradation meta-rule.** The `m_26_14-ml-compliance-degradation` rule is a meta-rule
@@ -229,10 +229,12 @@ respective threshold simultaneously with at least one other job. It acts as a ro
 the ISSO/CISO dashboard — a single alert that says "multiple compliance controls are degrading at
 once," which warrants immediate investigation rather than routine triage.
 
-**`v3_rare_process_by_host` availability.** The `v3_rare_process_by_host` job is available in
-Elastic Security starting from version 8.4. If the deployment is running an earlier version, the
-rules will fall back to `rare_process_by_host_windows_ecs` and `rare_process_by_host_linux_ecs`.
-Both job IDs are included in the rule definitions to support both versions.
+**Job lineage.** Elastic Security ML job ids have evolved across generations: the original
+`*_ecs` jobs were superseded by `v3_*` jobs (8.4), which were in turn superseded by the `_ea`
+Entity Analytics generation shipped by the 9.4+ security modules. Each wrapper rule binds exactly
+one job from the current generation; a multi-job ML rule requires **every** listed job to exist,
+so the old dual-id fallback pattern (`v3_rare_process_by_host` + `*_ecs`) silently broke on
+stacks that only ship one generation and has been removed.
 
 ---
 
@@ -313,44 +315,41 @@ reference jobs that have not yet been created.
 
    Enable each rule after import. Rules are imported in disabled state by default.
 
-8. **Provision the behavioral-rule ML jobs (two job families).**
+8. **Provision the behavioral-rule ML jobs (module prefix-install).**
 
-   The eight behavioral rules in §5.2 draw on two separate job families. Deploy both — they are
-   provisioned by different mechanisms.
+   All seven behavioral wrappers in §5.2 bind to Elastic Security ML module jobs installed with
+   the `m_26_14_` job-id prefix. Install each required module via the ML module setup API:
 
-   **8a — Entity-Store `_ea` jobs (auth, UEBA, host-silent — 4 rules).**
-   The rare-auth-IP, high-auth-failures, UEBA-login, and host-silent rules bind to M-26-14
-   **Entity-Store** job ids:
-   - `m_26_14_auth_rare_source_ip_for_a_user_ea`
-   - `m_26_14_auth_high_count_logon_fails_ea`
-   - `m_26_14_suspicious_login_activity_ea`
-   - `m_26_14_low_count_events_for_a_host_name_ea`
+   ```
+   POST kbn:/internal/ml/modules/setup/<module_id>
+   {
+     "prefix": "m_26_14_",
+     "indexPatternName": "logs-*",
+     "startDatafeed": true,
+     "start": <epoch_ms>
+   }
+   ```
+   (Headers: `kbn-xsrf: true` and `x-elastic-internal-origin: Kibana`.)
 
-   These are **not** installed from the Kibana "Install prebuilt jobs" flow. The pack's Entity-Store
-   enablement (Host + Auth telemetry) clones the Elastic Security authentication and host detectors
-   against the M-26-14 Entity-Store indices and opens each job with its own datafeed. Run that
-   enablement before enabling the four rules — until the `_ea` jobs exist and have built a baseline,
-   these rules cannot reference a live job.
+   Modules and the jobs the rules need from each:
+   - `security_auth` → `m_26_14_auth_rare_source_ip_for_a_user_ea`,
+     `m_26_14_auth_high_count_logon_fails_ea`, `m_26_14_suspicious_login_activity_ea`
+   - `security_host` → `m_26_14_low_count_events_for_a_host_name_ea`
+   - `security_network` → `m_26_14_rare_destination_country`
+   - `security_windows_v3` → `m_26_14_v3_rare_process_by_host_windows_ea`
+   - `security_linux_v3` → `m_26_14_v3_rare_process_by_host_linux_ea`
 
-   **8b — Raw Elastic Security prebuilt jobs (rare-process, rare-country — 3 rules).**
-   The rare-process (Windows/Linux) and rare-country rules reference stock Elastic Security prebuilt
-   jobs whose definitions are owned by Elastic and not shipped in this pack:
-   - `v3_rare_process_by_host` (with `rare_process_by_host_windows_ecs` /
-     `rare_process_by_host_linux_ecs` as pre-8.4 fallbacks)
-   - `network_traffic_to_rare_country`
+   Module setup creates the jobs **and** their datafeeds and starts them — no separate datafeed
+   assets are needed (the stale standalone datafeed JSONs formerly in
+   `public/assets/elasticsearch/ml_job/prebuilt/` have been removed). Note that module setup
+   installs the whole module family; jobs beyond the ones listed above can be stopped or deleted.
+   See `public/assets/elasticsearch/ml_job/prebuilt/README.md` for the full rule-to-job-to-module
+   table and data prerequisites.
 
-   Install by either route:
-   - **UI:** Kibana > Security > Machine Learning > **Install prebuilt jobs**, then open and start
-     the rare-process and rare-country jobs.
-   - **Scripted:** install the prebuilt job definitions via the ML module setup API
-     (`POST kbn:/internal/ml/modules/setup/<module_id>`), then create the pack-specific datafeeds
-     from `public/assets/elasticsearch/ml_job/prebuilt/`. Only the rare-process and rare-country
-     datafeeds in that folder are needed for the current rules — the `auth_*` and
-     `suspicious_login_activity` datafeeds there are **legacy**, from before the auth/UEBA rules
-     moved to the `_ea` jobs in 8a, and are not required.
-
-   These jobs need endpoint process-event and network-flow data respectively; the corresponding
-   rules stay in partial failure until those sources are connected.
+   Data prerequisites: the rare-country job needs network-flow docs with
+   `destination.geo.country_name` populated; the rare-process jobs need endpoint process-start
+   events with Linux/Windows OS metadata. The corresponding rules produce **zero alerts with no
+   error** until those sources are connected and the jobs have baselines.
 
    **Meta-rule.** `m_26_14-ml-compliance-degradation` references only the six custom compliance-health
    jobs from step 2 — no additional job deployment is required for it.
@@ -397,12 +396,12 @@ Agencies should review the audit log volume impact before enabling and ensure th
 is covered by an appropriate ILM policy (the `m_26_14-logs-l4-no-delete.json` policy is appropriate
 for audit logs at Level 4).
 
-**Behavioral rules — prebuilt job name changes between Elastic versions.** Elastic Security
-prebuilt ML job IDs can change between major versions. The `v3_rare_process_by_host` job was
-introduced in version 8.4 and supersedes `rare_process_by_host_windows_ecs` /
-`rare_process_by_host_linux_ecs`. When upgrading Elastic Stack versions, verify that prebuilt job
-IDs referenced in the behavioral Kibana rules still match the installed job IDs. If a referenced
-job ID no longer exists after an upgrade, the rule will fail to run.
+**Behavioral rules — module job ids change between Elastic versions.** Elastic Security ML job
+ids have changed across generations (`*_ecs` → `v3_*` in 8.4 → `_ea` in the 9.4+ modules). The
+wrappers bind the `_ea` generation via the `m_26_14_` prefix-install. When upgrading Elastic
+Stack versions, verify that the job ids referenced in the behavioral Kibana rules still match the
+installed job ids — an ML rule whose referenced job is missing produces zero alerts silently, and
+a multi-job rule requires every listed job to exist.
 
 **`check_window` must equal `bucket_span`.** The Kibana ML rule configuration requires that the
 `check_window` parameter (the lookback window the rule uses when polling for new anomaly records)

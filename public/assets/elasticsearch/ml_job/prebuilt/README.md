@@ -1,37 +1,57 @@
-# Datafeeds for Prebuilt Elastic ML Jobs
+# Elastic Security ML Module Jobs (prefix-installed prerequisites)
 
-The datafeeds in this directory target **prebuilt anomaly detection jobs that
-ship with Elastic** (Security and platform ML modules) — the job definitions
-themselves are *not* part of this compliance pack and are intentionally not
-duplicated here:
+Seven pack detection rules bind **Elastic Security ML module jobs** rather than
+pack-owned custom jobs. The job definitions and datafeeds are owned by Elastic
+and installed from the Security ML modules — the pack intentionally ships
+neither, because module setup creates both together and keeps them aligned
+with the running stack version.
 
-| Datafeed | Prebuilt job | Module |
+The pack targets **Elastic Stack 9.4+**, which ships the `_ea`
+(Entity Analytics) generation of these jobs. Install each module with the job
+ID prefix `m_26_14_` so the pack's copies are isolated from any existing SOC
+deployment of the same modules and so M-26-14 dashboards and meta-monitoring
+rules can find them by stable ID.
+
+| Pack rule | Bound job ID | Module |
 |---|---|---|
-| `datafeed-auth_high_count_logon_fails_for_a_user.json` | `auth_high_count_logon_fails_for_a_user` | Security: Authentication |
-| `datafeed-auth_rare_source_ip_for_a_user.json` | `auth_rare_source_ip_for_a_user` | Security: Authentication |
-| `datafeed-network_traffic_to_rare_country.json` | `network_traffic_to_rare_country` | Security: Network |
-| `datafeed-rare_process_by_host_linux_ecs.json` | `rare_process_by_host_linux_ecs` | Security: Linux |
-| `datafeed-rare_process_by_host_windows_ecs.json` | `rare_process_by_host_windows_ecs` | Security: Windows |
-| `datafeed-suspicious_login_activity.json` | `suspicious_login_activity` | Security: Authentication |
-| `datafeed-v3_rare_process_by_host.json` | `v3_rare_process_by_host` | Security: Host |
+| `m_26_14-ml-cata-high-auth-failures` | `m_26_14_auth_high_count_logon_fails_ea` | `security_auth` |
+| `m_26_14-ml-cata-rare-auth-ip` | `m_26_14_auth_rare_source_ip_for_a_user_ea` | `security_auth` |
+| `m_26_14-ml-cata-ueba-login` | `m_26_14_suspicious_login_activity_ea` | `security_auth` |
+| `m_26_14-ml-cath-host-silent` | `m_26_14_low_count_events_for_a_host_name_ea` | `security_host` |
+| `m_26_14-ml-catb-rare-country` | `m_26_14_rare_destination_country` | `security_network` |
+| `m_26_14-ml-cath-rare-process-linux` | `m_26_14_v3_rare_process_by_host_linux_ea` | `security_linux_v3` |
+| `m_26_14-ml-cath-rare-process-windows` | `m_26_14_v3_rare_process_by_host_windows_ea` | `security_windows_v3` |
 
-## Why these are separated from the pack's own ML assets
+Note: `rare_destination_country` (module `security_network`) predates the `_ea`
+naming and keeps its historical ID; the OS-scoped `v3_*_ea` process jobs replace
+the single cross-OS job earlier pack revisions referenced.
 
-The parent `ml_job/` directory contains the seven **custom** M-26-14 anomaly
-detection jobs (`m_26_14-ml-*`) and their paired datafeeds. Those are first-class
-compliance pack assets: the pack owns both the job definition and the datafeed.
+## Install
 
-For prebuilt jobs, the job definition is owned by Elastic and installed from
-the ML module UI (or via the setup API) — only the *datafeed configuration*
-(index patterns, query scope) is pack-specific. Shipping a bare datafeed as a
-standalone "asset" was misleading: it cannot be deployed unless the matching
-prebuilt job has already been created on the cluster.
+For each module (`security_auth`, `security_host`, `security_network`,
+`security_linux_v3`, `security_windows_v3`), in Kibana Dev Tools:
 
-## Deployment
+```
+POST kbn:/internal/ml/modules/setup/security_auth
+{
+  "prefix": "m_26_14_",
+  "indexPatternName": "logs-*",
+  "startDatafeed": true
+}
+```
 
-1. Install the prebuilt jobs first — in Kibana: **Machine Learning →
-   Anomaly Detection → Jobs → Create job → use a supplied configuration**, or
-   via `POST kbn:/internal/ml/modules/setup/<module_id>`.
-2. Then create these datafeeds: `scripts/deploy.py --only ml --prebuilt-datafeeds`
-   (datafeed creation is skipped when the matching job is absent).
-3. Start them with `--start-ml` or from the ML jobs list in Kibana.
+Or via the UI: **Machine Learning > Anomaly Detection > Jobs > Create job >
+select the module's supplied configuration**, and set the job ID prefix to
+`m_26_14_`. Module setup creates and starts the paired datafeeds automatically.
+
+Machine-learning rules whose job is absent or not running produce **zero alerts
+with no error** — verify all seven jobs are `opened` with running datafeeds
+before enabling the wrapper rules.
+
+## OOTB alternative
+
+Each of these seven signals also exists as an Elastic prebuilt detection rule
+bound to the unprefixed module job. Agencies already running those prebuilts
+can keep them and skip the prefix install; the pack wrappers exist so alerts
+carry M-26-14 tags/metadata for the compliance dashboards. Run one or the
+other per signal, not both, to avoid duplicate alerts.

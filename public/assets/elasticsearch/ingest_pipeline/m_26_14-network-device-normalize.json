@@ -54,9 +54,10 @@
     },
     {
       "set": {
-        "description": "Stamp ingest time for detection-rule timestamp override",
+        "description": "Stamp ingest time for detection-rule timestamp override (seeded/backfilled docs may pre-set it)",
         "field": "event.ingested",
-        "value": "{{{_ingest.timestamp}}}"
+        "value": "{{{_ingest.timestamp}}}",
+        "override": false
       }
     },
     {

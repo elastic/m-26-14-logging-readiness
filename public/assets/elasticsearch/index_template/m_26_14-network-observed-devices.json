@@ -27,6 +27,9 @@
         },
         "event": {
           "properties": {
+            "ingested": {
+              "type": "date"
+            },
             "kind": {
               "type": "keyword"
             },

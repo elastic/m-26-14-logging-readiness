@@ -53,6 +53,13 @@
       }
     },
     {
+      "set": {
+        "description": "Stamp ingest time for detection-rule timestamp override",
+        "field": "event.ingested",
+        "value": "{{{_ingest.timestamp}}}"
+      }
+    },
+    {
       "remove": {
         "description": "Drop scratch fields",
         "field": ["oui", "_oui"],

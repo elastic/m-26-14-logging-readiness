@@ -48,6 +48,13 @@ Machine-learning rules whose job is absent or not running produce **zero alerts
 with no error** — verify all seven jobs are `opened` with running datafeeds
 before enabling the wrapper rules.
 
+Note: module setup installs **every job in the module family**, not only the
+seven the wrappers bind (the five modules together contain roughly 40 jobs),
+and with `"startDatafeed": true` it opens them all with running datafeeds.
+After install, stop and close — or simply delete — the unbound jobs to free
+ML node memory; only the seven jobs in the table above must remain opened
+with running datafeeds.
+
 ## OOTB alternative
 
 Each of these seven signals also exists as an Elastic prebuilt detection rule

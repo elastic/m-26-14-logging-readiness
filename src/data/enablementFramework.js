@@ -20,12 +20,9 @@ const dash = (id, g = 'now-90d') =>
 
 export const HUB = {
   title: 'M-26-14 Enablement',
-  subtitle: 'Sales and Solutions Architect enablement for the Elastic M-26-14 compliance pack',
+  subtitle: 'Sales and Solutions Architect enablement for the Elastic M-26-14 readiness pack',
   intro:
-    'Everything here is built on one spine: the questions an auditor actually asks about M-26-14. ' +
-    'Sales enablement frames the unique value Elastic brings to each. SA enablement lets you climb from a ' +
-    'one-slide talk track down into a scripted demo, the live cluster, and the product documentation, ' +
-    'stopping at whatever depth the room wants.',
+    'This enablement is designed around what an agency must demonstrate to satisfy M-26-14 and the maturity levels defined in CISA\'s Logging Reference Architecture. The sales enablement provides a synopsis of what changed from M-21-31 to M-26-14, how Elastic specifically readies agencies to adopt M-26-14, and framing questions that map to each main section auditors will ask. The SA enablement lets you climb from a one-slide talk track down into a scripted demo, the live cluster, and the product documentation, stopping at whatever depth the room wants.',
   tracks: [
     {
       id: 'sales',
@@ -63,15 +60,10 @@ export const PILLARS = [
     memoRef: 'Element 1 · HWAM · Appendix B (coverage)',
     anim: 'AssetDiscoveryAnim',
     sales: {
-      headline: 'You cannot protect what you cannot see, and most tools only see what already has an agent.',
-      soundbite: 'Elastic finds the devices that have no agent at all, then merges them into one record with the ones that do.',
-      uvp: [
-        'Agent and agentless in a single index. osquery on managed endpoints plus passive network discovery for the unmanaged, resolved into one canonical asset record.',
-        'Entity resolution deduplicates a device seen by osquery and by Intune into a single posture record, not two rows to reconcile by hand.',
-        'Schema-on-write (ECS) means every asset is queryable the moment it lands. No rebuild, no CMDB reconciliation project.',
-      ],
-      wedge:
-        'Competitors index what you already ship them. They are blind to the endpoint that never enrolled. Elastic surfaces the unknown device as a first-class finding, which is exactly what Element 1 requires you to document.',
+      ask: 'How sure are you that you can see every device out there, including the ones nobody enrolled or forgot about?',
+      listenFor: 'They only trust the count for managed devices. Shadow IT, contractor laptops, or OT gear they cannot see.',
+      value: 'Elastic finds the devices that have no agent at all and folds them into one inventory, which is exactly what the memo makes them document.',
+      dealRead: 'Asset gaps are a Level 1 blocker, so this is often the fastest, most concrete pain to anchor a first deal on.',
     },
     sa: {
       concept:
@@ -100,15 +92,10 @@ export const PILLARS = [
     memoRef: 'Element 1 & 2 · HWAM/SWAM · config baseline',
     anim: null,
     sales: {
-      headline: 'The compliance audit spreadsheet is dead. Posture is a live query.',
-      soundbite: 'Encryption, MDM, authorized software, and config drift are computed continuously at ingest, not scanned once a quarter.',
-      uvp: [
-        'Posture is a field, not a project. Every device carries its encryption state, MDM enrollment, software authorization, and a baseline fingerprint, recomputed on every check-in.',
-        'A SHA-256 baseline hash captured at certification means drift is detected automatically the moment an OS, serial, or encryption state changes.',
-        'Unauthorized software is caught by a detection rule that evaluates every new install against the approved catalog in real time. No batch scan, no manual comparison.',
-      ],
-      wedge:
-        'Point tools give you a posture snapshot on the day they run. Elastic makes posture a continuous property of the data, so the gap between "certified" and "actual" is visible the instant it opens.',
+      ask: 'Right now, how do you know a device is encrypted, managed, and running only approved software? Live view, or a quarterly spreadsheet?',
+      listenFor: 'Audits run on spreadsheets, posture is a point-in-time scan, and drift gets caught late.',
+      value: 'Elastic makes posture a live property of each device, so the gap between certified and actual shows the moment it opens.',
+      dealRead: 'If they are doing this by hand, you are displacing manual labor, which is a clean ROI story.',
     },
     sa: {
       concept:
@@ -120,7 +107,7 @@ export const PILLARS = [
       live: [
         { label: 'HWAM Coverage Gaps', url: dash('m_26_14-hwam-gaps') },
         { label: 'SWAM Software Inventory', url: dash('m_26_14-swam-software') },
-        { label: 'Config Drift & Compliance Posture', url: dash('m_26_14-asset-drift') },
+        { label: 'Config Drift & Readiness Posture', url: dash('m_26_14-asset-drift') },
       ],
       demo: { title: 'Posture & drift click-through', status: 'planned', url: null },
       docs: [
@@ -137,23 +124,18 @@ export const PILLARS = [
     memoRef: 'Entity Store · risk analytics',
     anim: null,
     sales: {
-      headline: 'Thousands of assets, finite attention. Elastic scores the risk so you work the right ones first.',
-      soundbite: 'Elastic builds the entity, scores its risk, and ranks it automatically, from the telemetry you are already collecting.',
-      uvp: [
-        'The Entity Store assembles a living host, user, and service model from every source. No manual correlation, no separate CMDB to reconcile.',
-        'Risk scoring is automatic: ML anomalies and alerts roll up into a per-entity risk score, so the riskiest device or identity floats to the top on its own.',
-        'Compliance posture feeds risk. An unmanaged, unencrypted, or drifted asset raises its own entity risk, tying M-26-14 gaps directly to prioritized action.',
-      ],
-      wedge:
-        'Most tools hand you raw alerts and leave you to build the correlation. Elastic ships the entity model and the risk engine, so "what should I fix first" is answered by the platform, not a spreadsheet of severities.',
+      ask: 'With everything on your plate, how do you decide what to fix first? A gut call, or does something rank it for you?',
+      listenFor: 'Alert overload, analysts triaging by hand, no real prioritization.',
+      value: 'Elastic scores and ranks risk automatically from data they already collect, so the riskiest things float to the top on their own.',
+      dealRead: 'Ties the readiness spend to daily SOC value, which helps justify budget beyond "we have to for the memo."',
     },
     sa: {
       concept:
-        'The Entity Store resolves hosts, users, and services from all telemetry and assigns each a risk score driven by ML anomalies and alerts. Compliance fields from m_26_14-assets enrich the host entity so posture gaps influence risk.',
+        'The Entity Store resolves hosts, users, and services from all telemetry and assigns each a risk score driven by ML anomalies and alerts. Readiness fields from m_26_14-assets enrich the host entity so posture gaps influence risk.',
       talkTrack:
         'Open Entity Analytics and sort by risk. The top entities are where the ML anomalies and alerts concentrate. Point out that an asset flagged unmanaged or drifted in the earlier pillars is the same entity carrying elevated risk here. One model, not four tools.',
       technical:
-        'Entity Store engines (host/user/service) run continuously and are enabled on this cluster. Risk scoring aggregates anomaly and alert contributions per entity. Asset compliance fields (hwam_source, drift_detected, element*_covered) enrich the host entity, so M-26-14 posture becomes a risk input.',
+        'Entity Store engines (host/user/service) run continuously and are enabled on this cluster. Risk scoring aggregates anomaly and alert contributions per entity. Asset readiness fields (hwam_source, drift_detected, element*_covered) enrich the host entity, so M-26-14 posture becomes a risk input.',
       live: [
         { label: 'Entity Analytics (risk scores)', url: `${KB}/app/security/entity_analytics` },
       ],
@@ -173,15 +155,10 @@ export const PILLARS = [
     memoRef: 'Appendix B · 11 event categories',
     anim: null,
     sales: {
-      headline: 'Coverage you can prove to an auditor, not just claim.',
-      soundbite: 'All 11 Appendix B categories, with ML anomaly detection reinforcing the categories a static threshold would miss.',
-      uvp: [
-        'Detection across every Appendix B category, with a coverage matrix that turns "are we watching for this?" into a green/yellow/red answer an auditor can read.',
-        'Machine learning where rules are not enough. Categories A, B, and H run anomaly detection that learns normal for this environment and flags genuine deviations.',
-        'AI agents close the loop. The POA&M drafting agent queries live posture with ES|QL and drafts the gap document, no export needed.',
-      ],
-      wedge:
-        'A rules-only SIEM tells you about the threats you already wrote a rule for. Elastic pairs rules with ML so the anomaly you did not anticipate still surfaces, and the coverage matrix is your attestation evidence.',
+      ask: 'If an auditor asked you to prove you cover every required type of logging activity, how hard is that to pull together?',
+      listenFor: 'Coverage is claimed but not provable, there are known blind spots, and producing evidence is a fire drill.',
+      value: 'Elastic gives a coverage view an auditor can read at a glance, and drafts the gap document from live data.',
+      dealRead: 'Attestation pain is deadline-driven and visible to leadership, so it is your strongest urgency lever.',
     },
     sa: {
       concept:
@@ -212,15 +189,10 @@ export const PILLARS = [
     memoRef: 'THIRF · retention · two-gate deletion',
     anim: null,
     sales: {
-      headline: 'Six months of logs, immediately searchable, at a cost that does not force a trade-off.',
-      soundbite: 'Hot and frozen tiers keep months of logs searchable at frozen-tier cost, and nothing gets deleted without two human approvals.',
-      uvp: [
-        'Searchable frozen tier changes the economics. Months of logs stay immediately queryable without a restore, at object-storage cost, which is how THIRF retention becomes affordable.',
-        'ILM ships preconfigured with the pack, so hot-to-frozen transitions and total windows are governed policy, not a manual ops chore.',
-        'Governed deletion. A two-gate, human-approved retirement workflow with a snapshot precondition means no single person or process can quietly delete compliance data.',
-      ],
-      wedge:
-        'Others make you choose between keeping data searchable and keeping it affordable. Elastic frozen searchable snapshots give you both, and the two-gate workflow turns retention from a storage line item into provable governance.',
+      ask: 'How far back can you actually search your logs today, and what does keeping them that long cost you?',
+      listenFor: 'They are stuck choosing between keeping data searchable and keeping it affordable, and storage cost hurts.',
+      value: 'Elastic keeps months of logs immediately searchable at low storage cost, so they hit the retention rule without the trade-off.',
+      dealRead: 'Maps straight to licensing and sizing, and the shorter M-26-14 window (12 months, down from the old 30) reframes the whole cost conversation. Your most direct commercial lever.',
     },
     sa: {
       concept:
@@ -230,7 +202,7 @@ export const PILLARS = [
       technical:
         'ILM m_26_14-logs-l3-hot-frozen keeps 90 days hot then frozen to a 1-year window; m_26_14-logs-l4-hot-frozen keeps 180 days hot to a 1-year window. Retirement runs through gate1/gate2 watchers and Kibana Workflows, logging every action to m_26_14-retirement-requests.',
       live: [
-        { label: 'Retention Compliance', url: dash('m_26_14-retention-compliance', 'now-30d') },
+        { label: 'Retention Readiness', url: dash('m_26_14-retention-compliance', 'now-30d') },
       ],
       demo: { title: 'Retention & retirement click-through', status: 'planned', url: null },
       docs: [
@@ -248,19 +220,14 @@ export const PILLARS = [
     memoRef: 'Element 5 · log integrity',
     anim: null,
     sales: {
-      headline: 'Storing logs is table stakes. Proving they are unaltered is the compliance requirement.',
-      soundbite: 'Every log is hashed the moment it lands, so tampering is detectable, not hypothetical.',
-      uvp: [
-        'A SHA-256 fingerprint is computed on every log document at ingest, before any enrichment, capturing the raw state.',
-        'Any later modification breaks the hash, turning "we believe the logs are intact" into a check anyone can verify.',
-        'Coverage is monitored. An ML job watches for hosts that stop hashing, so a silent gap becomes an alert instead of an audit surprise.',
-      ],
-      wedge:
-        'Retention keeps the data; integrity proves it is the same data. Elastic does the hashing inline at ingest, so tamper-evidence is a property of every document, not a separate audit step bolted on later.',
+      ask: 'If someone challenged whether your logs had been tampered with, could you prove they had not?',
+      listenFor: 'They store logs but have no tamper-evidence. "We assume they are intact."',
+      value: 'Elastic hashes every log the moment it lands, so integrity is something they can prove, not just claim.',
+      dealRead: 'Often an unrecognized gap, which makes it good for expanding scope once you are already in.',
     },
     sa: {
       concept:
-        'Hash coverage shown by host. Every log document carries a SHA-256 in event.hash and a boolean event.integrity.hashed. Gaps in coverage are a compliance finding.',
+        'Hash coverage shown by host. Every log document carries a SHA-256 in event.hash and a boolean event.integrity.hashed. Gaps in coverage are a readiness finding.',
       talkTrack:
         'Show hash coverage by host, then click a bar to open Discover on the raw hash values alongside the original fields. Note the ML job that catches a source going unexpectedly silent, so a gap is caught, not missed.',
       technical:
@@ -276,6 +243,82 @@ export const PILLARS = [
     },
   },
 ]
+
+export const REQUIREMENTS = {
+  title: 'M-21-31 vs. M-26-14: What changed?',
+  callout: {
+    subsections: [
+      {
+        title: 'Retention requirements have been reduced and reframed',
+        text: 'Logs must now be "actively searchable" for at least six months and retrievable for at least one year, down from M-21-31\'s 30-month total (12 active and 18 cold). The emphasis on searchability is significant; it\'s not enough to have logs in storage. They need to be readily findable and accessible when an investigation demands it.',
+        aeCallout: 'In a SIEM use case, if the customer adopts the more relaxed standard, they can expect lower license cost due to the cold/frozen tier shrinking to 12 months of total retention instead of 30 months in M-21-31.',
+      },
+      {
+        title: 'Readiness timelines are tighter and tied to the LRA',
+        text: 'Under M-21-31, agencies had one year to reach EL1, 18 months for EL2, and two years for EL3, with timing measured from the memo\'s issuance date. M-26-14 resets that clock to the LRA publication date and compresses the window significantly: Level 1 within 120 days, Level 2 within 180 days, Level 3 within 320 days. Agencies also have 90 days from LRA publication to submit a formal Agency Logging Plan to both OMB and CISA.',
+        aeCallout: 'Customers have to move faster to hit these compressed deadlines, so position Elastic aggressively as the technology that gets them to M-26-14 readiness.',
+      },
+      {
+        title: 'The readiness cycle doesn\'t end at rollout',
+        text: 'The LRA will be re-evaluated at least annually. Each update triggers new obligations: agencies have 30 days to update their logging plans and must reachieve maturity levels within 60 to 120 days. This turns M-26-14 readiness into an ongoing operational discipline rather than a one-time certification effort — one that enforces continuous monitoring and evaluation.',
+        aeCallout: 'Customers will revisit their Elastic licensing on a tighter, annual turnaround to maintain readiness as the LRA is re-evaluated.',
+      },
+    ],
+  },
+}
+
+export const HOW_ELASTIC_HELPS = {
+  title: 'How Elastic Helps M-26-14 Readiness',
+  intro:
+    'Elastic addresses each requirement as a property of the data, not a periodic project. The same platform that collects the logs also proves coverage, retention, and integrity.',
+  items: [
+    {
+      heading: 'Searchable data at scale',
+      bullets: [
+        'Hot tier for investigation, cheaper tiers for older logs',
+        'Policy-based lifecycle retains affordably without losing retrievability',
+        { text: '42–56% lower total cost than legacy (ESG study)', link: { phrase: 'ESG study', url: 'https://www.elastic.co/resources/security/report/analyze-economic-benefits-elastic-security' } },
+      ],
+      aeCallout: 'Lead with cost. Elastic hits the 12-month retention window at a fraction of legacy SIEM spend.',
+    },
+    {
+      heading: 'Distributed data mesh architecture',
+      bullets: [
+        { text: 'Search logs in place via data mesh', link: { phrase: 'data mesh', url: 'https://www.elastic.co/industries/public-sector/data-mesh' } },
+        'Keep data across cloud, on-prem, mission systems',
+        'Proven on CISA CDM, ~100 federal agencies',
+      ],
+      aeCallout: 'Neutralizes rip-and-replace. Customers keep data where it lives, so no migration project blocks the deal.',
+    },
+    {
+      heading: 'Unified, AI-powered CEM and THIRF',
+      bullets: [
+        'One layer for detection, investigation, and forensics',
+        'Out-of-the-box AI skills triage, hunt, and detect',
+        'Plain-language rules, MITRE ATT&CK auto-mapped',
+      ],
+      aeCallout: 'The AI story is the differentiator against rules-only SIEMs. Demo plain-language detection and prioritized attack narratives.',
+    },
+    {
+      heading: 'Open standards',
+      bullets: [
+        'Native OpenTelemetry, no proprietary lock-in',
+        'Collects from legacy, IoT, and OT sources',
+        'Eases CISA and cross-agency data sharing',
+      ],
+      aeCallout: 'Answers lock-in head-on. OTel means no proprietary agent trap, de-risking the long-term commitment.',
+    },
+    {
+      heading: "Integration with CISA's SIEM as a Service",
+      bullets: [
+        { text: "Powers CISA's SIEM-as-a-Service", link: { phrase: 'SIEM-as-a-Service', url: 'https://www.elastic.co/blog/siem-as-a-service' } },
+        'Free to FCEB agencies in the cloud',
+        'Agentic AI: triage, enrich, RAG, hunt, automate',
+      ],
+      aeCallout: "Strongest proof point: the customer's own cyber authority already runs Elastic. Use CISA adoption to shortcut trust.",
+    },
+  ],
+}
 
 export const CAPSTONE = {
   id: 'maturity',

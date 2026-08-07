@@ -2,7 +2,7 @@
 
 **Time:** ~15 minutes · **Live cluster:** [m-26-14-7ae75d.kb.us-east-1.aws.found.io](https://m-26-14-7ae75d.kb.us-east-1.aws.found.io) (read-only)
 
-This walkthrough takes you through the M-26-14 Elastic compliance pack deployed on a live cluster. Click any dashboard link to open it directly — you're in a read-only session, so feel free to explore. The data is synthetic but realistic: a 60-endpoint federal agency fleet at Maturity Level 2, actively working toward Level 3 attestation.
+This walkthrough takes you through the M-26-14 Elastic readiness pack deployed on a live cluster. Click any dashboard link to open it directly — you're in a read-only session, so feel free to explore. The data is synthetic but realistic: a 60-endpoint federal agency fleet at Maturity Level 2, actively working toward Level 3 attestation.
 
 The pack answers four questions auditors actually ask.
 
@@ -58,7 +58,7 @@ The approved software list for this environment has six titles: CrowdStrike Falc
 
 Click either unauthorized title to drill into which specific endpoints are affected. This is a live, continuously-updated view — not a point-in-time scan.
 
-> **Where this data comes from:** The same Elastic Agent osquery integration that collects hardware inventory also executes osquery's `programs` and `apps` table queries on every enrolled endpoint — returning every installed application, version, publisher, and install date. On macOS, this covers `.app` bundles; on Windows, installed MSI/EXE packages from the registry; on Linux, packages from apt/rpm/dnf. Results stream back to Elasticsearch through the `m_26_14-osquery-normalize` pipeline, which standardizes the field schema and writes to `logs-m_26_14_osquery.software-*`. The authorized software list — the six approved titles — is embedded in the `m_26_14-ws7-r3-unauth-software` detection rule, which evaluates every new software record against that allowlist in real time. No scheduled batch scan, no manual comparison.
+> **Where this data comes from:** The same Elastic Agent osquery integration that collects hardware inventory also executes osquery's `programs` and `apps` table queries on every enrolled endpoint — returning every installed application, version, publisher, and install date. On macOS this covers `.app` bundles; on Windows, MSI/EXE packages from the registry; on Linux, packages from apt/rpm/dnf. Those records flow through the `m_26_14-osquery-normalize` pipeline, which standardizes the schema and **reroutes them into a single, source-agnostic stream: `logs-m_26_14.software_inventory-*`**. Software from any other collector — a customer CMDB or EDR feed via `m_26_14-asset-normalize` — lands in that same stream, so the SWAM picture is collector-independent rather than tied to osquery. As each record arrives, the stream's default pipeline `m_26_14-software-enrich` matches its `package.name` against the **`m_26_14-authorized-software` enrich catalog** (the six approved titles) and stamps `m_26_14.software.authorized`. The `m_26_14-ws7-r3-unauth-software` detection rule then simply fires on `m_26_14.software.authorized: false` — the allowlist lives in the catalog, not the rule, so approving a new title is a catalog edit, not a rule change. No scheduled batch scan, no manual comparison.
 
 ---
 
@@ -84,7 +84,7 @@ These could be routine OS updates, intentional policy changes, or something to i
 
 ![Alert Coverage (Appendix B)](/screenshots/03-alert-coverage.png)
 
-M-26-14 Appendix B defines 11 required event categories — authentication, DNS, mass file access, privilege escalation, OT/infrastructure changes, EDR telemetry, IOC monitoring, off-hours execution, exfiltration, APT chain indicators, and coverage gaps themselves. You need active detection across all of them.
+M-26-14 Appendix B §5 defines 11 required logging activities (a–k) — identity/authentication, network addressing (DNS/DHCP/VPN), object & data events (mass file access), privilege changes, infrastructure changes (including OT), suspicious-activity monitoring (EDR), IOC hunting, anomaly hunting (off-hours/behavioral), incident-data scoping (exfiltration), attack-vector & lateral movement (APT chain), and automated alerting. You need active detection across all of them.
 
 The bars here show active detection rules by Appendix B category alongside alert volume over the last 30 days. Click any bar to open Discover filtered to that category's rules and recent alerts.
 

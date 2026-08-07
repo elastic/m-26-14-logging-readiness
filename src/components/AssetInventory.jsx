@@ -123,7 +123,7 @@ export default function AssetInventory() {
     <main className="mx-auto max-w-[1800px] px-8 py-10 space-y-8">
       <header>
         <h1 className="text-3xl font-semibold text-text-primary">
-          M-26-14 Compliance Pack — Asset Inventory
+          M-26-14 Readiness Pack - Asset Inventory
         </h1>
         <p className="mt-4 text-base text-text-muted leading-relaxed">
           Pre-built Elastic assets for each maturity level, organized by architecture layer.

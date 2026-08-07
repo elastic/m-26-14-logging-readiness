@@ -12,11 +12,11 @@ export const ASSET_FILES = [
     format: 'ndjson',
     levels: [1, 2, 3, 4],
     file: '/assets/kibana/dashboard/m_26_14-maturity-overview.ndjson',
-    desc: 'Top-level compliance posture: maturity level, coverage percentages, and readiness indicators for each M-26-14 element.',
+    desc: 'Top-level readiness posture: maturity level, coverage percentages, and readiness indicators for each M-26-14 element.',
     screenshot: '/screenshots/01-maturity-overview.png',
     docs: [
       { label: 'Maturity Overview Guide', file: '/docs/dashboards/m_26_14-maturity-overview.md' },
-      { label: 'Compliance Dashboard Guide', file: '/docs/detection-rules/compliance-dashboard-guide.md' },
+      { label: 'Readiness Dashboard Guide', file: '/docs/detection-rules/compliance-dashboard-guide.md' },
     ],
   },
   {
@@ -31,7 +31,7 @@ export const ASSET_FILES = [
     screenshot: '/screenshots/02-asset-coverage.png',
     docs: [
       { label: 'Asset Coverage Guide', file: '/docs/dashboards/m_26_14-asset-coverage.md' },
-      { label: 'Compliance Dashboard Guide', file: '/docs/detection-rules/compliance-dashboard-guide.md' },
+      { label: 'Readiness Dashboard Guide', file: '/docs/detection-rules/compliance-dashboard-guide.md' },
     ],
   },
   {
@@ -46,7 +46,7 @@ export const ASSET_FILES = [
     screenshot: '/screenshots/03-alert-coverage.png',
     docs: [
       { label: 'Alert Coverage Guide', file: '/docs/dashboards/m_26_14-alert-coverage.md' },
-      { label: 'Compliance Dashboard Guide', file: '/docs/detection-rules/compliance-dashboard-guide.md' },
+      { label: 'Readiness Dashboard Guide', file: '/docs/detection-rules/compliance-dashboard-guide.md' },
     ],
   },
   {
@@ -61,21 +61,21 @@ export const ASSET_FILES = [
     screenshot: '/screenshots/06-appendix-b-coverage.png',
     docs: [
       { label: 'Appendix B Matrix Guide', file: '/docs/dashboards/m_26_14-appendix-b-coverage.md' },
-      { label: 'Compliance Dashboard Guide', file: '/docs/detection-rules/compliance-dashboard-guide.md' },
+      { label: 'Readiness Dashboard Guide', file: '/docs/detection-rules/compliance-dashboard-guide.md' },
     ],
   },
   {
     id: 'dash-compliance-attestation',
-    label: 'Compliance Attestation',
+    label: 'Readiness Attestation',
     column: 'CEM',
     type: 'kibana-dashboard',
     format: 'ndjson',
     levels: [1, 2, 3, 4],
     file: '/assets/kibana/dashboard/m_26_14-compliance-attestation-dash.ndjson',
-    desc: 'Exportable compliance attestation view — summarises coverage, retention, and detection posture for audit evidence.',
+    desc: 'Exportable readiness attestation view — summarises coverage, retention, and detection posture for audit evidence.',
     screenshot: '/screenshots/07-compliance-attestation.png',
     docs: [
-      { label: 'Compliance Dashboard Guide', file: '/docs/detection-rules/compliance-dashboard-guide.md' },
+      { label: 'Readiness Dashboard Guide', file: '/docs/detection-rules/compliance-dashboard-guide.md' },
     ],
   },
   {
@@ -90,12 +90,12 @@ export const ASSET_FILES = [
     screenshot: '/screenshots/05-log-management.png',
     docs: [
       { label: 'Log Management Guide', file: '/docs/dashboards/m_26_14-log-management.md' },
-      { label: 'Compliance Dashboard Guide', file: '/docs/detection-rules/compliance-dashboard-guide.md' },
+      { label: 'Readiness Dashboard Guide', file: '/docs/detection-rules/compliance-dashboard-guide.md' },
     ],
   },
   {
     id: 'dash-retention-compliance',
-    label: 'Retention Compliance',
+    label: 'Retention Readiness',
     column: 'THIRF',
     type: 'kibana-dashboard',
     format: 'ndjson',
@@ -104,8 +104,8 @@ export const ASSET_FILES = [
     desc: 'Searchable and retrievable retention coverage by data stream and time window — evidence for M-26-14 retention obligations.',
     screenshot: '/screenshots/04-retention-compliance.png',
     docs: [
-      { label: 'Retention Compliance Guide', file: '/docs/dashboards/m_26_14-retention-compliance.md' },
-      { label: 'Compliance Dashboard Guide', file: '/docs/detection-rules/compliance-dashboard-guide.md' },
+      { label: 'Retention Readiness Guide', file: '/docs/dashboards/m_26_14-retention-compliance.md' },
+      { label: 'Readiness Dashboard Guide', file: '/docs/detection-rules/compliance-dashboard-guide.md' },
     ],
   },
 
@@ -130,7 +130,7 @@ export const ASSET_FILES = [
     levels: [1, 2, 3, 4],
     file: '/assets/kibana/dashboard/m_26_14-hwam-gaps.ndjson',
     screenshot: '/screenshots/09-hwam-gaps.png',
-    desc: 'Compliance gap measurement: assets with no Element 1/2 coverage, missing encryption status, no MDM enrollment. Drives M-26-14 self-attestation gap closure.',
+    desc: 'Readiness gap measurement: assets with no Element 1/2 coverage, missing encryption status, no MDM enrollment. Drives M-26-14 self-attestation gap closure.',
   },
   {
     id: 'dashboard-swam-software',
@@ -156,14 +156,14 @@ export const ASSET_FILES = [
   },
   {
     id: 'dashboard-asset-drift',
-    label: 'Dashboard — Config Drift & Compliance Posture',
+    label: 'Dashboard — Config Drift & Readiness Posture',
     column: 'THIRF',
     type: 'kibana-dashboard',
     format: 'ndjson',
     levels: [1, 2, 3, 4],
     file: '/assets/kibana/dashboard/m_26_14-asset-drift.ndjson',
     screenshot: '/screenshots/12-asset-drift.png',
-    desc: 'Config drift and compliance posture: encryption violations, MDM non-compliance, OS version spread, baseline hash diversity, per-asset compliance status table.',
+    desc: 'Config drift and readiness posture: encryption violations, MDM non-readiness, OS version spread, baseline hash diversity, per-asset readiness status table.',
   },
 
   // ── Kibana Dashboards — Numbered Operator Series ──────────────────────────
@@ -237,7 +237,7 @@ export const ASSET_FILES = [
     format: 'ndjson',
     levels: [2, 3, 4],
     file: '/assets/kibana/rule/m_26_14-ws7-r2-encryption-disabled.ndjson',
-    desc: 'KQL rule: fires when a managed asset has asset.compliance.encrypted: false in the canonical m_26_14-assets index — compliance violation regardless of drift state.',
+    desc: 'KQL rule: fires when a managed asset has asset.compliance.encrypted: false in the canonical m_26_14-assets index — readiness violation regardless of drift state.',
   },
   {
     id: 'rule-ws7-r3-unauth-software',
@@ -430,7 +430,7 @@ export const ASSET_FILES = [
     format: 'ndjson',
     levels: [3, 4],
     file: '/assets/kibana/rule/m_26_14-appendixb-k-coverage-gap.ndjson',
-    desc: '2 rules: alert when any required Appendix B log category stops receiving events — compliance degradation early warning.',
+    desc: '2 rules: alert when any required Appendix B log category stops receiving events — readiness degradation early warning.',
     ruleCount: 2,
     docs: [{ label: 'Rule Guide: Coverage Gap', file: '/docs/detection-rules/rule-k-coverage-gap.md' }],
   },
@@ -537,13 +537,13 @@ export const ASSET_FILES = [
   },
   {
     id: 'rule-ml-compliance',
-    label: 'ML: Compliance Degradation',
+    label: 'ML: Readiness Degradation',
     column: 'CEM',
     type: 'kibana-rule',
     format: 'ndjson',
     levels: [3, 4],
     file: '/assets/kibana/rule/m_26_14-ml-compliance-degradation.ndjson',
-    desc: '1 ML rule: anomalous drop in overall compliance element scores — fires when posture degrades unexpectedly.',
+    desc: '1 ML rule: anomalous drop in overall readiness element scores — fires when posture degrades unexpectedly.',
     ruleCount: 1,
   },
   {
@@ -698,7 +698,7 @@ export const ASSET_FILES = [
   // ── Elasticsearch — SLM Policies ─────────────────────────────────────────
   {
     id: 'slm-compliance-snapshots',
-    label: 'SLM Policy — Compliance Snapshots',
+    label: 'SLM Policy — Readiness Snapshots',
     column: 'Elastic Search AI Platform',
     type: 'slm-policy',
     format: 'json',
@@ -786,7 +786,7 @@ export const ASSET_FILES = [
     format: 'json',
     levels: [1, 2, 3, 4],
     file: '/assets/elasticsearch/index_template/m_26_14-asset-canonical.json',
-    desc: 'Layer 3 canonical asset index (m_26_14-assets) — one document per resolved device, upserted by asset.id. Single query target for HWAM/SWAM dashboards and M-26-14 compliance attestation.',
+    desc: 'Layer 3 canonical asset index (m_26_14-assets) — one document per resolved device, upserted by asset.id. Single query target for HWAM/SWAM dashboards and M-26-14 readiness attestation.',
   },
   {
     id: 'template-asset-baselines',
@@ -1001,7 +1001,7 @@ export const ASSET_FILES = [
     format: 'json',
     levels: [3, 4],
     file: '/assets/elasticsearch/ingest_pipeline/m_26_14-asset-entity-store-enrich.json',
-    desc: 'Enriches SIEM alert events with M-26-14 asset compliance context from m_26_14-assets via hostname lookup. Promotes asset.type, asset.criticality, element coverage flags, and encryption status to m_26_14.* namespace for Elastic Entity Store compatibility.',
+    desc: 'Enriches SIEM alert events with M-26-14 asset readiness context from m_26_14-assets via hostname lookup. Promotes asset.type, asset.criticality, element coverage flags, and encryption status to m_26_14.* namespace for Elastic Entity Store compatibility.',
   },
   {
     id: 'pipeline-network-device-normalize',
@@ -1468,7 +1468,7 @@ export const ASSET_FILES = [
     format: 'json',
     levels: [1, 2, 3, 4],
     file: '/assets/elasticsearch/watcher/m_26_14-selective-copy-legal-hold.json',
-    desc: 'Manual-trigger watcher: async reindexes a query-scoped subset from a frozen/source index into a named retained index (no-delete ILM), triggers compliance snapshot, and opens a Kibana legal hold Case. Customize metadata.params before executing.',
+    desc: 'Manual-trigger watcher: async reindexes a query-scoped subset from a frozen/source index into a named retained index (no-delete ILM), triggers readiness snapshot, and opens a Kibana legal hold Case. Customize metadata.params before executing.',
   },
   {
     id: 'watcher-jit-expiry',
@@ -1542,7 +1542,7 @@ export const ASSET_FILES = [
     format: 'yaml',
     levels: [1, 2, 3, 4],
     file: '/assets/kibana/workflow/m_26_14-legal-hold-selective-copy.yaml',
-    desc: 'Manual Elastic Workflow: reindexes source data into a named retained index with no-delete ILM, triggers compliance snapshot, opens legal hold Kibana Case, and records audit trail. Run before retirement lifecycle begins.',
+    desc: 'Manual Elastic Workflow: reindexes source data into a named retained index with no-delete ILM, triggers readiness snapshot, opens legal hold Kibana Case, and records audit trail. Run before retirement lifecycle begins.',
   },
 
   // ── Kibana Workflow — Data Classification (THIRF) ────────────────────────
@@ -1566,7 +1566,7 @@ export const ASSET_FILES = [
     format: 'json',
     levels: [2, 3, 4],
     file: '/assets/kibana/agent/m_26_14-threat-investigation-agent.json',
-    desc: 'Elastic Agent Builder agent: autonomously investigates security alerts by querying entity risk scores, asset inventory, related logs, and attack discoveries. Produces a structured, compliance-ready investigation summary with M-26-14 element impact mapping for the Kibana Case.',
+    desc: 'Elastic Agent Builder agent: autonomously investigates security alerts by querying entity risk scores, asset inventory, related logs, and attack discoveries. Produces a structured, audit-ready investigation summary with M-26-14 element impact mapping for the Kibana Case.',
   },
   {
     id: 'agent-poam-drafting',
@@ -1576,7 +1576,7 @@ export const ASSET_FILES = [
     format: 'json',
     levels: [2, 3, 4],
     file: '/assets/kibana/agent/m_26_14-poam-drafting-agent.json',
-    desc: 'Elastic Agent Builder agent: queries open compliance findings (unresolved Cases, retirement gaps, unclassified data, recurring alerts) and drafts properly formatted Plan of Action and Milestones (POA&M) entries per FISMA requirements with M-26-14 element mapping.',
+    desc: 'Elastic Agent Builder agent: queries open readiness findings (unresolved Cases, retirement gaps, unclassified data, recurring alerts) and drafts properly formatted Plan of Action and Milestones (POA&M) entries per FISMA requirements with M-26-14 element mapping.',
   },
   {
     id: 'agent-aar',
@@ -1586,7 +1586,7 @@ export const ASSET_FILES = [
     format: 'json',
     levels: [2, 3, 4],
     file: '/assets/kibana/agent/m_26_14-aar-agent.json',
-    desc: 'Elastic Agent Builder agent: generates compliance-ready After-Action Reports from closed Kibana Cases. Reconstructs the full incident timeline from logs, identifies affected assets and data classifications, calculates detection gap, and drafts a formal AAR in M-26-14/FISMA format.',
+    desc: 'Elastic Agent Builder agent: generates audit-ready After-Action Reports from closed Kibana Cases. Reconstructs the full incident timeline from logs, identifies affected assets and data classifications, calculates detection gap, and drafts a formal AAR in M-26-14/FISMA format.',
   },
 
   // ── Agent Builder Custom Tools ────────────────────────────────────────────
@@ -1608,17 +1608,17 @@ export const ASSET_FILES = [
     format: 'json',
     levels: [2, 3, 4],
     file: '/assets/kibana/agent_tool/m_26_14-retirement-audit-esql-tool.json',
-    desc: 'Custom Agent Builder ES|QL tool that queries m_26_14-retirement-requests by state (pending_gate1, pending_gate2, legal_hold_initiated, etc.). Used by POA&M and Threat Investigation agents to surface open retirement compliance gaps.',
+    desc: 'Custom Agent Builder ES|QL tool that queries m_26_14-retirement-requests by state (pending_gate1, pending_gate2, legal_hold_initiated, etc.). Used by POA&M and Threat Investigation agents to surface open retirement readiness gaps.',
   },
   {
     id: 'agent-tool-compliance-posture',
-    label: 'Agent Tool — M-26-14 Compliance Posture ES|QL',
+    label: 'Agent Tool — M-26-14 Readiness Posture ES|QL',
     column: 'CEM',
     type: 'kibana-agent-tool',
     format: 'json',
     levels: [2, 3, 4],
     file: '/assets/kibana/agent_tool/m_26_14-compliance-posture-esql-tool.json',
-    desc: 'Custom Agent Builder ES|QL tool that queries m_26_14-data-classification-requests and m_26_14-metrics-* for compliance posture metrics. Used by the POA&M Drafting and AAR agents to identify unclassified data streams and maturity score trends.',
+    desc: 'Custom Agent Builder ES|QL tool that queries m_26_14-data-classification-requests and m_26_14-metrics-* for readiness posture metrics. Used by the POA&M Drafting and AAR agents to identify unclassified data streams and maturity score trends.',
   },
 
   {

@@ -22,7 +22,7 @@ This dashboard is a **drill-down target from the M-26-14 Maturity Overview hub**
 1. **M-26-14 Maturity Overview** — overall maturity level and per-element rollup. Element 3 panel links here.
 2. **M-26-14 Alert Coverage (Appendix B)** *(this dashboard)* — per-category detection rule and alert evidence.
 3. **Appendix B Coverage Matrix** — log *collection* coverage (Elements 1–2) for the same eleven categories; use alongside this dashboard to distinguish "not collecting" from "collecting but not detecting."
-4. **Compliance Attestation** — the evidence-package view used for the final AO submission.
+4. **Readiness Attestation** — the evidence-package view used for the final AO submission.
 
 A "← Back: M-26-14 Maturity Overview" link panel sits at the top of this dashboard so reviewers can return to the hub without losing their time range or filters (the link preserves both).
 
@@ -169,4 +169,4 @@ Remember the up-to-one-hour transform lag, and that `alerts_30d` is a trailing 3
 
 ---
 
-*Part of the Elastic M-26-14 compliance pack. Related guides: M-26-14 Maturity Overview (hub), Appendix B Coverage Matrix, Compliance Attestation.*
+*Part of the Elastic M-26-14 readiness pack. Related guides: M-26-14 Maturity Overview (hub), Appendix B Coverage Matrix, Readiness Attestation.*

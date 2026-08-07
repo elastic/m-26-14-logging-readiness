@@ -67,7 +67,7 @@ export default function MaturityView() {
           M-26-14 Maturity Levels by Organizational Size
         </h1>
         <p className="mt-8 mb-8 text-base text-text-muted leading-relaxed">
-          Select a maturity level to explore the reference architecture, requirements, and compliance
+          Select a maturity level to explore the reference architecture, requirements, and readiness
           assets for that configuration. Choose an organization size tier based on daily ingest volume.
         </p>
       </header>

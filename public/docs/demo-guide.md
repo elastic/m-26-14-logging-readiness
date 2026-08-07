@@ -2,7 +2,7 @@
 
 **Time:** ~15 minutes · **Live cluster:** [m-26-14-7ae75d.kb.us-east-1.aws.found.io](https://m-26-14-7ae75d.kb.us-east-1.aws.found.io) (read-only)
 
-This walkthrough takes you through the M-26-14 Elastic compliance pack deployed on a live cluster. Click any dashboard link to open it directly — you're in a read-only session, so feel free to explore. The data is synthetic but realistic: a 60-endpoint federal agency fleet actively working toward Level 2 attestation.
+This walkthrough takes you through the M-26-14 Elastic compliance pack deployed on a live cluster. Click any dashboard link to open it directly — you're in a read-only session, so feel free to explore. The data is synthetic but realistic: a 60-endpoint federal agency fleet at Maturity Level 2, actively working toward Level 3 attestation.
 
 The pack answers four questions auditors actually ask.
 
@@ -40,7 +40,7 @@ Click any row in the Unmanaged Assets table to open a Discover view filtered to 
 
 Knowing devices exist is one requirement. Knowing they're compliant is another. This dashboard answers the posture question: encrypted? MDM-enrolled? Running authorized software?
 
-Four gap tiles line the top row: **No Element 1 Coverage (5)**, **No Element 2 Coverage (5)**, **Unknown Encryption Status (5)**, and **No MDM Enrollment (3)** — devices missing a hardware inventory record, a software inventory, a confirmed disk-encryption state, or MDM enrollment. Click any tile to open a Discover view showing exactly which devices — names, OS versions, last-seen times. This is what you hand the ISO instead of a manual audit spreadsheet.
+Four gap tiles line the top row: **No Element 1 Coverage (5)**, **No Element 2 Coverage (5)**, **Unknown Encryption Status (5)**, and **No MDM Enrollment (4)** — devices missing a hardware inventory record, a software inventory, a confirmed disk-encryption state, or MDM enrollment. Click any tile to open a Discover view showing exactly which devices — names, OS versions, last-seen times. This is what you hand the ISO instead of a manual audit spreadsheet.
 
 > **Where this data comes from:** Encryption status is reported by osquery's `disk_encryption` table query, which runs every few hours on each enrolled endpoint and returns the state of every mounted volume. MDM enrollment status comes separately from the Microsoft Intune integration, which pushes device compliance records directly to Elasticsearch without requiring a query agent on the device. The `m_26_14-asset-entity-resolution` transform merges both sources into a single posture record per device — if osquery can't confirm a device's encryption state and Intune has no record of MDM enrollment, the combined record reflects both gaps simultaneously. Both the Coverage Gaps and the Asset Inventory dashboard draw from the same `m_26_14-assets` index — [you can navigate between them using the links at the top of each dashboard](https://m-26-14-7ae75d.kb.us-east-1.aws.found.io/app/dashboards#/view/m_26_14-hwam-overview).
 
@@ -70,7 +70,7 @@ Click either unauthorized title to drill into which specific endpoints are affec
 
 At enrollment, every managed device gets a baseline snapshot — a cryptographic fingerprint of its OS version, disk encryption status, and serial number. If any of those fields change on a live device, it gets flagged.
 
-You'll see a set of **drifted assets** flagged on this dashboard — 8 in the current dataset, a mix of workstations, laptops, and servers. Click the metric tile and the Discover view shows exactly which ones, each with its baseline timestamp and what changed.
+You'll see a set of **drifted assets** flagged on this dashboard — 2 in the current dataset, both workstations with OS-version drift from their certified baseline. Click the metric tile and the Discover view shows exactly which ones, each with its baseline timestamp and what changed.
 
 These could be routine OS updates, intentional policy changes, or something to investigate. The important thing is the system caught them — not a quarterly audit.
 
@@ -90,7 +90,9 @@ The bars here show active detection rules by Appendix B category alongside alert
 
 Categories A, B, and H go further than static rules: they also have ML anomaly detection running continuously. The ML jobs learn what "normal" looks like in this environment and alert on genuine deviations — not just threshold crossings.
 
-> **How this works:** Every alert passes through the `m_26_14-alert-category-pipeline` ingest pipeline, which tags it with its Appendix B category. The `m_26_14-alert-coverage-daily` transform rolls those counts into per-day summaries; `m_26_14-alert-coverage-latest` maintains the current view. Categories A, B, and H are reinforced by **machine-learning detection rules** — `m_26_14-ml-cata-high-auth-failures`, `-cata-rare-auth-ip`, and `-cata-ueba-login` for Category A; `-catb-dns-dga` and `-catb-rare-country` for Category B; `-cath-rare-process-linux` and `-cath-rare-process-windows` for Category H — that flag anomalies a static threshold would miss. (These ML *rules* are separate from the maturity ML anomaly-detection *jobs* covered on the Maturity Overview.)
+This isn't theoretical. The demo dataset stages a realistic intrusion chain, and the ML pipeline caught every stage: a cryptominer appearing on a Linux bastion host (rare-process anomaly, record score 99.9), credential-dumping tools on a Windows workstation, a burst of network flows to countries this fleet has never contacted (score 93), and an off-baseline login surge for a single account (score 98). Each anomaly then produced a real detection-engine alert. Open **Security → Alerts** and filter on rule names starting `M-26-14 ML` to see them.
+
+> **How this works:** Every alert passes through the `m_26_14-alert-category-pipeline` ingest pipeline, which tags it with its Appendix B category. The `m_26_14-alert-coverage-daily` transform rolls those counts into per-day summaries; `m_26_14-alert-coverage-latest` maintains the current view. Categories A, B, and H are reinforced by **machine-learning detection rules** — `m_26_14-ml-cata-high-auth-failures`, `-cata-rare-auth-ip`, and `-cata-ueba-login` for Category A; `-catb-dns-dga` and `-catb-rare-country` for Category B; `-cath-rare-process-linux`, `-cath-rare-process-windows`, and `-cath-host-silent` for Category H — that flag anomalies a static threshold would miss. Seven of these eight rules wrap **Elastic Security ML module jobs** installed with the `m_26_14_` job-id prefix (the same battle-tested detectors Elastic ships for SOC use, isolated under pack-owned IDs); `-catb-dns-dga` uses the pack's own DNS-entropy job. (These ML *rules* are separate from the maturity ML anomaly-detection *jobs* covered on the Maturity Overview.)
 
 ---
 
@@ -155,7 +157,7 @@ This is what the ISSO opens every morning. The same pipeline that powers every d
 
 Behind this view:
 
-- **6 ML anomaly-detection jobs** tracking maturity signals — asset-coverage drops, ingestion-rate dips, rule silence, retention/ILM anomalies, hash-coverage gaps, and DNS entropy — plus machine-learning detection rules reinforcing identity (Cat A), DNS/C2 (Cat B), and off-hours execution (Cat H)
+- **14 ML anomaly-detection jobs** — seven pack-owned jobs tracking maturity signals (asset-coverage drops, new-device discovery, ingestion-rate dips, rule silence, retention/ILM anomalies, hash-coverage gaps, and DNS entropy) plus seven `m_26_14_`-prefixed Elastic Security ML module jobs powering the behavioral detection rules for identity (Cat A), DNS/C2 (Cat B), and host behavior (Cat H)
 - **6 ES Watchers** enforcing the two-gate data retirement workflow, JIT privileged access expiry, and selective legal-hold copy
 - **3 AI Agents** in Elastic Agent Builder — `m_26_14-poam-drafting-agent` for gap documentation, `m_26_14-threat-investigation-agent` for security triage, `m_26_14-aar-agent` for after-action reports — each wired to ES|QL compliance query tools
 
@@ -164,7 +166,7 @@ Behind this view:
 ## Questions you might have
 
 **What happens to the 5 unmanaged devices?**
-In a real deployment, each UNKNOWN-* device gets investigated: authorized IoT hardware, rogue equipment, or a decommissioned machine still on the network. M-26-14 requires documented disposition for anything network-discovered. The entity resolution transform surfaces them automatically — you don't have to go looking.
+They enter a live triage loop, not a manual queue. A continuous transform correlates each network-discovered device against the asset registry and recent Security alerts, an enrich step resolves its hardware vendor from the MAC address (OUI lookup), and a classification pipeline assigns a disposition: `new_uninventoried`, `shadow_it`, `rogue`, `decommissioned`, `needs_review`, or `inventoried` once resolved. Every disposition lands in the `m_26_14-asset-triage` ledger with a recommended action and the evidence that drove it, and high-risk dispositions route to a Kibana Workflow for analyst review before any action fires. M-26-14 requires documented disposition for anything network-discovered; the ledger is that documentation.
 
 **What's the two-gate retirement workflow protecting against?**
 It ensures no compliance log can be deleted by a single person or an automated process. Gate 1 requires ISSO review and a confirmed snapshot. Gate 2 requires a second human approval. The snapshot requirement means even if someone approves deletion, the data still exists in the snapshot repository until the snapshot itself expires — a separate, independent retention control.

@@ -114,7 +114,7 @@ The Elastic M-26-14 Compliance Pack includes assets of various types that are me
 | :---- | :---- | :---- |
 | Machine learning jobs | 7 | element1-asset-coverage, element1-new-network-device, element2-ingestion-rate, element3-rule-silence, element4-ilm-anomaly, element5-hash-coverage, catb-dns-entropy |
 | ML alert rules | 14 | E1–E5 element alerts \+ Cat-A/B/H supplementary \+ AppA-L new/rogue device |
-| Detection rules | 32 custom (\+ \~1,800 prebuilt) | m_26_14-appendixb-a-\* through -l-\* (A–L), ws7 posture-change r1–r7, retirement-gate1/2 |
+| Detection rules | 43 custom (\+ \~1,800 prebuilt) | m_26_14-appendixb-a-\* through -l-\* (A–L), appendixa new-ot-device, 14 ML rules, ws7 posture-change r1–r7, retirement-gate1/2 |
 | Ingest pipelines | 21 | log-integrity-hash, alert-category-pipeline, osquery-normalize, asset-normalize / canonical-enrich / drift / entity-store-enrich, baseline-hash, network-device-normalize / netobserved-reroute (OT/IoT) |
 | Transforms | 12 | score-entity, score-rollup / -enterprise, asset-entity-resolution, alert-coverage-daily / -latest, dataset-retention, store-feed, observed-assets |
 | Enrich policies | 8 | authorized-software, asset-baseline-lookup, asset-compliance-lookup, inventory-enrich, config-enrich, host-alert-lookup, observed-enrich, oui-vendor |
@@ -136,7 +136,7 @@ The Elastic M-26-14 Compliance Pack includes assets of various types that are me
 | CEM \- Retention Tiers | 9 ILM policies: L3/L4 hot-frozen, L3/L4 no-delete, retention L1/L2/L3, asset inventory, HVA-extended |
 | CEM \- Asset Inventory | Direct CDM/HWAM/SWAM platform integrations and/or inventory via the Agent Osquery integration → HWAM/SWAM index template |
 | CEM \- Inventory \& entity resolution | Osquery HWAM/SWAM/network pack, asset-entity-resolution \+ observed-assets transforms, 8 enrich policies |
-| THIRF \- Detection | 32 custom M-26-14 detection rules \+ \~1,800 prebuilt Elastic Security rules |
+| THIRF \- Detection | 43 custom M-26-14 detection rules \+ \~1,800 prebuilt Elastic Security rules |
 | THIRF \- Anomaly Detection | 7 custom M-26-14 ML jobs \+ 14 ML alert rules |
 | THIRF \- Threat intelligence | CISA AIS \+ MS-ISAC TAXII 2.1 → Indicator Match rules |
 | THIRF \- Tamper-evident Logs | Log integrity hash ingest pipeline  |

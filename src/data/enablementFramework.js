@@ -77,7 +77,7 @@ export const PILLARS = [
       concept:
         'A 60-endpoint fleet: 55 report via osquery, 5 unmanaged devices show up only through network discovery. Everything lands in m_26_14-assets as one canonical record per device.',
       talkTrack:
-        'Start with the headline count, then the split. The interesting number is not "60 assets," it is "5 devices we found that have no agent." That is the gap M-26-14 makes you close.',
+        'Start with the headline count, then the split. The interesting number is not "60 assets," it is "5 devices we found that have no agent." That is the gap M-26-14 makes you close. Then show it being closed: the live triage loop classifies every unknown device into a disposition (rogue, shadow-IT, new-but-uninventoried, decommissioned, needs-review) in the m_26_14-asset-triage ledger, each with a recommended, human-gated next step.',
       technical:
         'Managed endpoints run Elastic Agent with the Fleet osquery integration. Results flow through m_26_14-asset-normalize, then m_26_14-asset-canonical-enrich, and the m_26_14-asset-entity-resolution continuous transform writes the deduplicated record to m_26_14-assets. The 5 unmanaged devices arrive via network discovery carrying only what a scan can observe.',
       live: [
@@ -187,9 +187,9 @@ export const PILLARS = [
       concept:
         '11 Appendix B categories shown as active detection rules and alert volume. Categories A, B, and H add ML anomaly detection. A coverage matrix scores each category on data, rules, and recent alerts.',
       talkTrack:
-        'Walk the bars, then pivot to the matrix. Green means data plus rules plus alerts. That matrix is what the SA brings to the auditor. Then show the POA&M agent drafting a gap document from the same data.',
+        'Walk the bars, then pivot to the matrix. Green means data plus rules plus alerts. That matrix is what the SA brings to the auditor. The ML claim is provable in the alerts list: the demo dataset stages an intrusion chain (a cryptominer on a Linux bastion, credential-dump tools on a Windows workstation, flows to never-seen countries, an off-baseline login surge) and every stage produced a live anomaly (record scores 93-99.9) and a real detection-engine alert. Then show the POA&M agent drafting a gap document from the same data.',
       technical:
-        'Alerts pass through m_26_14-alert-category-pipeline for tagging; m_26_14-alert-coverage-daily rolls per-day counts. ML detection rules reinforce Cat A (auth), Cat B (DNS/C2), and Cat H (off-hours execution). The m_26_14-poam-drafting-agent in Agent Builder queries coverage via the m_26_14-compliance-posture-esql-tool.',
+        'Alerts pass through m_26_14-alert-category-pipeline for tagging; m_26_14-alert-coverage-daily rolls per-day counts. ML detection rules reinforce Cat A (auth anomalies, UEBA login), Cat B (DNS entropy, rare destination country), and Cat H (rare process, host-went-silent); seven of the eight wrap m_26_14_-prefixed Elastic Security ML module jobs. The m_26_14-poam-drafting-agent in Agent Builder queries coverage via the m_26_14-compliance-posture-esql-tool.',
       live: [
         { label: 'Alert Coverage (Appendix B)', url: dash('m_26_14-alert-coverage', 'now-30d') },
         { label: 'Appendix B Coverage Matrix', url: dash('m_26_14-appendix-b-coverage', 'now-30d') },

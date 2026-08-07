@@ -382,8 +382,8 @@ export const ASSET_FILES = [
     format: 'ndjson',
     levels: [3, 4],
     file: '/assets/kibana/rule/m_26_14-appendixb-g-ioc-monitoring.ndjson',
-    desc: '4 rules: STIX/TAXII and CISA KEV indicator matches against network, file, URL, and process events.',
-    ruleCount: 4,
+    desc: '1 custom domain-match rule; IP/hash/URL/email/registry matching handled by 5 Elastic prebuilt Threat Intel rules (see rule guide).',
+    ruleCount: 1,
     docs: [{ label: 'Rule Guide: IoC Monitoring', file: '/docs/detection-rules/rule-g-ioc-match.md' }],
   },
   {

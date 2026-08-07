@@ -322,8 +322,8 @@ At L1, you are not required to cover 50%+ — you are at L1 when alerts exist an
 95% of 11 = at least 10-11 categories with active, ML/AI-tuned alerts.
 
 - [ ] **Enable Elastic ML anomaly detection suite** (requires Platinum/Enterprise subscription)  
-  Kibana → Machine Learning → Anomaly Detection → import `m_26_14-anomaly-element3.json`  
-  Behavioral jobs (Security ML modules, prefix-installed): `m_26_14_v3_rare_process_by_host_windows_ea`, `m_26_14_v3_rare_process_by_host_linux_ea`, `m_26_14_suspicious_login_activity_ea`, `m_26_14_auth_rare_source_ip_for_a_user_ea`, `m_26_14_rare_destination_country`  
+  Kibana → Machine Learning → Anomaly Detection → import `m_26_14-ml-element3-rule-silence.json`  
+  Behavioral jobs (Security ML modules, prefix-installed): `m_26_14_v3_rare_process_by_host_windows_ea`, `m_26_14_v3_rare_process_by_host_linux_ea`, `m_26_14_suspicious_login_activity_ea`, `m_26_14_auth_rare_source_ip_for_a_user_ea`, `m_26_14_auth_high_count_logon_fails_ea`, `m_26_14_low_count_events_for_a_host_name_ea`, `m_26_14_rare_destination_country`  
   Wait for initialization period (minimum 2 weeks of data for baseline to establish)
 
 - [ ] **Connect ML anomaly scores to SIEM detection rules**  

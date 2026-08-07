@@ -22,11 +22,11 @@ detection rule activity, ILM index-lifecycle events, hash coverage ratios, DNS e
 devices appearing on a network segment. These do not exist as Elastic prebuilt jobs and must be
 deployed and managed by the agency.
 
-**Component B — Kibana rules referencing prebuilt / Entity-Store jobs.** Eight detection rules
+**Component B — Kibana rules referencing prebuilt / Entity-Store jobs.** Seven detection rules
 that wrap Elastic Security's built-in ML behavioral models (rare authentication sources, high
 authentication failure counts, rare processes, host-went-silent, unusual login activity, network
-traffic to rare countries). Several now bind to the M-26-14 Entity-Store variants (`*_ea` job ids)
-rather than the raw prebuilt jobs — see §5.2. The pack does **not** duplicate the base jobs — doing
+traffic to rare countries). Each binds one `m_26_14_`-prefixed module job (the 9.4+ `_ea` Entity
+Analytics generation) — see §5.2. The pack does **not** duplicate the base jobs — doing
 so would fork them from the Elastic
 update stream and create maintenance overhead for the agency. Instead, the Kibana rules carry the
 M-26-14 compliance metadata (MITRE tags, requirement references, maturity level) and fire when the
@@ -91,13 +91,13 @@ in `public/assets/elasticsearch/ml_job/`.
 
 | Job ID | Job File | Bucket Span | Model Memory | M-26-14 Requirement | MITRE ATT&CK |
 |---|---|---|---|---|---|
-| `m_26_14-ml-element1-asset-coverage` | `m_26_14-anomaly-element1.json` | 1h | 128mb | Element 1 §4 HWAM/SWAM Coverage | — |
+| `m_26_14-ml-element1-asset-coverage` | `m_26_14-ml-element1-asset-coverage.json` | 1h | 128mb | Element 1 §4 HWAM/SWAM Coverage | — |
 | `m_26_14-ml-element1-new-network-device` | `m_26_14-ml-element1-new-network-device.json` | 15m | 64mb | Element 1 / Appendix A HWAM (passive) | T1200 |
-| `m_26_14-ml-element2-ingestion-rate` | `m_26_14-anomaly-element2.json` | 1h | 512mb | Element 2 Log Centralization | — |
-| `m_26_14-ml-element3-rule-silence` | `m_26_14-anomaly-element3.json` | 6h | 64mb | Element 3 §5(k) Detection Coverage | — |
-| `m_26_14-ml-element4-ilm-anomaly` | `m_26_14-anomaly-element4.json` | 1h | 64mb | Element 4/5 Retention | T1485, T1070.004 |
+| `m_26_14-ml-element2-ingestion-rate` | `m_26_14-ml-element2-ingestion-rate.json` | 1h | 512mb | Element 2 Log Centralization | — |
+| `m_26_14-ml-element3-rule-silence` | `m_26_14-ml-element3-rule-silence.json` | 6h | 64mb | Element 3 §5(k) Detection Coverage | — |
+| `m_26_14-ml-element4-ilm-anomaly` | `m_26_14-ml-element4-ilm-anomaly.json` | 1h | 64mb | Element 4/5 Retention | T1485, T1070.004 |
 | `m_26_14-ml-element5-hash-coverage` | `m_26_14-ml-element5-hash-coverage.json` | 1h | 128mb | Element 5 §3 Hashing/Integrity | T1565.001, T1070 |
-| `m_26_14-ml-catb-dns-entropy` | `m_26_14-anomaly-catb-dns-entropy.json` | 15m | 256mb | Appendix B §5(b)(g) Network/DGA | T1568.002, T1071.004 |
+| `m_26_14-ml-catb-dns-entropy` | `m_26_14-ml-catb-dns-entropy.json` | 15m | 256mb | Appendix B §5(b)(g) Network/DGA | T1568.002, T1071.004 |
 
 **Element 1 — Asset Coverage (`m_26_14-ml-element1-asset-coverage`).** Detects declining asset
 coverage ratios from the HWAM/SWAM tracking indices. A sustained drop in the fraction of expected
@@ -206,8 +206,8 @@ excessive alerts from routine lifecycle activity.
 
 ### 5.2 Behavioral Rules (Entity-Store + prebuilt job wrappers)
 
-Eight rules reference Elastic Security ML module jobs. All seven behavioral wrappers bind to
-module jobs installed with the `m_26_14_` job-id prefix (the 9.4+ `_ea` Entity Analytics job
+Seven behavioral wrapper rules reference Elastic Security ML module jobs; each binds to one
+module job installed with the `m_26_14_` job-id prefix (the 9.4+ `_ea` Entity Analytics job
 generation; `rare_destination_country` keeps its unsuffixed historical id). The modules involved
 are `security_auth`, `security_host`, `security_network`, `security_linux_v3`, and
 `security_windows_v3`. See [Deployment Steps](#6-deployment-steps).

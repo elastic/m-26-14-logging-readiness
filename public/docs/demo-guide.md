@@ -106,13 +106,13 @@ The coverage matrix is what you bring to the auditor. Each row is an Appendix B 
 
 Green means all three. Yellow means partial. Red means a gap that needs to be addressed before attestation. Use this view to prioritize what to work on next — or to show the auditor what's already covered.
 
-> **How this works:** If you need to document a gap formally, the `m_26_14-poam-drafting-agent` in Elastic Agent Builder can query this coverage data directly using the `m_26_14-compliance-posture-esql-tool` and draft a Plan of Action & Milestones document. It reads the same data as this dashboard — no export needed. The `m_26_14-threat-investigation-agent` can triage specific alerts, and `m_26_14-aar-agent` generates after-action reports from alert history.
+> **How this works:** If you need to document a gap formally, the `m_26_14-poam-drafting-agent` in Elastic Agent Builder can query this coverage data directly using the `m_26_14-readiness-posture-esql-tool` and draft a Plan of Action & Milestones document. It reads the same data as this dashboard — no export needed. The `m_26_14-threat-investigation-agent` can triage specific alerts, and `m_26_14-aar-agent` generates after-action reports from alert history.
 
 ---
 
 ## 4 — Can you prove data is retained and hasn't been tampered with?
 
-**[Open: Retention Compliance →](https://m-26-14-7ae75d.kb.us-east-1.aws.found.io/app/dashboards#/view/m_26_14-retention-compliance?_g=(time:(from:now-30d,to:now)))**
+**[Open: Retention Compliance →](https://m-26-14-7ae75d.kb.us-east-1.aws.found.io/app/dashboards#/view/m_26_14-retention-readiness?_g=(time:(from:now-30d,to:now)))**
 
 ![Retention Compliance](/screenshots/04-retention-compliance.png)
 

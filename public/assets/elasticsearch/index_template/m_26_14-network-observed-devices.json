@@ -1,7 +1,7 @@
 {
   "_meta": {
     "managed": true,
-    "managed_by": "m2614_compliance",
+    "managed_by": "m_26_14",
     "m_26_14": {
       "workstream": 3,
       "description": "Passively-observed network device inventory data stream (OT/IoT network visibility). Fed by NetFlow/IPFIX, DHCP, DNS, ARP, Packetbeat, Suricata observations via the m_26_14-network-device-normalize pipeline. Every source.mac/ip on the wire becomes an unmanaged asset + Entity Store host entity \u2014 the passive complement to osquery HWAM (agent-based). M-26-14 Appendix A HWAM / network visibility."

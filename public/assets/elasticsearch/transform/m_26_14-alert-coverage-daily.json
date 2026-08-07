@@ -5,6 +5,14 @@
       "term": {
         "kibana.alert.rule.tags": "M-26-14"
       }
+    },
+    "runtime_mappings": {
+      "m_26_14.appendix_b_category": {
+        "type": "keyword",
+        "script": {
+          "source": "def tags = params._source['kibana.alert.rule.tags']; if (tags == null) { def kibana = params._source['kibana']; if (kibana != null && kibana['alert'] != null && kibana['alert']['rule'] != null) { tags = kibana['alert']['rule']['tags']; } } if (tags == null) return; if (tags instanceof String) { tags = [tags]; } for (def t : tags) { String s = t.toString(); if (s.startsWith('Appendix-B-')) { emit(s); return; } }"
+        }
+      }
     }
   },
   "pivot": {
@@ -18,7 +26,7 @@
       },
       "appendix_b_category": {
         "terms": {
-          "field": "kibana.alert.rule.tags",
+          "field": "m_26_14.appendix_b_category",
           "missing_bucket": false
         }
       }
@@ -55,7 +63,7 @@
     "managed_by": "m_26_14",
     "m_26_14": {
       "workstream": 6,
-      "description": "Pivot transform: daily alert counts per Appendix B category for closed-loop compliance attestation"
+      "description": "Pivot transform: daily alert counts per Appendix B category for closed-loop readiness attestation"
     }
   }
 }

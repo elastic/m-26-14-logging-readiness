@@ -64,9 +64,9 @@ Two navigation layers are built into the dashboard:
 | Elements 1 & 2 — Asset Coverage | `m_26_14-asset-coverage` | Which hardware assets and software sources are inventoried and actually shipping logs? Where are the collection gaps? |
 | Element 3 — Appendix B Matrix | `m_26_14-appendix-b-coverage` | Category by category (A–K): which required log types are being collected, and to what depth? |
 | Element 3 — Alert Coverage | `m_26_14-alert-coverage` | Which Appendix B categories have active detection rules and recent alert activity? Which are `partial` or `none`? |
-| Element 4 — Retention Readiness | `m_26_14-retention-compliance` | Per data stream: do active and cold-tier retention periods meet the L3 requirements? Which streams fall short? |
+| Element 4 — Retention Readiness | `m_26_14-retention-readiness` | Per data stream: do active and cold-tier retention periods meet the L3 requirements? Which streams fall short? |
 | Element 5 — Log Integrity | `m_26_14-log-management` | What fraction of log documents carry integrity hashes, and what produced the recorded violations? |
-| Attestation Report | `m_26_14-compliance-attestation-dash` | Is the evidence package complete and current for AO sign-off? |
+| Attestation Report | `m_26_14-readiness-attestation-dash` | Is the evidence package complete and current for AO sign-off? |
 
 **Layer 2 — value-click drilldowns.** Every metric and trend panel has a value-click URL drilldown to its corresponding detail dashboard with a fixed 30-day window (`now-30d` to `now`). Clicking the Element 3 score, for example, lands directly on the Alert Coverage dashboard. Both Element 5 panels (hashed documents and violations) drill into the Log Integrity dashboard; both trend charts drill into Asset Coverage. The hub is therefore fully navigable without the links bar — click any number you do not like.
 

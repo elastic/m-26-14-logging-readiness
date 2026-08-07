@@ -1,19 +1,25 @@
 {
-  "id": "m_26_14-retirement-audit-query",
-  "type": "esql",
-  "description": "Queries the M-26-14 data retirement audit index (m_26_14-retirement-requests) using ES|QL. Use this tool to find indices pending retirement, legal hold status, gate approval states, and audit trail for deletion decisions. Useful for POA&M drafting to surface open retirement compliance gaps.",
-  "tags": ["m_26_14", "compliance", "data-retirement", "audit", "poam"],
-  "configuration": {
-    "query": "FROM m_26_14-retirement-requests | WHERE state == ?state | SORT @timestamp DESC | LIMIT ?limit",
-    "params": {
-      "state": {
-        "type": "string",
-        "description": "Retirement state to filter on. Valid values: pending_gate1, approved_gate1, pending_gate2, approved_gate2, scheduled_for_deletion, legal_hold_initiated. Use * or omit to see all states."
-      },
-      "limit": {
-        "type": "integer",
-        "description": "Maximum number of records to return. Default: 20. Use 100 for full audit sweep."
-      }
-    }
+ "id": "m_26_14-retirement-audit-query",
+ "type": "esql",
+ "description": "Queries the M-26-14 data retirement audit index (m_26_14-retirement-requests) using ES|QL. Use this tool to find indices pending retirement, legal hold status, gate approval states, and audit trail for deletion decisions. Useful for POA&M drafting to surface open retirement compliance gaps. IMPORTANT supersession semantics: this index is append-capable - approvals and cancellations may be written as new records rather than updates, so a record with a pending_* state is not necessarily current. Before reporting an index as pending, check whether a later record for the same index_name has a superseding state (approved_gate1/approved_gate2/cancelled/deletion_completed).",
+ "tags": [
+  "m_26_14",
+  "readiness",
+  "data-retirement",
+  "audit",
+  "poam"
+ ],
+ "configuration": {
+  "query": "FROM m_26_14-retirement-requests | WHERE state LIKE ?state | KEEP @timestamp, index_name, state, phase_age_days, created_at, updated_at, gate1_approved_by, gate2_approved_by, held_by, notes | SORT @timestamp DESC | LIMIT ?limit",
+  "params": {
+   "state": {
+    "type": "string",
+    "description": "Retirement state to filter on (LIKE pattern, * wildcards allowed). Valid values: pending_gate1, approved_gate1, pending_gate2, approved_gate2, scheduled_for_deletion, legal_hold_initiated. Use * for all states, pending_* for both pending gates. Age is returned as phase_age_days for staleness filtering."
+   },
+   "limit": {
+    "type": "integer",
+    "description": "Maximum number of records to return. Default: 20. Use 100 for full audit sweep."
+   }
   }
+ }
 }

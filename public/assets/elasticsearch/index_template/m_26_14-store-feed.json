@@ -37,7 +37,7 @@
           "type": "flattened"
         },
         "appnames": {
-          "type": "keyword"
+          "type": "flattened"
         },
         "data_stream": {
           "properties": {

@@ -1,7 +1,7 @@
 {
   "_meta": {
     "managed": true,
-    "managed_by": "m2614_compliance",
+    "managed_by": "m_26_14",
     "m_26_14": {
       "workstream": 3,
       "description": "Normalize passively-observed network device signals (NetFlow/IPFIX, DHCP, DNS, ARP, Packetbeat, Suricata) into the M-26-14 asset model. MAC OUI -> vendor/device_class via the m_26_14-oui-vendor enrich policy; OT-protocol and DHCP vendor-class refinement; populates asset.* + host.* (Entity Store host engine) + m_26_14.* coverage flags. Source docs must set m_26_14.observed_via (netflow|dhcp|dns|arp|packetbeat|suricata)."

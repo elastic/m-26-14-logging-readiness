@@ -121,7 +121,7 @@ The Elastic M-26-14 Compliance Pack includes assets of various types that are me
 | ILM policies | 9 | m_26_14-logs-l3 / l4-hot-frozen, l3 / l4-no-delete, retention-l1 / l2 / l3, asset-inventory, logs-hva-extended |
 | Index templates | 21 (\+ 1 component) | logs-data-streams, asset-canonical / baselines / inventory-normalized, scores, retention, jit-grants, network-observed-devices / oui-catalog (OT/IoT) \+ log-integrity-settings (component) |
 | Watchers | 6 | gate1-detect-frozen-aged, gate1-approval-advance, gate2-execute-deletion, jit-audit, jit-expiry, selective-copy-legal-hold |
-| SLM policy | 1 | m_26_14-compliance-snapshots |
+| SLM policy | 1 | m_26_14-readiness-snapshots |
 | Kibana dashboards | 17 | compliance attestation, maturity overview, Appendix B matrix, alert coverage, asset coverage, log management, retention compliance |
 | AI agents | 3 | threat-investigation-agent, poam-drafting-agent, aar-agent |
 | Agent tools | 4 | compliance-posture-esql, asset-inventory-search, classification-audit-esql, retirement-audit-esql |

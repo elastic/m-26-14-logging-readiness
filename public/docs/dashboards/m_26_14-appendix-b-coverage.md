@@ -21,7 +21,7 @@ This dashboard is **Element 3** of the M-26-14 readiness pack and is reached as 
 
 It is a companion to:
 
-- **Readiness Attestation Dashboard** (`m_26_14-compliance-attestation-dash`) — same data source, oriented toward evidence-package generation. See `../detection-rules/compliance-dashboard-guide.md`.
+- **Readiness Attestation Dashboard** (`m_26_14-readiness-attestation-dash`) — same data source, oriented toward evidence-package generation. See `../detection-rules/compliance-dashboard-guide.md`.
 - **Alert Coverage** views in Elastic Security — raw alert investigation once the matrix identifies which category needs attention.
 
 Use the matrix for *visual gap identification*; use the Attestation Dashboard for *evidence export*.

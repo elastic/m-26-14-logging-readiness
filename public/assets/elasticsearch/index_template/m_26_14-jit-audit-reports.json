@@ -1,0 +1,50 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m_26_14",
+    "m_26_14": {
+      "workstream": 7,
+      "description": "Daily JIT access audit reports written by the m_26_14-jit-audit watcher: counts plus grant detail arrays for active and stale (expired-but-unrevoked) JIT grants. Grant arrays are flattened; drill into m_26_14-jit-grants for full grant records."
+    }
+  },
+  "index_patterns": [
+    "m_26_14-jit-audit-reports"
+  ],
+  "priority": 500,
+  "template": {
+    "settings": {
+      "index.number_of_shards": 1,
+      "index.number_of_replicas": 1,
+      "index.codec": "best_compression"
+    },
+    "mappings": {
+      "dynamic": false,
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "report": {
+          "type": "keyword"
+        },
+        "active_count": {
+          "type": "integer"
+        },
+        "stale_count": {
+          "type": "integer"
+        },
+        "active_grants": {
+          "type": "flattened"
+        },
+        "stale_grants": {
+          "type": "flattened"
+        },
+        "stale_summary": {
+          "type": "text"
+        },
+        "watcher_id": {
+          "type": "keyword"
+        }
+      }
+    }
+  }
+}

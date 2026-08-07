@@ -1,7 +1,7 @@
 {
   "_meta": {
     "managed": true,
-    "managed_by": "m2614_compliance",
+    "managed_by": "m_26_14",
     "m_26_14": {
       "workstream": 3,
       "description": "MAC OUI (Organizationally Unique Identifier) → vendor + device_class catalog. Enrich source index for the m_26_14-oui-vendor enrich policy used by the m_26_14-network-device-normalize pipeline. One doc per 24-bit OUI prefix (lowercase colon form, e.g. 00:1d:9c). ot=true flags industrial/ICS/BMS vendors. Starter set — replace/extend with your agency's OT/IoT vendor inventory or a full IEEE OUI export."

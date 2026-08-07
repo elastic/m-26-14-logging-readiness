@@ -3,7 +3,7 @@
   "description": "M-26-14 Element 5: Detects drops in log integrity hash coverage per data stream — low_count on hashed docs",
   "groups": [
     "m_26_14",
-    "compliance-health"
+    "readiness-health"
   ],
   "analysis_config": {
     "bucket_span": "1h",

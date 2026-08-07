@@ -481,7 +481,7 @@ M-26-14 Appendix C defines a five-element maturity model. Each element has multi
 
 **Baseline period**: 14 days minimum before anomaly scores are reliable. Monitor job status in Kibana → Machine Learning → Anomaly Detection during the warm-up period.
 
-**Dashboard**: `m_26_14-retention-compliance` — shows ILM policy matrix with per-data-stream retention status. The element2 anomaly data feeds into the retention compliance view.
+**Dashboard**: `m_26_14-retention-readiness` — shows ILM policy matrix with per-data-stream retention status. The element2 anomaly data feeds into the retention compliance view.
 
 **Key documentation links**:
 - [ML anomaly detection jobs](https://www.elastic.co/guide/en/machine-learning/current/ml-ad-run-jobs.html)
@@ -642,7 +642,7 @@ GET /_data_stream/logs-endpoint.events.process-default/_settings?filter_path=*.s
 
 ### 6.4 Retention Compliance Dashboard
 
-The `m_26_14-retention-compliance` Kibana dashboard (ID: `m_26_14-retention-compliance`) provides a visual ILM policy matrix:
+The `m_26_14-retention-readiness` Kibana dashboard (ID: `m_26_14-retention-readiness`) provides a visual ILM policy matrix:
 - Green: meets L3 target (12 months)
 - Yellow: meets L2 (6 months), needs upgrade for L3
 - Red: non-compliant
@@ -798,7 +798,7 @@ Follow the procedure in `docs/ml-jobs-guide.md` Section 6. Allow 14-day baseline
 Open Kibana → Dashboards → search "M-26-14". Validate:
 - `m_26_14-maturity-overview`: Element score gauges showing coverage percentages
 - `m_26_14-alert-coverage`: All 11 categories showing at least yellow status
-- `m_26_14-retention-compliance`: All Appendix B data streams meeting L3 retention (green)
+- `m_26_14-retention-readiness`: All Appendix B data streams meeting L3 retention (green)
 
 ---
 

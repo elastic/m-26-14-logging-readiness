@@ -1,7 +1,7 @@
 # M-26-14 Compliance Pack — ML Jobs Guide
 
 This document describes all machine learning anomaly detection components in the M-26-14 compliance
-pack: seven custom compliance-health jobs (Component A) and fourteen Kibana detection rules that
+pack: seven custom readiness-health jobs (Component A) and fourteen Kibana detection rules that
 reference either those custom jobs or Elastic Security prebuilt / Entity-Store ML jobs (Component B).
 
 ---
@@ -16,7 +16,7 @@ in ways that prebuilt Elastic Security models already capture well.
 
 The ML component is split into two parts deliberately:
 
-**Component A — Custom compliance-health jobs.** Seven custom anomaly detection jobs built specifically
+**Component A — Custom readiness-health jobs.** Seven custom anomaly detection jobs built specifically
 for M-26-14. They monitor the compliance control plane: asset coverage rates, log ingestion rates,
 detection rule activity, ILM index-lifecycle events, hash coverage ratios, DNS entropy, and new/rare
 devices appearing on a network segment. These do not exist as Elastic prebuilt jobs and must be
@@ -56,7 +56,7 @@ rules and require the Security app to be present.
 
 **14-day baseline period.** ML anomaly detection jobs require a sufficient baseline to establish
 normal behavioral bounds. Plan for a **minimum 14-day warm-up period** after the datafeeds start
-before enabling the Kibana compliance-health alert rules. Anomaly scores during the first 7–14 days
+before enabling the Kibana readiness-health alert rules. Anomaly scores during the first 7–14 days
 will be unreliable and will generate false positives if rules are active. The DNS entropy job
 (`m_26_14-ml-catb-dns-entropy`) uses 15-minute buckets and converges faster — a 7-day baseline is
 the practical minimum for that job.
@@ -112,7 +112,7 @@ complement to the agent-based asset-coverage job. Uses a `rare(host.name)` detec
 segment — catching unmanaged OT/IoT hardware that never runs an osquery agent and so is invisible to
 the coverage job. Satisfies Element 1 / Appendix A HWAM for the unmanaged-device case (MITRE T1200,
 Hardware Additions). Surfaced by the `AppA-L` new-terms detection rule rather than an ML-anomaly
-wrapper, so no separate compliance-health rule is needed.
+wrapper, so no separate readiness-health rule is needed.
 
 **Element 2 — Ingestion Rate (`m_26_14-ml-element2-ingestion-rate`).** Monitors log ingestion
 document counts per data stream per hour. A sudden drop in ingestion rate for a data stream that
@@ -221,10 +221,10 @@ are `security_auth`, `security_host`, `security_network`, `security_linux_v3`, a
 | `m_26_14-ml-cath-rare-process-windows` | `m_26_14-ml-cath-rare-process-windows.ndjson` | `m_26_14_v3_rare_process_by_host_windows_ea` | H — Anomalous activity | L4 |
 | `m_26_14-ml-cath-rare-process-linux` | `m_26_14-ml-cath-rare-process-linux.ndjson` | `m_26_14_v3_rare_process_by_host_linux_ea` | H — Anomalous activity | L4 |
 | `m_26_14-ml-catb-rare-country` | `m_26_14-ml-catb-rare-country.ndjson` | `m_26_14_rare_destination_country` | B — Network/C2 | L4 |
-| `m_26_14-ml-compliance-degradation` | `m_26_14-ml-compliance-degradation.ndjson` | All 6 compliance-health jobs (meta-rule) | Meta — All elements | L2 |
+| `m_26_14-ml-readiness-degradation` | `m_26_14-ml-readiness-degradation.ndjson` | All 6 readiness-health jobs (meta-rule) | Meta — All elements | L2 |
 
-**Compliance degradation meta-rule.** The `m_26_14-ml-compliance-degradation` rule is a meta-rule
-that fires when any of the six custom compliance-health jobs produces an anomaly score above its
+**Compliance degradation meta-rule.** The `m_26_14-ml-readiness-degradation` rule is a meta-rule
+that fires when any of the six custom readiness-health jobs produces an anomaly score above its
 respective threshold simultaneously with at least one other job. It acts as a roll-up signal for
 the ISSO/CISO dashboard — a single alert that says "multiple compliance controls are degrading at
 once," which warrants immediate investigation rather than routine triage.
@@ -301,10 +301,10 @@ reference jobs that have not yet been created.
      (`m_26_14-ml-element1-new-network-device`) jobs: minimum **7 days** (15-minute buckets
      accumulate sufficient history faster than hourly jobs).
    - All other jobs: minimum **14 days** before anomaly scores are reliable.
-   - Do not enable the compliance-health Kibana rules (step 7) until the applicable baseline
+   - Do not enable the readiness-health Kibana rules (step 7) until the applicable baseline
      period has elapsed. Monitor job status via Kibana > Machine Learning > Anomaly Detection.
 
-7. **Enable the 6 compliance-health Kibana rules.**
+7. **Enable the 6 readiness-health Kibana rules.**
    Import via Kibana > Security > Rules > Import:
    - `m_26_14-ml-e1-coverage-drop.ndjson`
    - `m_26_14-ml-e2-ingestion-drop.ndjson`
@@ -351,7 +351,7 @@ reference jobs that have not yet been created.
    events with Linux/Windows OS metadata. The corresponding rules produce **zero alerts with no
    error** until those sources are connected and the jobs have baselines.
 
-   **Meta-rule.** `m_26_14-ml-compliance-degradation` references only the six custom compliance-health
+   **Meta-rule.** `m_26_14-ml-readiness-degradation` references only the six custom readiness-health
    jobs from step 2 — no additional job deployment is required for it.
 
    Allow a minimum 14-day baseline period before proceeding to step 9.
@@ -365,7 +365,7 @@ reference jobs that have not yet been created.
    - `m_26_14-ml-cath-rare-process-windows.ndjson`
    - `m_26_14-ml-cath-rare-process-linux.ndjson`
    - `m_26_14-ml-catb-rare-country.ndjson`
-   - `m_26_14-ml-compliance-degradation.ndjson`
+   - `m_26_14-ml-readiness-degradation.ndjson`
 
 ---
 
@@ -426,4 +426,4 @@ modify these independently.
 | Appendix B §5(g) IoC/DGA | `m_26_14-ml-catb-dns-entropy`, `m_26_14-ml-catb-dns-dga` | L4 |
 | Appendix B §5(a) Identity | `m_26_14-ml-cata-rare-auth-ip`, `m_26_14-ml-cata-high-auth-failures`, `m_26_14-ml-cata-ueba-login` | L4 |
 | Appendix B §5(h) Endpoint — Anomalous activity | `m_26_14-ml-cath-rare-process-windows`, `m_26_14-ml-cath-rare-process-linux`, `m_26_14-ml-cath-host-silent` | L4 |
-| Cross-element compliance degradation | `m_26_14-ml-compliance-degradation` (meta-rule) | L2 |
+| Cross-element compliance degradation | `m_26_14-ml-readiness-degradation` (meta-rule) | L2 |

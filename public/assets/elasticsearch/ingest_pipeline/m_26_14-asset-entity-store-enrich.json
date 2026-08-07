@@ -12,7 +12,7 @@
     {
       "enrich": {
         "description": "Look up asset compliance context by hostname",
-        "policy_name": "m_26_14-asset-compliance-lookup",
+        "policy_name": "m_26_14-asset-readiness-lookup",
         "field": "host.name",
         "target_field": "m_26_14.asset_context",
         "ignore_missing": true,

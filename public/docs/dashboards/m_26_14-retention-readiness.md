@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The **M-26-14 Retention Readiness Dashboard** (`m_26_14-retention-compliance`) is the evidence view for **Element 4** of OMB Memorandum M-26-14: logs must remain *searchable* (online, queryable in the active cluster) and *retrievable* (recoverable from snapshot or frozen storage) for the durations required at each maturity level. The dashboard answers, per data stream, two questions an auditor will always ask:
+The **M-26-14 Retention Readiness Dashboard** (`m_26_14-retention-readiness`) is the evidence view for **Element 4** of OMB Memorandum M-26-14: logs must remain *searchable* (online, queryable in the active cluster) and *retrievable* (recoverable from snapshot or frozen storage) for the durations required at each maturity level. The dashboard answers, per data stream, two questions an auditor will always ask:
 
 1. **How long is this data searchable today?**
 2. **How long is it retrievable in total, and does that meet the L3 / L4 maturity thresholds?**

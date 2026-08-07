@@ -146,7 +146,7 @@ M-26-14 Appendix B §5 specifies eleven categories of events that all FCEB agenc
 | **(d)** Privilege escalation | New account created then used within 1 hour — backdoor account pattern | `m_26_14-appendixb-d-privilege-escalation-sequence` | EQL sequence | High | EQL `sequence with maxspan=1h`: IAM account-create event then auth success for same username | [rule-d-privilege-escalation.md](detection-rules/rule-d-privilege-escalation.md) |
 | **(e)** OT / ICS / rogue device | First-seen Fleet enrollment — unmanaged or unauthorized device | `m_26_14-appendixb-e-rogue-device-fleet-enrollment` | New Terms | High | `new_terms` on `host.name` with 7-day history window; fires once per new hostname | [rule-e-rogue-device.md](detection-rules/rule-e-rogue-device.md) |
 | **(f)** EDR tamper | High/critical Elastic Defend alert followed by security tool process kill within 10 min | `m_26_14-appendixb-f-edr-tamper` | EQL sequence | Critical | EQL sequence: endpoint critical alert → process termination of named EDR process on same host | [rule-f-edr-tamper.md](detection-rules/rule-f-edr-tamper.md) |
-| **(g)** IoC match / DNS | Network/endpoint/email telemetry matched against threat intelligence indicators | 5 prebuilt Elastic Security rules (tagged `M-26-14:Category-G`) | Indicator Match | Critical / High | Join `logs-ti_*` against endpoint network, file, process, registry, and email events | [rule-g-ioc-match.md](detection-rules/rule-g-ioc-match.md) |
+| **(g)** IoC match / DNS | Network/endpoint/email telemetry matched against threat intelligence indicators | 5 prebuilt Elastic Security rules (tagged `M-26-14:Category-G`) + `m_26_14-appendixb-g-ioc-domain-match` (custom) | Indicator Match | Critical / High | Join `logs-ti_*` against endpoint network, file, process, registry, email, and DNS events | [rule-g-ioc-match.md](detection-rules/rule-g-ioc-match.md) |
 | **(h)** Off-hours execution | Non-system user launches ≥50 processes during 22:00–05:00 UTC in 1 hour | `m_26_14-appendixb-h-offhours-bulk-process-execution` | ES\|QL | High | `DATE_EXTRACT("hour")` filter + `COUNT(*) >= 50` per (user, host) in 1h window | [rule-h-offhours-execution.md](detection-rules/rule-h-offhours-execution.md) |
 | **(i)** Exfiltration | Anomalous outbound data volume — ≥500 MB to non-RFC1918 destination in 1 hour | `m_26_14-appendixb-i-exfiltration-volume` | ES\|QL | High | `SUM(network.bytes) >= 524,288,000` per (src IP, host, process) in 1h window | [rule-i-exfiltration-volume.md](detection-rules/rule-i-exfiltration-volume.md) |
 | **(j)** APT chain | Three-stage correlated intrusion: inbound connection → LOLBin/script execution → lateral movement to SMB/RDP/SSH | `m_26_14-appendixb-j-apt-chain-2h`, `m_26_14-appendixb-j-apt-chain-4h` | EQL sequence | Critical | EQL 3-event sequence on same `host.id`: external inbound network → scripting engine spawn → lateral movement egress | [rule-j-apt-chain.md](detection-rules/rule-j-apt-chain.md) |
@@ -177,7 +177,7 @@ The following subsections provide per-category implementation notes, prerequisit
 - Azure/Entra: `azure` Fleet integration with Sign-In Logs enabled. Requires Azure AD P1/P2 license for sign-in log API access.
 - Linux SSH: `system` Fleet integration with Auth module enabled on all SSH-accessible servers.
 
-**M-26-14 compliance note**: The "failure then success" pattern satisfies the §5(a) automated detection requirement at Element 3, Level 2. Level 4 ML coverage is provided by prebuilt Elastic Security jobs (`auth_rare_source_ip_for_a_user`, `auth_high_count_logon_fails_for_a_user`, `suspicious_login_activity`) wrapped by rules `m_26_14-ml-cata-rare-auth-ip`, `m_26_14-ml-cata-high-auth-failures`, and `m_26_14-ml-cata-ueba-login`.
+**M-26-14 compliance note**: The "failure then success" pattern satisfies the §5(a) automated detection requirement at Element 3, Level 2. Level 4 ML coverage is provided by Elastic Security `security_auth` module jobs installed with the `m_26_14_` prefix (`m_26_14_auth_rare_source_ip_for_a_user_ea`, `m_26_14_auth_high_count_logon_fails_ea`, `m_26_14_suspicious_login_activity_ea`) wrapped by rules `m_26_14-ml-cata-rare-auth-ip`, `m_26_14-ml-cata-high-auth-failures`, and `m_26_14-ml-cata-ueba-login`.
 
 **Key documentation links**:
 - [Elastic Defend endpoint policy](https://www.elastic.co/guide/en/security/current/configure-endpoint-integration-policy.html)
@@ -285,15 +285,15 @@ The following subsections provide per-category implementation notes, prerequisit
 
 **Requirement**: Continuous monitoring for known Indicators of Compromise from authoritative feeds. At minimum, integrate one CISA-approved threat intelligence feed. Perform IoC matching in near-real-time against network, file, process, registry, and email telemetry.
 
-**Elastic implementation**: Category G is fully satisfied by five existing Elastic Security prebuilt Indicator Match rules. No custom rule authoring is required. The compliance work is operational:
+**Elastic implementation**: Category G is satisfied by five existing Elastic Security prebuilt Indicator Match rules plus one custom pack rule. The prebuilts cover IP, hash, URL, email, and registry indicators; the pack ships `m_26_14-appendixb-g-ioc-domain-match` for DNS/domain indicators, which the prebuilt set does not yet cover (earlier pack revisions also shipped custom hash, IP, and URL match rules; those were retired in favor of the prebuilts below). The remaining compliance work is operational:
 
 | Prebuilt Rule UUID | Rule Name | Indicator Type | Event Source |
 |---|---|---|---|
 | `0c41e478-5263-4c69-8f9e-7dfd2c22da64` | Threat Intel IP Address Indicator Match | IPv4/IPv6 | Network flow / endpoint network events |
-| `aab184d3-72f8-4b60-ab2e-1b3f0cf47c7f` | Threat Intel Hash Indicator Match | MD5, SHA-1, SHA-256 | `logs-endpoint.events.file*`, `logs-endpoint.events.process*` |
-| `f3e22c8b-a7e1-4a8f-8e1d-9b3d4c6f2a1e` | Threat Intel URL Indicator Match | URLs, URL fragments | Proxy logs, endpoint browser events |
-| `fcf18de8-3b2a-4c9d-8e7f-1a6b5d4e2c0f` | Threat Intel Email Indicator Match | Email sender addresses | `logs-o365.audit*`, `logs-google_workspace.gmail*` |
-| `a61809f3-d7e2-4b8c-9f1a-2e3d5c6b4a0e` | Threat Intel Windows Registry Indicator Match | Registry keys/values | `logs-endpoint.events.registry*` |
+| `aab184d3-72b3-4639-b242-6597c99d8bca` | Threat Intel Hash Indicator Match | MD5, SHA-1, SHA-256 | `logs-endpoint.events.file*`, `logs-endpoint.events.process*` |
+| `f3e22c8b-ea47-45d1-b502-b57b6de950b3` | Threat Intel URL Indicator Match | URLs, URL fragments | Proxy logs, endpoint browser events |
+| `fcf18de8-ad7d-4d01-b3f7-a11d5b3883af` | Threat Intel Email Indicator Match | Email sender addresses | `logs-o365.audit*`, `logs-google_workspace.gmail*` |
+| `a61809f3-fb5b-465c-8bff-23a8a068ac60` | Threat Intel Windows Registry Indicator Match | Registry keys/values | `logs-endpoint.events.registry*` |
 
 **Applying M-26-14 tags**: The prebuilt rules must be tagged with `M-26-14`, `M-26-14:AppendixB`, `M-26-14:Category-G`, `Compliance`, and `Threat-Intelligence` to appear in compliance dashboards. Use Kibana bulk edit or the Rules API (see `docs/detection-rules/rule-g-ioc-match.md` for the exact API call pattern).
 
@@ -438,7 +438,7 @@ M-26-14 Appendix C defines a five-element maturity model. Each element has multi
 | **1** | Asset Coverage — all asset types logging | HWAM/SWAM enrollment tracking | `m_26_14-ml-element1-asset-coverage` | `m_26_14-ml-e1-coverage-drop` | L2+ |
 | **2** | Ingestion Rate — log pipeline health | Data stream ingestion rate monitoring | `m_26_14-ml-element2-ingestion-rate` | `m_26_14-ml-e2-ingestion-drop` | L2+ |
 | **3** | Rule Coverage — all log categories have active detection rules | Appendix B category silence detection | `m_26_14-ml-element3-rule-silence` | `m_26_14-ml-e3-rule-silence` | L4 |
-| **4** | Privileged Operations — monitoring privileged/admin actions | ILM lifecycle anomaly (retention integrity) | `m_26_14-ml-element4-privop-spike` (ILM job) | `m_26_14-ml-e4-retention-anomaly` | L3+ |
+| **4** | Privileged Operations — monitoring privileged/admin actions | ILM lifecycle anomaly (retention integrity) | `m_26_14-ml-element4-ilm-anomaly` | `m_26_14-ml-e4-retention-anomaly` | L3+ |
 | **5** | Log Integrity — cryptographic tamper detection | Hash coverage ratio per data stream | `m_26_14-ml-element5-hash-coverage` | `m_26_14-ml-e5-hash-drop` | L3+ |
 
 > **Note:** All Appendix C ML jobs are custom anomaly detection jobs specific to this compliance pack. They are not Elastic Security prebuilt jobs and must be deployed and managed by the agency. All require a Platinum or Enterprise Elasticsearch license. See `docs/ml-jobs-guide.md` for the full deployment procedure.
@@ -453,7 +453,7 @@ M-26-14 Appendix C defines a five-element maturity model. Each element has multi
 
 **Job details**:
 - Job ID: `m_26_14-ml-element1-asset-coverage`
-- Job file: `public/assets/elasticsearch/ml_job/m_26_14-anomaly-element1.json`
+- Job file: `public/assets/elasticsearch/ml_job/m_26_14-ml-element1-asset-coverage.json`
 - Bucket span: 1 hour
 - Model memory: 128 MB
 
@@ -475,7 +475,7 @@ M-26-14 Appendix C defines a five-element maturity model. Each element has multi
 
 **Job details**:
 - Job ID: `m_26_14-ml-element2-ingestion-rate`
-- Job file: `public/assets/elasticsearch/ml_job/m_26_14-anomaly-element2.json`
+- Job file: `public/assets/elasticsearch/ml_job/m_26_14-ml-element2-ingestion-rate.json`
 - Bucket span: 1 hour
 - Model memory: 512 MB (reflects per-partition cardinality of multiple data streams)
 
@@ -496,7 +496,7 @@ M-26-14 Appendix C defines a five-element maturity model. Each element has multi
 
 **Job details**:
 - Job ID: `m_26_14-ml-element3-rule-silence`
-- Job file: `public/assets/elasticsearch/ml_job/m_26_14-anomaly-element3.json`
+- Job file: `public/assets/elasticsearch/ml_job/m_26_14-ml-element3-rule-silence.json`
 - Bucket span: 6 hours
 - Model memory: 64 MB
 
@@ -515,8 +515,8 @@ M-26-14 Appendix C defines a five-element maturity model. Each element has multi
 **Elastic implementation**: The `m_26_14-ml-element4-ilm-anomaly` job monitors Elasticsearch ILM rollover and transition events using dual detectors: `high_count by action` (unusual volume of lifecycle operations) and `rare by action` (unusual operation types). Fires on: indices rolling over faster than expected (potential log injection), indices skipping lifecycle phases (retention tampering), or unexpected index deletions.
 
 **Job details**:
-- Job ID: `m_26_14-ml-element4-ilm-anomaly` (also labeled `m_26_14-ml-element4-privop-spike` in some pack files)
-- Job file: `public/assets/elasticsearch/ml_job/m_26_14-anomaly-element4.json`
+- Job ID: `m_26_14-ml-element4-ilm-anomaly`
+- Job file: `public/assets/elasticsearch/ml_job/m_26_14-ml-element4-ilm-anomaly.json`
 - Bucket span: 1 hour
 - Model memory: 64 MB
 - Anomaly score threshold: 85 (higher than other jobs due to natural ILM variability)
@@ -537,16 +537,16 @@ M-26-14 Appendix C defines a five-element maturity model. Each element has multi
 
 **Elastic implementation**: Two-part implementation:
 1. **Ingest pipeline** (`m_26_14-log-integrity-hash` / `m_26_14-integrity-hash-pipeline`): Appends SHA-256 hash of canonical fields to `event.hash` on every ingested document. Sets `event.integrity.hashed: true`. Applied at the index template level — no agent changes required.
-2. **ML job** (`m_26_14-ml-element5-hash-coverage`): Monitors the ratio of documents with a valid `m_26_14.log_hash` field per data stream. Fires when hash coverage drops below the ML-learned baseline, indicating the ingest pipeline was bypassed, removed, or is failing.
+2. **ML job** (`m_26_14-ml-element5-hash-coverage`): Counts integrity-hashed documents per data stream. Fires when the hashed-document count drops below the ML-learned baseline for that stream, indicating the ingest pipeline was bypassed, removed, or is failing.
 
 **Job details**:
 - Job ID: `m_26_14-ml-element5-hash-coverage`
-- Job file: `public/assets/elasticsearch/ml_job/m_26_14-anomaly-element5.json`
+- Job file: `public/assets/elasticsearch/ml_job/m_26_14-ml-element5-hash-coverage.json`
 - Bucket span: 1 hour
-- Model memory: 256 MB
-- Detector: `low_mean on event.integrity.hash_ratio by data_stream.dataset`
+- Model memory: 128 MB
+- Detector: `low_count` partitioned by `data_stream.dataset`
 
-**Scalability note**: The element5 datafeed uses a Painless scripted metric aggregation to compute `hash_ratio`. This works correctly for up to approximately 20 active data streams. For larger environments, replace the scripted aggregation with a pre-computed Transform that writes `hash_ratio` per data stream to a dedicated metrics index. See `docs/ml-jobs-guide.md` Section 7 for details.
+**Scalability note**: The element5 datafeed is a plain term-query search with no aggregation, so it scales with data stream count without special handling. Because the detector counts hashed documents rather than computing a ratio, a stream whose overall volume drops will also lower its hashed count; the element2 ingestion-rate job separates volume drops from hash-pipeline failures.
 
 **Dashboard**: `m_26_14-log-management` — shows hash coverage gauge, integrity violation timeline, and per-dataset coverage breakdown.
 
@@ -559,17 +559,17 @@ M-26-14 Appendix C defines a five-element maturity model. Each element has multi
 
 ### 5.6 ML Deployment Procedure
 
-All six custom ML jobs must be deployed before the corresponding Kibana alert rules can reference them. Follow this sequence:
+All seven custom ML jobs (five element jobs, the new-network-device discovery job, and the DNS-entropy job) must be deployed before the corresponding Kibana alert rules can reference them. Follow this sequence:
 
 1. Verify Platinum or Enterprise license: `GET /_license`
-2. Create all 6 job definitions via `PUT /_ml/anomaly_detectors/{job_id}`
-3. Create all 6 datafeeds via `PUT /_ml/datafeeds/{datafeed_id}`
-4. Open all 6 jobs: `POST /_ml/anomaly_detectors/{job_id}/_open`
-5. Start all 6 datafeeds: `POST /_ml/datafeeds/{datafeed_id}/_start`
+2. Create all 7 job definitions via `PUT /_ml/anomaly_detectors/{job_id}`
+3. Create all 7 datafeeds via `PUT /_ml/datafeeds/{datafeed_id}`
+4. Open all 7 jobs: `POST /_ml/anomaly_detectors/{job_id}/_open`
+5. Start all 7 datafeeds: `POST /_ml/datafeeds/{datafeed_id}/_start`
 6. Wait for baseline period: minimum 14 days for all jobs except `m_26_14-ml-catb-dns-entropy` (7 days for 15-minute bucket span)
-7. Enable the 6 compliance-health Kibana rules after baseline is established
-8. Install Elastic Security prebuilt ML jobs (Kibana → Security → Machine Learning → Install prebuilt jobs)
-9. After 14-day prebuilt baseline, enable the 7 behavioral Kibana rules
+7. Enable the 7 Kibana rules bound to the custom jobs (five element rules, the meta compliance-degradation rule, and the DNS-entropy rule) after baseline is established
+8. Prefix-install the five Elastic Security ML modules (`security_auth`, `security_host`, `security_network`, `security_linux_v3`, `security_windows_v3`) with job-id prefix `m_26_14_` — see `docs/ml-jobs-guide.md` Section 6 step 8 and `assets/elasticsearch/ml_job/prebuilt/README.md`
+9. After 14-day module-job baseline, enable the 7 behavioral Kibana rules
 
 **Full procedure with commands**: See `docs/ml-jobs-guide.md` Section 6.
 
@@ -686,9 +686,9 @@ Raw inventory from osquery and Intune lands as multiple per-source documents in 
 - **`m_26_14-asset-entity-resolution`** (continuous, `group_by asset.id`) merges every source record per device into one canonical entity in **`m_26_14-assets`**, latest-wins per field (`top_metrics` sorted by `@timestamp`). Its dest pipeline `m_26_14-asset-canonical-enrich` unwraps `top_metrics` maps, normalizes null/boolean strings, stamps a lowercased `host.name` (so Entity Store v2 can mint the host entity), derives `asset.component`, evaluates the Element 1/Element 2 coverage flags, and computes the `m_26_14.baseline_hash` configuration fingerprint.
 - **`m_26_14-asset-baseline-snapshot`** captures each canonical entity's fingerprint into **`m_26_14-asset-baselines`** as the certified point-in-time baseline. This transform is run **once and then stopped** so the baseline is frozen — it is the certification reference, not a moving target.
 
-**Representative live fleet** (deterministic seed): **60** canonical assets — **55 managed** (25 macOS laptops, 20 Windows workstations, 10 Linux servers) and **5 unmanaged** network-discovered devices (`UNKNOWN-001…005`). Posture gaps are pinned to named devices for a stable demo: **5 unencrypted** managed devices and **3 not enrolled in MDM**. **55** certified baselines (one per managed asset).
+**Representative live fleet** (deterministic seed): **60** canonical assets — **55 managed** (25 macOS laptops, 20 Windows workstations, 10 Linux servers) and **5 unmanaged** network-discovered devices (`UNKNOWN-001…005`). Posture gaps are pinned to named devices for a stable demo: **5 unencrypted** managed devices and **4 not enrolled in MDM** (`WKSTN-004`, `WKSTN-016`, `LAPTOP-022`, `SERVER-006`). **55** certified baselines (one per managed asset).
 
-**Config drift (derived, stable)**: `m_26_14.drift_detected` (the field the drift dashboard counts; also mirrored to `asset.compliance.drift_detected`) is **not** a manually stamped flag and is **not** written by a watcher (an earlier design referenced a "WS3 drift watcher" that was never built). It is derived in `m_26_14-asset-canonical-enrich`: after computing the live `baseline_hash`, an `enrich` processor (policy `m_26_14-asset-baseline-lookup`, keyed on `asset.id`) fetches the certified hash from the frozen `m_26_14-asset-baselines`, and a script sets `drift_detected = (live_hash != certified_hash)`. Because it runs on **every** transform checkpoint, the count is stable across re-enrichment. The demo fleet has **4 drifted assets** — `LAPTOP-001`, `WKSTN-003`, `WKSTN-013`, `WKSTN-015` (OS-version drift from their certified baseline). The `m_26_14-ws7-r1-os-version-changed` and `m_26_14-ws7-r2-encryption-disabled` detection rules provide the real-time alerting complement on the same fields.
+**Config drift (derived, stable)**: `m_26_14.drift_detected` (the field the drift dashboard counts; also mirrored to `asset.compliance.drift_detected`) is **not** a manually stamped flag and is **not** written by a watcher (an earlier design referenced a "WS3 drift watcher" that was never built). It is derived in `m_26_14-asset-canonical-enrich`: after computing the live `baseline_hash`, an `enrich` processor (policy `m_26_14-asset-baseline-lookup`, keyed on `asset.id`) fetches the certified hash from the frozen `m_26_14-asset-baselines`, and a script sets `drift_detected = (live_hash != certified_hash)`. Because it runs on **every** transform checkpoint, the count is stable across re-enrichment. The demo fleet has **2 drifted assets** — `WKSTN-003` and `WKSTN-013` (OS-version drift from their certified baseline). The `m_26_14-ws7-r1-os-version-changed` and `m_26_14-ws7-r2-encryption-disabled` detection rules provide the real-time alerting complement on the same fields.
 
 > **Operational note for SAs:** drift stability depends on the `m_26_14-asset-baseline-snapshot` transform staying **stopped**. If it is restarted it will re-snapshot current (drifted) state, the baselines move to match, and the drift count collapses to 0. To re-establish a drift story: stop the snapshot transform, re-execute the `m_26_14-asset-baseline-lookup` enrich policy, change a fingerprint field (OS version or encryption) on a few devices in the inventory stream, then let the entity-resolution transform re-checkpoint.
 
@@ -840,6 +840,7 @@ The `type` field must be `enterprise` for Indicator Match rules (Category G). `p
 | `m_26_14-appendixb-e-rogue-device-fleet-enrollment` | §5(e) | CEM, THIRF | T1200 | High |
 | `m_26_14-appendixb-f-edr-tamper` | §5(f) | CEM, THIRF | T1562.001 | Critical |
 | 5 prebuilt Threat Intel rules (tagged M-26-14:Category-G) | §5(g) | CEM, THIRF | Multiple | Critical/High |
+| `m_26_14-appendixb-g-ioc-domain-match` | §5(g) | CEM, THIRF | T1071.004 | High |
 | `m_26_14-appendixb-h-offhours-bulk-process-execution` | §5(h) | CEM, THIRF | T1059.001, T1059.003 | High |
 | `m_26_14-appendixb-i-exfiltration-volume` | §5(i) | CEM, THIRF | T1048.002, T1041 | High |
 | `m_26_14-appendixb-j-apt-chain-2h` | §5(j) | CEM, THIRF | T1190, T1059, T1021 | Critical |
@@ -852,3 +853,4 @@ The `type` field must be `enterprise` for Indicator Match rules (Category G). `p
 | `m_26_14-ml-element4-ilm-anomaly` (ML job) | Appendix C, Element 4 | THIRF | T1485, T1070.004 | — |
 | `m_26_14-ml-element5-hash-coverage` (ML job) | Appendix C, Element 5 | THIRF | T1565.001, T1070 | — |
 | `m_26_14-ml-catb-dns-entropy` (ML job) | §5(b), §5(g) | THIRF | T1568.002, T1071.004 | — |
+| `m_26_14-ml-element1-new-network-device` (ML job) | Appendix A HWAM, §5(e) | CEM | T1200 | — |

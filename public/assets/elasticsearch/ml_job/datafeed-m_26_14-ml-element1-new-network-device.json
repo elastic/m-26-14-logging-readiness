@@ -1,0 +1,21 @@
+{
+  "datafeed_id": "datafeed-m_26_14-ml-element1-new-network-device",
+  "job_id": "m_26_14-ml-element1-new-network-device",
+  "indices": ["logs-m_26_14_netobserved.devices-*"],
+  "query": {
+    "bool": {
+      "filter": [
+        { "exists": { "field": "host.name" } },
+        { "exists": { "field": "network.segment" } }
+      ]
+    }
+  },
+  "scroll_size": 1000,
+  "delayed_data_check_config": {
+    "enabled": true,
+    "check_window": "15m"
+  },
+  "chunking_config": {
+    "mode": "auto"
+  }
+}

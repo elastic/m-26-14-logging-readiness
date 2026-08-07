@@ -2,9 +2,9 @@
 
 ## Overview
 
-Category G is unique among the M-26-14 Appendix B categories: it is **fully covered by five existing Elastic Security prebuilt rules**. No custom rule authoring is required. The compliance work for Category G is operational — agencies must configure and activate these rules, connect them to authoritative threat intelligence feeds, and apply M-26-14 tagging so the rules appear in compliance reports.
+Category G is unique among the M-26-14 Appendix B categories: it is covered almost entirely by **five existing Elastic Security prebuilt rules**, plus **one custom pack rule** for the indicator type the prebuilt set does not yet cover. The bulk of the compliance work for Category G is operational — agencies must configure and activate the prebuilt rules, connect them to authoritative threat intelligence feeds, and apply M-26-14 tagging so the rules appear in compliance reports.
 
-The five prebuilt rules collectively match network, endpoint, and email telemetry against every indicator type commonly published in structured threat intelligence feeds: IP addresses, file hashes, URLs, email sender addresses, and Windows registry values. When the indicator match fires, Elastic Security automatically attaches the full indicator document — including source feed, confidence score, MITRE ATT&CK mapping, and any attribution notes — to the generated alert, satisfying the M-26-14 requirement for threat-informed response context.
+The five prebuilt rules collectively match network, endpoint, and email telemetry against most indicator types published in structured threat intelligence feeds: IP addresses, file hashes, URLs, email sender addresses, and Windows registry values. The pack's custom rule, `m_26_14-appendixb-g-ioc-domain-match`, closes the remaining gap: DNS/domain indicators matched against DNS query telemetry (earlier pack revisions also shipped custom hash, IP, and URL match rules; those were retired in favor of the prebuilts, which Elastic maintains through the prebuilt-rule update stream). When an indicator match fires, Elastic Security automatically attaches the full indicator document — including source feed, confidence score, MITRE ATT&CK mapping, and any attribution notes — to the generated alert, satisfying the M-26-14 requirement for threat-informed response context.
 
 ---
 
@@ -54,7 +54,7 @@ This rule is the highest-priority indicator match in a federal environment. CISA
 
 | Field | Value |
 |---|---|
-| **Rule UUID** | `aab184d3-72f8-4b60-ab2e-1b3f0cf47c7f` |
+| **Rule UUID** | `aab184d3-72b3-4639-b242-6597c99d8bca` |
 | **Rule Name** | Threat Intel Hash Indicator Match |
 | **Type** | Indicator Match |
 | **Severity** | Critical |
@@ -72,7 +72,7 @@ Hash matching catches known malware, tools, and implants that have been previous
 
 | Field | Value |
 |---|---|
-| **Rule UUID** | `f3e22c8b-a7e1-4a8f-8e1d-9b3d4c6f2a1e` |
+| **Rule UUID** | `f3e22c8b-ea47-45d1-b502-b57b6de950b3` |
 | **Rule Name** | Threat Intel URL Indicator Match |
 | **Type** | Indicator Match |
 | **Severity** | High |
@@ -90,7 +90,7 @@ URL matching covers phishing delivery infrastructure, malware distribution sites
 
 | Field | Value |
 |---|---|
-| **Rule UUID** | `fcf18de8-3b2a-4c9d-8e7f-1a6b5d4e2c0f` |
+| **Rule UUID** | `fcf18de8-ad7d-4d01-b3f7-a11d5b3883af` |
 | **Rule Name** | Threat Intel Email Indicator Match |
 | **Type** | Indicator Match |
 | **Severity** | High |
@@ -109,7 +109,7 @@ Email indicator matching is the detection layer for spear-phishing campaigns. Wh
 
 | Field | Value |
 |---|---|
-| **Rule UUID** | `a61809f3-d7e2-4b8c-9f1a-2e3d5c6b4a0e` |
+| **Rule UUID** | `a61809f3-fb5b-465c-8bff-23a8a068ac60` |
 | **Rule Name** | Threat Intel Windows Registry Indicator Match |
 | **Type** | Indicator Match |
 | **Severity** | High |
@@ -123,6 +123,28 @@ Email indicator matching is the detection layer for spear-phishing campaigns. Wh
 | **MITRE Technique** | T1547 — Boot or Logon Autostart Execution |
 
 Registry indicator matching catches persistence mechanisms documented in threat intelligence. APT actors frequently use known registry run keys and value names across campaigns — these paths become IoCs once documented. This rule closes the gap between behavioral detection (which looks for unusual activity patterns) and IoC-based detection (which looks for exact signatures of previously-observed attacker tools).
+
+---
+
+## The Pack's Custom Rule: Domain Indicator Match
+
+The prebuilt set does not yet include a domain-name indicator match against DNS query telemetry. The pack ships one custom rule to cover it:
+
+| Field | Value |
+|---|---|
+| **Rule ID** | `m_26_14-appendixb-g-ioc-domain-match` |
+| **Rule Name** | M-26-14 AppB-G: IoC — Malicious Domain in DNS Queries |
+| **Type** | Indicator Match |
+| **Severity** | High |
+| **Risk Score** | 73 |
+| **Indicator Type** | Domain names |
+| **Source Index** | `logs-network_traffic.dns*`, `logs-zeek.dns*`, `logs-endpoint.events.network*`, `logs-aws.route53*`, `logs-azure.platformlogs*` |
+| **Indicator Index** | `logs-ti_*` |
+| **Indicator Field** | `threat.indicator.domain` |
+| **Event Field Matched** | `dns.question.name`, `url.domain` |
+| **MITRE Technique** | T1071.004 — Application Layer Protocol: DNS |
+
+Domain matching catches C2 callbacks and malware distribution infrastructure at the DNS layer, before a connection to the resolved IP is even attempted. It complements the IP match rule: threat actors rotate IPs behind a stable malicious domain far more often than they rotate the domain itself. Earlier pack revisions also shipped custom hash, IP, and URL match rules; those were retired in favor of the prebuilt rules above, which Elastic maintains through the prebuilt-rule update stream. This rule will be retired the same way once an equivalent prebuilt domain rule ships.
 
 ---
 
@@ -179,10 +201,10 @@ curl -s -X PATCH \
 
 Apply to all five UUIDs:
 - `0c41e478-5263-4c69-8f9e-7dfd2c22da64` (IP)
-- `aab184d3-72f8-4b60-ab2e-1b3f0cf47c7f` (Hash)
-- `f3e22c8b-a7e1-4a8f-8e1d-9b3d4c6f2a1e` (URL)
-- `fcf18de8-3b2a-4c9d-8e7f-1a6b5d4e2c0f` (Email)
-- `a61809f3-d7e2-4b8c-9f1a-2e3d5c6b4a0e` (Registry)
+- `aab184d3-72b3-4639-b242-6597c99d8bca` (Hash)
+- `f3e22c8b-ea47-45d1-b502-b57b6de950b3` (URL)
+- `fcf18de8-ad7d-4d01-b3f7-a11d5b3883af` (Email)
+- `a61809f3-fb5b-465c-8bff-23a8a068ac60` (Registry)
 
 ### Method 3: Terraform (for IaC environments)
 

@@ -112,14 +112,14 @@ The Elastic M-26-14 Compliance Pack includes assets of various types that are me
 
 | Category | Count | Key Assets |
 | :---- | :---- | :---- |
-| Machine learning jobs | 6 | element1-asset-coverage, element2-ingestion-rate, element3-rule-silence, element4-ilm-anomaly, element5-hash-coverage, catb-dns-entropy |
-| ML alert rules | 13 | E1–E5 element alerts \+ Cat-A/B/H supplementary |
-| Detection rules | 21 custom (\+ \~1,800 prebuilt) | m_26_14-appendixb-a-\* through -k-\* (12), ws7 posture-change r1–r7, retirement-gate1/2 |
-| Ingest pipelines | 17 | log-integrity-hash, alert-category-pipeline, osquery-normalize, asset-normalize / canonical-enrich / entity-store-enrich, baseline-hash |
+| Machine learning jobs | 7 | element1-asset-coverage, element1-new-network-device, element2-ingestion-rate, element3-rule-silence, element4-ilm-anomaly, element5-hash-coverage, catb-dns-entropy |
+| ML alert rules | 14 | E1–E5 element alerts \+ Cat-A/B/H supplementary \+ AppA-L new/rogue device |
+| Detection rules | 43 custom (\+ \~1,800 prebuilt) | m_26_14-appendixb-a-\* through -l-\* (A–L), appendixa new-ot-device, 14 ML rules, ws7 posture-change r1–r7, retirement-gate1/2 |
+| Ingest pipelines | 21 | log-integrity-hash, alert-category-pipeline, osquery-normalize, asset-normalize / canonical-enrich / drift / entity-store-enrich, baseline-hash, network-device-normalize / netobserved-reroute (OT/IoT) |
 | Transforms | 12 | score-entity, score-rollup / -enterprise, asset-entity-resolution, alert-coverage-daily / -latest, dataset-retention, store-feed, observed-assets |
-| Enrich policies | 8 | authorized-software, asset-baseline-lookup, asset-compliance-lookup, inventory-enrich, config-enrich, host-alert-lookup, observed-enrich |
+| Enrich policies | 8 | authorized-software, asset-baseline-lookup, asset-compliance-lookup, inventory-enrich, config-enrich, host-alert-lookup, observed-enrich, oui-vendor |
 | ILM policies | 9 | m_26_14-logs-l3 / l4-hot-frozen, l3 / l4-no-delete, retention-l1 / l2 / l3, asset-inventory, logs-hva-extended |
-| Index templates | 19 (\+ 1 component) | logs-data-streams, asset-canonical / baselines / inventory-normalized, scores, retention, jit-grants \+ log-integrity-settings (component) |
+| Index templates | 21 (\+ 1 component) | logs-data-streams, asset-canonical / baselines / inventory-normalized, scores, retention, jit-grants, network-observed-devices / oui-catalog (OT/IoT) \+ log-integrity-settings (component) |
 | Watchers | 6 | gate1-detect-frozen-aged, gate1-approval-advance, gate2-execute-deletion, jit-audit, jit-expiry, selective-copy-legal-hold |
 | SLM policy | 1 | m_26_14-compliance-snapshots |
 | Kibana dashboards | 17 | compliance attestation, maturity overview, Appendix B matrix, alert coverage, asset coverage, log management, retention compliance |
@@ -136,8 +136,8 @@ The Elastic M-26-14 Compliance Pack includes assets of various types that are me
 | CEM \- Retention Tiers | 9 ILM policies: L3/L4 hot-frozen, L3/L4 no-delete, retention L1/L2/L3, asset inventory, HVA-extended |
 | CEM \- Asset Inventory | Direct CDM/HWAM/SWAM platform integrations and/or inventory via the Agent Osquery integration → HWAM/SWAM index template |
 | CEM \- Inventory \& entity resolution | Osquery HWAM/SWAM/network pack, asset-entity-resolution \+ observed-assets transforms, 8 enrich policies |
-| THIRF \- Detection | 21 custom M-26-14 detection rules \+ \~1,800 prebuilt Elastic Security rules |
-| THIRF \- Anomaly Detection | 6 custom M-26-14 ML jobs \+ 13 ML alert rules |
+| THIRF \- Detection | 43 custom M-26-14 detection rules \+ \~1,800 prebuilt Elastic Security rules |
+| THIRF \- Anomaly Detection | 7 custom M-26-14 ML jobs \+ 14 ML alert rules |
 | THIRF \- Threat intelligence | CISA AIS \+ MS-ISAC TAXII 2.1 → Indicator Match rules |
 | THIRF \- Tamper-evident Logs | Log integrity hash ingest pipeline  |
 | Log Management (Optimal / L4) | Two-gate retirement (gate1/gate2 watchers \+ workflows), JIT access grants with jit-audit / jit-expiry, legal-hold selective-copy, encryption at rest/in-transit (ECH), SLM compliance snapshots |

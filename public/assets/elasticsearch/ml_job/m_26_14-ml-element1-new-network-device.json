@@ -1,0 +1,50 @@
+{
+  "job_id": "m_26_14-ml-element1-new-network-device",
+  "description": "M-26-14 Element 1 / Appendix A HWAM: new or rarely-seen device on a network segment (rare host.name per network.segment, 15m buckets). Passive complement to osquery agent inventory — catches unmanaged OT/IoT devices that never run an agent.",
+  "groups": [
+    "m_26_14",
+    "asset-management",
+    "network-visibility"
+  ],
+  "analysis_config": {
+    "bucket_span": "15m",
+    "detectors": [
+      {
+        "detector_description": "Rarely-seen device (host.name) observed on this network segment — potential rogue/unauthorized asset",
+        "function": "rare",
+        "by_field_name": "host.name",
+        "partition_field_name": "network.segment",
+        "detector_index": 0
+      }
+    ],
+    "influencers": [
+      "network.segment",
+      "host.name",
+      "source.mac",
+      "device.vendor",
+      "device.class"
+    ]
+  },
+  "data_description": {
+    "time_field": "@timestamp",
+    "time_format": "epoch_ms"
+  },
+  "analysis_limits": {
+    "model_memory_limit": "64mb",
+    "categorization_examples_limit": 4
+  },
+  "model_plot_config": {
+    "enabled": false,
+    "annotations_enabled": false
+  },
+  "custom_settings": {
+    "m_26_14_element": 1,
+    "m_26_14_requirement": "Appendix A HWAM | Network Visibility — passive device discovery | Element 1 Asset Coverage",
+    "m_26_14_min_level": 2,
+    "m_26_14_objective": ["CEM"],
+    "m_26_14_mitre": ["T1200", "T1046"],
+    "m_26_14_note": "Runs over logs-m_26_14_netobserved.devices-* (NetFlow/DHCP/ARP/Suricata observations). rare() scores a host.name that appears infrequently within its network.segment relative to the segment's established population — the statistical signature of a new/rogue device. Complements m_26_14-ml-element1-asset-coverage (managed-agent coverage) with the unmanaged-device view. Baseline: 7 days minimum so each segment's normal device population is learned.",
+    "m_26_14_acceptance_criteria": "Flags a device that has never (or rarely) appeared on a segment within one 15m bucket of first observation. <=5% FP vs. a stable known-device population.",
+    "m_26_14_description": "Detects new or rarely-observed devices per network segment from passive network telemetry. Each OT/IoT device on the wire is normalized to a host.name (netdev-<mac>) by the m_26_14-network-device-normalize pipeline; rare() over host.name partitioned by network.segment surfaces devices outside the segment's learned population. Primary Element 1 signal for unmanaged/unauthorized hardware that agent-based osquery HWAM cannot see (PLCs, cameras, sensors). M-26-14 Appendix A HWAM, network visibility, Element 1 asset coverage."
+  }
+}

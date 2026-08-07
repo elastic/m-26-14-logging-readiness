@@ -69,7 +69,7 @@ export const PILLARS = [
       concept:
         'A 60-endpoint fleet: 55 report via osquery, 5 unmanaged devices show up only through network discovery. Everything lands in m_26_14-assets as one canonical record per device.',
       talkTrack:
-        'Start with the headline count, then the split. The interesting number is not "60 assets," it is "5 devices we found that have no agent." That is the gap M-26-14 makes you close.',
+        'Start with the headline count, then the split. The interesting number is not "60 assets," it is "5 devices we found that have no agent." That is the gap M-26-14 makes you close. Then show it being closed: the live triage loop classifies every unknown device into a disposition (rogue, shadow-IT, new-but-uninventoried, decommissioned, needs-review) in the m_26_14-asset-triage ledger, each with a recommended, human-gated next step.',
       technical:
         'Managed endpoints run Elastic Agent with the Fleet osquery integration. Results flow through m_26_14-asset-normalize, then m_26_14-asset-canonical-enrich, and the m_26_14-asset-entity-resolution continuous transform writes the deduplicated record to m_26_14-assets. The 5 unmanaged devices arrive via network discovery carrying only what a scan can observe.',
       live: [
@@ -103,7 +103,7 @@ export const PILLARS = [
       talkTrack:
         'Click a gap tile, it opens Discover filtered to exactly those devices with names and last-seen times. This is what you hand the ISO instead of a spreadsheet. Then show drift: the system caught the change, not a quarterly audit.',
       technical:
-        'osquery reports disk_encryption and installed software; Intune supplies MDM enrollment. m_26_14-asset-canonical-enrich recomputes each live fingerprint and compares it to the certified one via the m_26_14-asset-baseline-lookup enrich policy, setting m_26_14.drift_detected. The m_26_14-ws7-r3-unauth-software rule enforces the authorized catalog; m_26_14-ws7-r1/r2 rules watch OS and encryption drift.',
+        'osquery reports disk_encryption and installed software; Intune supplies MDM enrollment. m_26_14-asset-canonical-enrich recomputes each live fingerprint, then calls the m_26_14-asset-drift sub-pipeline, which compares it to the certified one via the m_26_14-asset-baseline-lookup enrich policy and sets m_26_14.drift_detected. The m_26_14-ws7-r3-unauth-software rule enforces the authorized catalog; m_26_14-ws7-r1/r2 rules watch OS and encryption drift.',
       live: [
         { label: 'HWAM Coverage Gaps', url: dash('m_26_14-hwam-gaps') },
         { label: 'SWAM Software Inventory', url: dash('m_26_14-swam-software') },
@@ -164,9 +164,9 @@ export const PILLARS = [
       concept:
         '11 Appendix B categories shown as active detection rules and alert volume. Categories A, B, and H add ML anomaly detection. A coverage matrix scores each category on data, rules, and recent alerts.',
       talkTrack:
-        'Walk the bars, then pivot to the matrix. Green means data plus rules plus alerts. That matrix is what the SA brings to the auditor. Then show the POA&M agent drafting a gap document from the same data.',
+        'Walk the bars, then pivot to the matrix. Green means data plus rules plus alerts. That matrix is what the SA brings to the auditor. The ML claim is provable in the alerts list: the demo dataset stages an intrusion chain (a cryptominer on a Linux bastion, credential-dump tools on a Windows workstation, flows to never-seen countries, an off-baseline login surge) and every stage produced a live anomaly (record scores 93-99.9) and a real detection-engine alert. Then show the POA&M agent drafting a gap document from the same data.',
       technical:
-        'Alerts pass through m_26_14-alert-category-pipeline for tagging; m_26_14-alert-coverage-daily rolls per-day counts. ML detection rules reinforce Cat A (auth), Cat B (DNS/C2), and Cat H (off-hours execution). The m_26_14-poam-drafting-agent in Agent Builder queries coverage via the m_26_14-compliance-posture-esql-tool.',
+        'Alerts pass through m_26_14-alert-category-pipeline for tagging; m_26_14-alert-coverage-daily rolls per-day counts. ML detection rules reinforce Cat A (auth anomalies, UEBA login), Cat B (DNS entropy, rare destination country), and Cat H (rare process, host-went-silent); seven of the eight wrap m_26_14_-prefixed Elastic Security ML module jobs. The m_26_14-poam-drafting-agent in Agent Builder queries coverage via the m_26_14-compliance-posture-esql-tool.',
       live: [
         { label: 'Alert Coverage (Appendix B)', url: dash('m_26_14-alert-coverage', 'now-30d') },
         { label: 'Appendix B Coverage Matrix', url: dash('m_26_14-appendix-b-coverage', 'now-30d') },
@@ -327,7 +327,7 @@ export const CAPSTONE = {
   headline: 'One executive view, fed automatically by every pipeline underneath it.',
   soundbite: 'The same transforms, rules, ML jobs, and watchers that power every dashboard roll up into the view the ISSO opens every morning.',
   points: [
-    '6 ML anomaly-detection jobs tracking maturity signals, plus ML detection rules for Cat A, B, and H.',
+    '7 ML anomaly-detection jobs tracking maturity signals (including passive new-network-device discovery for OT/IoT), plus ML detection rules for Cat A, B, and H.',
     '6 ES Watchers enforcing two-gate data retirement, JIT privileged-access expiry, and legal-hold copy.',
     '3 AI agents in Agent Builder: POA&M drafting, threat investigation, and after-action reporting, each wired to ES|QL tools.',
   ],

@@ -1,0 +1,71 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m2614_compliance",
+    "m_26_14": {
+      "workstream": 3,
+      "description": "Normalize passively-observed network device signals (NetFlow/IPFIX, DHCP, DNS, ARP, Packetbeat, Suricata) into the M-26-14 asset model. MAC OUI -> vendor/device_class via the m_26_14-oui-vendor enrich policy; OT-protocol and DHCP vendor-class refinement; populates asset.* + host.* (Entity Store host engine) + m_26_14.* coverage flags. Source docs must set m_26_14.observed_via (netflow|dhcp|dns|arp|packetbeat|suricata)."
+    }
+  },
+  "description": "Normalize passively-observed OT/IoT network device signals into the M-26-14 asset model (OUI vendor enrich, OT-protocol tagging, asset/host entity population).",
+  "processors": [
+    {
+      "script": {
+        "description": "Derive lowercase 24-bit OUI prefix from source.mac; init device object.",
+        "lang": "painless",
+        "ignore_failure": true,
+        "source": "if (ctx.device == null) { ctx.device = new HashMap(); }\nif (ctx.source != null && ctx.source.mac != null) {\n  def m = ctx.source.mac.toString().toLowerCase().replace('-', ':');\n  if (m.length() >= 8) { ctx.oui = m.substring(0, 8); }\n}"
+      }
+    },
+    {
+      "enrich": {
+        "description": "MAC OUI -> vendor + device_class + ot flag",
+        "policy_name": "m_26_14-oui-vendor",
+        "field": "oui",
+        "target_field": "_oui",
+        "ignore_missing": true,
+        "ignore_failure": true
+      }
+    },
+    {
+      "script": {
+        "description": "Apply vendor/class/ot; DHCP vendor-class + OT-protocol refinement; populate asset.* + host.* + related.*; set m_26_14 coverage flags.",
+        "lang": "painless",
+        "source": "if (ctx.m_26_14 == null) { ctx.m_26_14 = new HashMap(); }\nif (ctx.device == null) { ctx.device = new HashMap(); }\nboolean ot = false;\n\n// --- OUI enrich results ---\nif (ctx._oui != null) {\n  if (ctx._oui.vendor != null) { ctx.device.vendor = ctx._oui.vendor; }\n  if (ctx._oui.device_class != null) { ctx.device.class = ctx._oui.device_class; }\n  if (ctx._oui.ot == true) { ot = true; }\n}\n\n// --- DHCP vendor-class (option 55/60) refinement when OUI gave no class ---\nif (ctx.dhcp != null && ctx.dhcp.vendor_class != null) {\n  def vc = ctx.dhcp.vendor_class.toString().toLowerCase();\n  if (ctx.device.class == null) {\n    if (vc.contains('msft')) { ctx.device.class = 'endpoint'; }\n    else if (vc.contains('android')) { ctx.device.class = 'mobile'; }\n    else if (vc.contains('udhcp') || vc.contains('busybox')) { ctx.device.class = 'iot_sensor'; }\n  }\n}\n\n// --- OT industrial-protocol tagging ---\ndef otProtos = ['modbus','dnp3','s7comm','enip','ethernetip','cip','iec104','iec-104','bacnet','profinet','opcua','opc-ua'];\nif (ctx.network != null && ctx.network.protocol != null) {\n  def proto = ctx.network.protocol.toString().toLowerCase();\n  if (otProtos.contains(proto)) {\n    ot = true;\n    ctx.m_26_14.ot_protocol = proto;\n    if (ctx.device.class == null) { ctx.device.class = 'plc'; }\n  }\n}\nctx.m_26_14.ot = ot;\n\n// --- identity fields ---\ndef ip = (ctx.source != null) ? ctx.source.ip : null;\ndef mac = (ctx.source != null) ? ctx.source.mac : null;\ndef observed = ctx.m_26_14.observed_via;\n\n// --- host.* for the Entity Store host engine ---\nif (ctx.host == null) { ctx.host = new HashMap(); }\nif (ctx.host.name == null) {\n  if (mac != null) { ctx.host.name = 'netdev-' + mac.toString().replace(':', ''); }\n  else if (ip != null) { ctx.host.name = 'netdev-' + ip; }\n}\nif (ctx.host.ip == null && ip != null) { ctx.host.ip = ip; }\nif (ctx.host.mac == null && mac != null) { ctx.host.mac = mac; }\n\n// --- asset.* (unified M-26-14 asset model, unmanaged until reconciled to HWAM) ---\nif (ctx.asset == null) { ctx.asset = new HashMap(); }\nctx.asset.id = (mac != null) ? mac : ip;\nif (ctx.asset.name == null) { ctx.asset.name = ctx.host.name; }\nctx.asset.source = observed;\nctx.asset.managed = false;\nif (ctx.containsKey('@timestamp')) { ctx.asset.last_seen = ctx['@timestamp']; }\n\n// --- related.ip for pivoting ---\ndef rip = new ArrayList();\nif (ip != null) { rip.add(ip); }\nif (ctx.destination != null && ctx.destination.ip != null) { rip.add(ctx.destination.ip); }\nif (rip.size() > 0) {\n  if (ctx.related == null) { ctx.related = new HashMap(); }\n  ctx.related.ip = rip;\n}\n\n// --- M-26-14 coverage flags: network-observed devices are unmanaged by definition ---\nctx.m_26_14.managed = false;\nctx.m_26_14.device_source = 'network-observed';\nif (observed != null) { ctx.m_26_14.hwam_source = observed; }"
+      }
+    },
+    {
+      "fingerprint": {
+        "description": "Stable host.id from host.name (Entity Store host key)",
+        "fields": ["host.name"],
+        "target_field": "host.id",
+        "method": "SHA-256",
+        "ignore_missing": true
+      }
+    },
+    {
+      "fingerprint": {
+        "description": "Asset identity fingerprint for dedup across observation sources",
+        "fields": ["source.mac", "host.name", "network.segment"],
+        "target_field": "m_26_14.asset_fingerprint",
+        "method": "SHA-256",
+        "ignore_missing": true
+      }
+    },
+    {
+      "set": {
+        "description": "Stamp ingest time for detection-rule timestamp override (seeded/backfilled docs may pre-set it)",
+        "field": "event.ingested",
+        "value": "{{{_ingest.timestamp}}}",
+        "override": false
+      }
+    },
+    {
+      "remove": {
+        "description": "Drop scratch fields",
+        "field": ["oui", "_oui"],
+        "ignore_missing": true
+      }
+    }
+  ]
+}

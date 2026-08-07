@@ -2,7 +2,7 @@
   "name": "ms2614-reference-architecture",
   "private": true,
   "version": "0.1.0",
-  "engines": { node: "22.x" },
+  "engines": { "node": "22.x" },
   "type": "module",
   "scripts": {
     "dev": "vite",

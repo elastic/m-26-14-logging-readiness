@@ -1,0 +1,72 @@
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:1d:9c"}}
+{"oui": "00:1d:9c", "vendor": "Rockwell Automation", "device_class": "plc", "ot": true, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:00:bc"}}
+{"oui": "00:00:bc", "vendor": "Rockwell Automation", "device_class": "plc", "ot": true, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:1b:1b"}}
+{"oui": "00:1b:1b", "vendor": "Siemens AG", "device_class": "plc", "ot": true, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:0e:8c"}}
+{"oui": "00:0e:8c", "vendor": "Siemens AG", "device_class": "plc", "ot": true, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "28:63:36"}}
+{"oui": "28:63:36", "vendor": "Siemens AG", "device_class": "hmi", "ot": true, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:80:f4"}}
+{"oui": "00:80:f4", "vendor": "Schneider Electric", "device_class": "plc", "ot": true, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:00:54"}}
+{"oui": "00:00:54", "vendor": "Schneider Electric", "device_class": "rtu", "ot": true, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:a0:45"}}
+{"oui": "00:a0:45", "vendor": "Phoenix Contact", "device_class": "plc", "ot": true, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:90:e8"}}
+{"oui": "00:90:e8", "vendor": "Moxa Inc", "device_class": "gateway", "ot": true, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:60:e9"}}
+{"oui": "00:60:e9", "vendor": "Moxa Inc", "device_class": "gateway", "ot": true, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:40:84"}}
+{"oui": "00:40:84", "vendor": "Honeywell", "device_class": "bms", "ot": true, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:01:05"}}
+{"oui": "00:01:05", "vendor": "Beckhoff Automation", "device_class": "plc", "ot": true, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:10:7f"}}
+{"oui": "00:10:7f", "vendor": "Crestron Electronics", "device_class": "bms", "ot": true, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "08:00:37"}}
+{"oui": "08:00:37", "vendor": "Lutron Electronics", "device_class": "bms", "ot": true, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:40:8c"}}
+{"oui": "00:40:8c", "vendor": "Axis Communications", "device_class": "camera", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "ac:cc:8e"}}
+{"oui": "ac:cc:8e", "vendor": "Axis Communications", "device_class": "camera", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "44:19:b6"}}
+{"oui": "44:19:b6", "vendor": "Hangzhou Hikvision", "device_class": "camera", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "3c:ef:8c"}}
+{"oui": "3c:ef:8c", "vendor": "Zhejiang Dahua", "device_class": "camera", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "b8:27:eb"}}
+{"oui": "b8:27:eb", "vendor": "Raspberry Pi Foundation", "device_class": "sbc", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "dc:a6:32"}}
+{"oui": "dc:a6:32", "vendor": "Raspberry Pi Trading", "device_class": "sbc", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "24:0a:c4"}}
+{"oui": "24:0a:c4", "vendor": "Espressif Inc", "device_class": "iot_sensor", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "84:0d:8e"}}
+{"oui": "84:0d:8e", "vendor": "Espressif Inc", "device_class": "iot_sensor", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:12:4b"}}
+{"oui": "00:12:4b", "vendor": "Texas Instruments", "device_class": "iot_sensor", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:17:88"}}
+{"oui": "00:17:88", "vendor": "Signify (Philips Hue)", "device_class": "iot_sensor", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "18:b4:30"}}
+{"oui": "18:b4:30", "vendor": "Google Nest", "device_class": "iot_sensor", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:1b:0c"}}
+{"oui": "00:1b:0c", "vendor": "Cisco Systems", "device_class": "network_device", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:0b:86"}}
+{"oui": "00:0b:86", "vendor": "Aruba (HPE)", "device_class": "network_device", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "24:a4:3c"}}
+{"oui": "24:a4:3c", "vendor": "Ubiquiti Networks", "device_class": "network_device", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:07:4d"}}
+{"oui": "00:07:4d", "vendor": "Zebra Technologies", "device_class": "peripheral", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:1f:29"}}
+{"oui": "00:1f:29", "vendor": "Hewlett-Packard", "device_class": "printer", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:1e:c2"}}
+{"oui": "00:1e:c2", "vendor": "Apple Inc", "device_class": "endpoint", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "f0:18:98"}}
+{"oui": "f0:18:98", "vendor": "Apple Inc", "device_class": "endpoint", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:14:22"}}
+{"oui": "00:14:22", "vendor": "Dell Inc", "device_class": "endpoint", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "b8:ca:3a"}}
+{"oui": "b8:ca:3a", "vendor": "Dell Inc", "device_class": "server", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:50:56"}}
+{"oui": "00:50:56", "vendor": "VMware Inc", "device_class": "virtual", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}
+{"index": {"_index": "m_26_14-oui-catalog", "_id": "00:0c:29"}}
+{"oui": "00:0c:29", "vendor": "VMware Inc", "device_class": "virtual", "ot": false, "updated_at": "2026-07-01T00:00:00Z"}

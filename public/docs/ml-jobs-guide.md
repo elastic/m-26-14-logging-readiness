@@ -1,8 +1,8 @@
 # M-26-14 Compliance Pack — ML Jobs Guide
 
 This document describes all machine learning anomaly detection components in the M-26-14 compliance
-pack: six custom compliance-health jobs (Component A) and thirteen Kibana detection rules that
-reference either those custom jobs or Elastic Security prebuilt ML jobs (Component B).
+pack: seven custom compliance-health jobs (Component A) and fourteen Kibana detection rules that
+reference either those custom jobs or Elastic Security prebuilt / Entity-Store ML jobs (Component B).
 
 ---
 
@@ -16,20 +16,23 @@ in ways that prebuilt Elastic Security models already capture well.
 
 The ML component is split into two parts deliberately:
 
-**Component A — Custom compliance-health jobs.** Six custom anomaly detection jobs built specifically
+**Component A — Custom compliance-health jobs.** Seven custom anomaly detection jobs built specifically
 for M-26-14. They monitor the compliance control plane: asset coverage rates, log ingestion rates,
-detection rule activity, ILM index-lifecycle events, hash coverage ratios, and DNS entropy. These
-do not exist as Elastic prebuilt jobs and must be deployed and managed by the agency.
+detection rule activity, ILM index-lifecycle events, hash coverage ratios, DNS entropy, and new/rare
+devices appearing on a network segment. These do not exist as Elastic prebuilt jobs and must be
+deployed and managed by the agency.
 
-**Component B — Kibana rules referencing prebuilt Elastic Security jobs.** Seven detection rules
+**Component B — Kibana rules referencing prebuilt / Entity-Store jobs.** Seven detection rules
 that wrap Elastic Security's built-in ML behavioral models (rare authentication sources, high
-authentication failure counts, rare processes, unusual login activity, network traffic to rare
-countries). The pack does **not** duplicate these jobs — doing so would fork them from the Elastic
+authentication failure counts, rare processes, host-went-silent, unusual login activity, network
+traffic to rare countries). Each binds one `m_26_14_`-prefixed module job (the 9.4+ `_ea` Entity
+Analytics generation) — see §5.2. The pack does **not** duplicate the base jobs — doing
+so would fork them from the Elastic
 update stream and create maintenance overhead for the agency. Instead, the Kibana rules carry the
 M-26-14 compliance metadata (MITRE tags, requirement references, maturity level) and fire when the
 prebuilt job's anomaly score exceeds the configured threshold.
 
-Together, the 6 custom jobs + 13 Kibana rules satisfy M-26-14's Level 3 and Level 4 ML detection
+Together, the 7 custom jobs + 14 Kibana rules satisfy M-26-14's Level 3 and Level 4 ML detection
 requirements as described in §5(a)–(k) and Appendix B.
 
 ---
@@ -83,23 +86,33 @@ for current status.
 
 ## 3. Component A: Custom ML Jobs
 
-Six custom anomaly detection jobs monitor M-26-14 compliance health. All job definition files are
+Seven custom anomaly detection jobs monitor M-26-14 compliance health. All job definition files are
 in `public/assets/elasticsearch/ml_job/`.
 
 | Job ID | Job File | Bucket Span | Model Memory | M-26-14 Requirement | MITRE ATT&CK |
 |---|---|---|---|---|---|
-| `m_26_14-ml-element1-asset-coverage` | `m_26_14-anomaly-element1.json` | 1h | 128mb | Element 1 §4 HWAM/SWAM Coverage | — |
-| `m_26_14-ml-element2-ingestion-rate` | `m_26_14-anomaly-element2.json` | 1h | 512mb | Element 2 Log Centralization | — |
-| `m_26_14-ml-element3-rule-silence` | `m_26_14-anomaly-element3.json` | 6h | 64mb | Element 3 §5(k) Detection Coverage | — |
-| `m_26_14-ml-element4-ilm-anomaly` | `m_26_14-anomaly-element4.json` | 1h | 64mb | Element 4/5 Retention | T1485, T1070.004 |
+| `m_26_14-ml-element1-asset-coverage` | `m_26_14-ml-element1-asset-coverage.json` | 1h | 128mb | Element 1 §4 HWAM/SWAM Coverage | — |
+| `m_26_14-ml-element1-new-network-device` | `m_26_14-ml-element1-new-network-device.json` | 15m | 64mb | Element 1 / Appendix A HWAM (passive) | T1200 |
+| `m_26_14-ml-element2-ingestion-rate` | `m_26_14-ml-element2-ingestion-rate.json` | 1h | 512mb | Element 2 Log Centralization | — |
+| `m_26_14-ml-element3-rule-silence` | `m_26_14-ml-element3-rule-silence.json` | 6h | 64mb | Element 3 §5(k) Detection Coverage | — |
+| `m_26_14-ml-element4-ilm-anomaly` | `m_26_14-ml-element4-ilm-anomaly.json` | 1h | 64mb | Element 4/5 Retention | T1485, T1070.004 |
 | `m_26_14-ml-element5-hash-coverage` | `m_26_14-ml-element5-hash-coverage.json` | 1h | 128mb | Element 5 §3 Hashing/Integrity | T1565.001, T1070 |
-| `m_26_14-ml-catb-dns-entropy` | `m_26_14-anomaly-catb-dns-entropy.json` | 15m | 256mb | Appendix B §5(b)(g) Network/DGA | T1568.002, T1071.004 |
+| `m_26_14-ml-catb-dns-entropy` | `m_26_14-ml-catb-dns-entropy.json` | 15m | 256mb | Appendix B §5(b)(g) Network/DGA | T1568.002, T1071.004 |
 
 **Element 1 — Asset Coverage (`m_26_14-ml-element1-asset-coverage`).** Detects declining asset
 coverage ratios from the HWAM/SWAM tracking indices. A sustained drop in the fraction of expected
 assets reporting to Fleet or the CDM integration signals either agent decommissioning without
 proper retirement or a collection failure. Fires when coverage falls below historical norms for the
 1-hour bucket.
+
+**Element 1 — New Network Device (`m_26_14-ml-element1-new-network-device`).** Passive HWAM
+complement to the agent-based asset-coverage job. Uses a `rare(host.name)` detector partitioned by
+`network.segment` over 15-minute buckets against the passive network-discovery data stream
+(`logs-m_26_14_netobserved.devices-*`). It flags a device that is new to, or rarely seen on, a
+segment — catching unmanaged OT/IoT hardware that never runs an osquery agent and so is invisible to
+the coverage job. Satisfies Element 1 / Appendix A HWAM for the unmanaged-device case (MITRE T1200,
+Hardware Additions). Surfaced by the `AppA-L` new-terms detection rule rather than an ML-anomaly
+wrapper, so no separate compliance-health rule is needed.
 
 **Element 2 — Ingestion Rate (`m_26_14-ml-element2-ingestion-rate`).** Monitors log ingestion
 document counts per data stream per hour. A sudden drop in ingestion rate for a data stream that
@@ -138,8 +151,9 @@ inflating entropy scores. Satisfies Appendix B §5(b) (network/C2) and §5(g) (I
 
 ## 4. Datafeed Notes
 
-All six datafeeds are in `public/assets/elasticsearch/ml_job/` with filenames prefixed
-`datafeed-`.
+All seven datafeeds are in `public/assets/elasticsearch/ml_job/` with filenames prefixed
+`datafeed-`. The `datafeed-m_26_14-ml-element1-new-network-device` datafeed reads
+`logs-m_26_14_netobserved.devices-*` with no aggregation (plain `rare` detector).
 
 **Element 5 — simple term query, no aggregation.** The element5 datafeed uses a plain
 `{"term": {"event.integrity.hashed": true}}` query to pre-filter documents to only those that have
@@ -164,7 +178,7 @@ difference between benign and DGA-generated domains.
 
 ## 5. Component B: Kibana ML Alert Rules
 
-Thirteen Kibana detection rules surface ML anomaly signals. All rule files are in
+Fourteen Kibana detection rules surface ML anomaly signals. All rule files are in
 `public/assets/kibana/rule/`.
 
 ### 5.1 Compliance Health Rules (custom job wrappers)
@@ -190,21 +204,24 @@ The element4 threshold is set higher (85) than the others because ILM events hav
 variability — rollover timing is not perfectly regular — and a lower threshold would produce
 excessive alerts from routine lifecycle activity.
 
-### 5.2 Behavioral Rules (Elastic Security prebuilt job wrappers)
+### 5.2 Behavioral Rules (Entity-Store + prebuilt job wrappers)
 
-Seven rules reference Elastic Security prebuilt ML jobs. These jobs must be installed via the
-Kibana Security app before these rules can run. See [Deployment Steps](#6-deployment-steps) for
-the installation sequence.
+Seven behavioral wrapper rules reference Elastic Security ML module jobs; each binds to one
+module job installed with the `m_26_14_` job-id prefix (the 9.4+ `_ea` Entity Analytics job
+generation; `rare_destination_country` keeps its unsuffixed historical id). The modules involved
+are `security_auth`, `security_host`, `security_network`, `security_linux_v3`, and
+`security_windows_v3`. See [Deployment Steps](#6-deployment-steps).
 
-| Rule ID | Kibana File | Prebuilt Job(s) Referenced | Appendix B Category | Maturity Level |
+| Rule ID | Kibana File | Job(s) Referenced | Appendix B Category | Maturity Level |
 |---|---|---|---|---|
-| `m_26_14-ml-cata-rare-auth-ip` | `m_26_14-ml-cata-rare-auth-ip.ndjson` | `auth_rare_source_ip_for_a_user` | A — Identity | L4 |
-| `m_26_14-ml-cata-high-auth-failures` | `m_26_14-ml-cata-high-auth-failures.ndjson` | `auth_high_count_logon_fails_for_a_user` | A — Identity | L4 |
-| `m_26_14-ml-cath-rare-process-windows` | `m_26_14-ml-cath-rare-process-windows.ndjson` | `v3_rare_process_by_host`, `rare_process_by_host_windows_ecs` | H — Anomalous activity | L4 |
-| `m_26_14-ml-cath-rare-process-linux` | `m_26_14-ml-cath-rare-process-linux.ndjson` | `v3_rare_process_by_host`, `rare_process_by_host_linux_ecs` | H — Anomalous activity | L4 |
-| `m_26_14-ml-catb-rare-country` | `m_26_14-ml-catb-rare-country.ndjson` | `network_traffic_to_rare_country` | B — Network/C2 | L4 |
-| `m_26_14-ml-cata-ueba-login` | `m_26_14-ml-cata-ueba-login.ndjson` | `suspicious_login_activity` | A — Identity (UEBA) | L4 |
-| `m_26_14-ml-compliance-degradation` | `m_26_14-ml-compliance-degradation.ndjson` | All 6 custom jobs (meta-rule) | Meta — All elements | L2 |
+| `m_26_14-ml-cata-rare-auth-ip` | `m_26_14-ml-cata-rare-auth-ip.ndjson` | `m_26_14_auth_rare_source_ip_for_a_user_ea` | A — Identity | L4 |
+| `m_26_14-ml-cata-high-auth-failures` | `m_26_14-ml-cata-high-auth-failures.ndjson` | `m_26_14_auth_high_count_logon_fails_ea` | A — Identity | L4 |
+| `m_26_14-ml-cata-ueba-login` | `m_26_14-ml-cata-ueba-login.ndjson` | `m_26_14_suspicious_login_activity_ea` | A — Identity (UEBA) | L4 |
+| `m_26_14-ml-cath-host-silent` | `m_26_14-ml-cath-host-silent.ndjson` | `m_26_14_low_count_events_for_a_host_name_ea` | H — Anomalous activity | L4 |
+| `m_26_14-ml-cath-rare-process-windows` | `m_26_14-ml-cath-rare-process-windows.ndjson` | `m_26_14_v3_rare_process_by_host_windows_ea` | H — Anomalous activity | L4 |
+| `m_26_14-ml-cath-rare-process-linux` | `m_26_14-ml-cath-rare-process-linux.ndjson` | `m_26_14_v3_rare_process_by_host_linux_ea` | H — Anomalous activity | L4 |
+| `m_26_14-ml-catb-rare-country` | `m_26_14-ml-catb-rare-country.ndjson` | `m_26_14_rare_destination_country` | B — Network/C2 | L4 |
+| `m_26_14-ml-compliance-degradation` | `m_26_14-ml-compliance-degradation.ndjson` | All 6 compliance-health jobs (meta-rule) | Meta — All elements | L2 |
 
 **Compliance degradation meta-rule.** The `m_26_14-ml-compliance-degradation` rule is a meta-rule
 that fires when any of the six custom compliance-health jobs produces an anomaly score above its
@@ -212,10 +229,12 @@ respective threshold simultaneously with at least one other job. It acts as a ro
 the ISSO/CISO dashboard — a single alert that says "multiple compliance controls are degrading at
 once," which warrants immediate investigation rather than routine triage.
 
-**`v3_rare_process_by_host` availability.** The `v3_rare_process_by_host` job is available in
-Elastic Security starting from version 8.4. If the deployment is running an earlier version, the
-rules will fall back to `rare_process_by_host_windows_ecs` and `rare_process_by_host_linux_ecs`.
-Both job IDs are included in the rule definitions to support both versions.
+**Job lineage.** Elastic Security ML job ids have evolved across generations: the original
+`*_ecs` jobs were superseded by `v3_*` jobs (8.4), which were in turn superseded by the `_ea`
+Entity Analytics generation shipped by the 9.4+ security modules. Each wrapper rule binds exactly
+one job from the current generation; a multi-job ML rule requires **every** listed job to exist,
+so the old dual-id fallback pattern (`v3_rare_process_by_host` + `*_ecs`) silently broke on
+stacks that only ship one generation and has been removed.
 
 ---
 
@@ -230,7 +249,7 @@ reference jobs that have not yet been created.
    ```
    Confirm `type` is `platinum`, `enterprise`, or active `trial`.
 
-2. **Deploy 6 custom job definitions.**
+2. **Deploy 7 custom job definitions.**
    For each job file in `public/assets/elasticsearch/ml_job/`:
    ```
    PUT /_ml/anomaly_detectors/{job_id}
@@ -239,14 +258,15 @@ reference jobs that have not yet been created.
    creation.
 
    Jobs:
-   - `m_26_14-ml-element1-asset-coverage` — from `m_26_14-anomaly-element1.json`
-   - `m_26_14-ml-element2-ingestion-rate` — from `m_26_14-anomaly-element2.json`
-   - `m_26_14-ml-element3-rule-silence` — from `m_26_14-anomaly-element3.json`
-   - `m_26_14-ml-element4-ilm-anomaly` — from `m_26_14-anomaly-element4.json`
-   - `m_26_14-ml-element5-hash-coverage` — from `m_26_14-anomaly-element5.json`
-   - `m_26_14-ml-catb-dns-entropy` — from `m_26_14-anomaly-catb-dns-entropy.json`
+   - `m_26_14-ml-element1-asset-coverage` — from `m_26_14-ml-element1-asset-coverage.json`
+   - `m_26_14-ml-element1-new-network-device` — from `m_26_14-ml-element1-new-network-device.json`
+   - `m_26_14-ml-element2-ingestion-rate` — from `m_26_14-ml-element2-ingestion-rate.json`
+   - `m_26_14-ml-element3-rule-silence` — from `m_26_14-ml-element3-rule-silence.json`
+   - `m_26_14-ml-element4-ilm-anomaly` — from `m_26_14-ml-element4-ilm-anomaly.json`
+   - `m_26_14-ml-element5-hash-coverage` — from `m_26_14-ml-element5-hash-coverage.json`
+   - `m_26_14-ml-catb-dns-entropy` — from `m_26_14-ml-catb-dns-entropy.json`
 
-3. **Deploy 6 datafeeds.**
+3. **Deploy 7 datafeeds.**
    For each datafeed file prefixed `datafeed-` in the same directory:
    ```
    PUT /_ml/datafeeds/{datafeed_id}
@@ -254,9 +274,10 @@ reference jobs that have not yet been created.
    Where `{datafeed_id}` is the `datafeed_id` field in the JSON (e.g.,
    `datafeed-m_26_14-ml-element1-asset-coverage`).
 
-4. **Open all 6 jobs.**
+4. **Open all 7 jobs.**
    ```
    POST /_ml/anomaly_detectors/m_26_14-ml-element1-asset-coverage/_open
+   POST /_ml/anomaly_detectors/m_26_14-ml-element1-new-network-device/_open
    POST /_ml/anomaly_detectors/m_26_14-ml-element2-ingestion-rate/_open
    POST /_ml/anomaly_detectors/m_26_14-ml-element3-rule-silence/_open
    POST /_ml/anomaly_detectors/m_26_14-ml-element4-ilm-anomaly/_open
@@ -264,9 +285,10 @@ reference jobs that have not yet been created.
    POST /_ml/anomaly_detectors/m_26_14-ml-catb-dns-entropy/_open
    ```
 
-5. **Start all 6 datafeeds.**
+5. **Start all 7 datafeeds.**
    ```
    POST /_ml/datafeeds/datafeed-m_26_14-ml-element1-asset-coverage/_start
+   POST /_ml/datafeeds/datafeed-m_26_14-ml-element1-new-network-device/_start
    POST /_ml/datafeeds/datafeed-m_26_14-ml-element2-ingestion-rate/_start
    POST /_ml/datafeeds/datafeed-m_26_14-ml-element3-rule-silence/_start
    POST /_ml/datafeeds/datafeed-m_26_14-ml-element4-ilm-anomaly/_start
@@ -275,7 +297,8 @@ reference jobs that have not yet been created.
    ```
 
 6. **Let baselines build.**
-   - DNS entropy job (`m_26_14-ml-catb-dns-entropy`): minimum **7 days** (15-minute buckets
+   - DNS entropy (`m_26_14-ml-catb-dns-entropy`) and new-network-device
+     (`m_26_14-ml-element1-new-network-device`) jobs: minimum **7 days** (15-minute buckets
      accumulate sufficient history faster than hourly jobs).
    - All other jobs: minimum **14 days** before anomaly scores are reliable.
    - Do not enable the compliance-health Kibana rules (step 7) until the applicable baseline
@@ -292,42 +315,56 @@ reference jobs that have not yet been created.
 
    Enable each rule after import. Rules are imported in disabled state by default.
 
-8. **Deploy Elastic Security prebuilt ML jobs (two options).**
+8. **Provision the behavioral-rule ML jobs (module prefix-install).**
 
-   **Option A — Kibana UI (recommended for fresh deployments).**
-   In Kibana > Security > Machine Learning, click **Install prebuilt jobs**. This installs all
-   Elastic Security prebuilt ML jobs including the 5 referenced by the M-26-14 behavioral rules.
+   All seven behavioral wrappers in §5.2 bind to Elastic Security ML module jobs installed with
+   the `m_26_14_` job-id prefix. Install each required module via the ML module setup API:
 
-   **Option B — Manual datafeed deployment (for existing clusters or scripted setup).**
-   If the prebuilt jobs exist but lack datafeeds (e.g. after a fresh index migration), deploy the
-   three auth job datafeeds included in `public/assets/elasticsearch/ml_job/`:
    ```
-   PUT /_ml/datafeeds/datafeed-auth_rare_source_ip_for_a_user
-   PUT /_ml/datafeeds/datafeed-auth_high_count_logon_fails_for_a_user
-   PUT /_ml/datafeeds/datafeed-suspicious_login_activity
+   POST kbn:/internal/ml/modules/setup/<module_id>
+   {
+     "prefix": "m_26_14_",
+     "indexPatternName": "logs-*",
+     "startDatafeed": true,
+     "start": <epoch_ms>
+   }
    ```
-   Then open and start them:
-   ```
-   POST /_ml/anomaly_detectors/auth_rare_source_ip_for_a_user/_open
-   POST /_ml/datafeeds/datafeed-auth_rare_source_ip_for_a_user/_start
-   (repeat for each job/datafeed)
-   ```
+   (Headers: `kbn-xsrf: true` and `x-elastic-internal-origin: Kibana`.)
 
-   Note: `network_traffic_to_rare_country`, `rare_process_by_host_linux_ecs`,
-   `rare_process_by_host_windows_ecs`, and `v3_rare_process_by_host` require network flow / endpoint
-   process event data respectively. The corresponding M-26-14 rules will remain in partial failure
-   until those data sources are connected.
+   Modules and the jobs the rules need from each:
+   - `security_auth` → `m_26_14_auth_rare_source_ip_for_a_user_ea`,
+     `m_26_14_auth_high_count_logon_fails_ea`, `m_26_14_suspicious_login_activity_ea`
+   - `security_host` → `m_26_14_low_count_events_for_a_host_name_ea`
+   - `security_network` → `m_26_14_rare_destination_country`
+   - `security_windows_v3` → `m_26_14_v3_rare_process_by_host_windows_ea`
+   - `security_linux_v3` → `m_26_14_v3_rare_process_by_host_linux_ea`
+
+   Module setup creates the jobs **and** their datafeeds and starts them — no separate datafeed
+   assets are needed (the stale standalone datafeed JSONs formerly in
+   `public/assets/elasticsearch/ml_job/prebuilt/` have been removed). Note that module setup
+   installs the whole module family; jobs beyond the ones listed above can be stopped or deleted.
+   See `public/assets/elasticsearch/ml_job/prebuilt/README.md` for the full rule-to-job-to-module
+   table and data prerequisites.
+
+   Data prerequisites: the rare-country job needs network-flow docs with
+   `destination.geo.country_name` populated; the rare-process jobs need endpoint process-start
+   events with Linux/Windows OS metadata. The corresponding rules produce **zero alerts with no
+   error** until those sources are connected and the jobs have baselines.
+
+   **Meta-rule.** `m_26_14-ml-compliance-degradation` references only the six custom compliance-health
+   jobs from step 2 — no additional job deployment is required for it.
 
    Allow a minimum 14-day baseline period before proceeding to step 9.
 
-9. **Enable the 7 behavioral Kibana rules.**
+9. **Enable the 8 behavioral Kibana rules.**
    Import and enable:
    - `m_26_14-ml-cata-rare-auth-ip.ndjson`
    - `m_26_14-ml-cata-high-auth-failures.ndjson`
+   - `m_26_14-ml-cata-ueba-login.ndjson`
+   - `m_26_14-ml-cath-host-silent.ndjson`
    - `m_26_14-ml-cath-rare-process-windows.ndjson`
    - `m_26_14-ml-cath-rare-process-linux.ndjson`
    - `m_26_14-ml-catb-rare-country.ndjson`
-   - `m_26_14-ml-cata-ueba-login.ndjson`
    - `m_26_14-ml-compliance-degradation.ndjson`
 
 ---
@@ -359,12 +396,12 @@ Agencies should review the audit log volume impact before enabling and ensure th
 is covered by an appropriate ILM policy (the `m_26_14-logs-l4-no-delete.json` policy is appropriate
 for audit logs at Level 4).
 
-**Behavioral rules — prebuilt job name changes between Elastic versions.** Elastic Security
-prebuilt ML job IDs can change between major versions. The `v3_rare_process_by_host` job was
-introduced in version 8.4 and supersedes `rare_process_by_host_windows_ecs` /
-`rare_process_by_host_linux_ecs`. When upgrading Elastic Stack versions, verify that prebuilt job
-IDs referenced in the behavioral Kibana rules still match the installed job IDs. If a referenced
-job ID no longer exists after an upgrade, the rule will fail to run.
+**Behavioral rules — module job ids change between Elastic versions.** Elastic Security ML job
+ids have changed across generations (`*_ecs` → `v3_*` in 8.4 → `_ea` in the 9.4+ modules). The
+wrappers bind the `_ea` generation via the `m_26_14_` prefix-install. When upgrading Elastic
+Stack versions, verify that the job ids referenced in the behavioral Kibana rules still match the
+installed job ids — an ML rule whose referenced job is missing produces zero alerts silently, and
+a multi-job rule requires every listed job to exist.
 
 **`check_window` must equal `bucket_span`.** The Kibana ML rule configuration requires that the
 `check_window` parameter (the lookback window the rule uses when polling for new anomaly records)
@@ -380,12 +417,13 @@ modify these independently.
 | M-26-14 Requirement | ML Jobs / Rules | Maturity Level |
 |---|---|---|
 | Element 1 §4 HWAM/SWAM Coverage | `m_26_14-ml-element1-asset-coverage`, `m_26_14-ml-e1-coverage-drop` | L2+ |
+| Element 1 / Appendix A HWAM (unmanaged devices) | `m_26_14-ml-element1-new-network-device`, `AppA-L` new-terms rule | L3+ |
 | Element 2 Log Centralization | `m_26_14-ml-element2-ingestion-rate`, `m_26_14-ml-e2-ingestion-drop` | L2+ |
-| Element 3 L4 ML Detection (§5(a)–(k)) | `m_26_14-ml-element3-rule-silence`, `m_26_14-ml-catb-dns-entropy`, all 7 behavioral rules | L4 |
+| Element 3 L4 ML Detection (§5(a)–(k)) | `m_26_14-ml-element3-rule-silence`, `m_26_14-ml-catb-dns-entropy`, all 8 behavioral rules | L4 |
 | Element 4 §1 Retention | `m_26_14-ml-element4-ilm-anomaly`, `m_26_14-ml-e4-retention-anomaly` | L3+ |
 | Element 5 §3 Hashing/Integrity | `m_26_14-ml-element5-hash-coverage`, `m_26_14-ml-e5-hash-drop` | L3+ |
 | Appendix B §5(b) Network/C2 | `m_26_14-ml-catb-dns-entropy`, `m_26_14-ml-catb-dns-dga`, `m_26_14-ml-catb-rare-country` | L4 |
 | Appendix B §5(g) IoC/DGA | `m_26_14-ml-catb-dns-entropy`, `m_26_14-ml-catb-dns-dga` | L4 |
 | Appendix B §5(a) Identity | `m_26_14-ml-cata-rare-auth-ip`, `m_26_14-ml-cata-high-auth-failures`, `m_26_14-ml-cata-ueba-login` | L4 |
-| Appendix B §5(h) Endpoint — Anomalous activity | `m_26_14-ml-cath-rare-process-windows`, `m_26_14-ml-cath-rare-process-linux` | L4 |
+| Appendix B §5(h) Endpoint — Anomalous activity | `m_26_14-ml-cath-rare-process-windows`, `m_26_14-ml-cath-rare-process-linux`, `m_26_14-ml-cath-host-silent` | L4 |
 | Cross-element compliance degradation | `m_26_14-ml-compliance-degradation` (meta-rule) | L2 |

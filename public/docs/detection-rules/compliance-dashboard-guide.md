@@ -29,7 +29,7 @@ This architecture is identical to how Elastic's own Cloud Security Posture Manag
 
 ## 2. Dashboard Layout
 
-The dashboard (`m_26_14-compliance-attestation-dash`) contains three primary panel groups. All panels read from the `m_26_14-metrics-alert-coverage` index, not from the raw `.alerts-security.*` store, which keeps load times fast regardless of total alert volume.
+The dashboard (`m_26_14-readiness-attestation-dash`) contains three primary panel groups. All panels read from the `m_26_14-metrics-alert-coverage` index, not from the raw `.alerts-security.*` store, which keeps load times fast regardless of total alert volume.
 
 ![M-26-14 Readiness Attestation dashboard — three coverage KPI metrics at top, 11-category evidence table in the middle, and alert volume bar chart at the bottom](../screenshots/07-compliance-attestation.png)
 
@@ -338,9 +338,9 @@ The **M-26-14 Maturity Overview** dashboard serves as the hub. A horizontal navi
 | Elements 1 & 2 — Asset Coverage | `m_26_14-asset-coverage` | HWAM enrollment gaps and log source coverage |
 | Element 3 — Appendix B Matrix | `m_26_14-appendix-b-coverage` | MITRE-style coverage matrix for all 11 categories |
 | Element 3 — Alert Coverage | `m_26_14-alert-coverage` | Per-category alert volume and rule activity |
-| Element 4 — Retention Compliance | `m_26_14-retention-compliance` | ILM policy compliance per data stream |
+| Element 4 — Retention Compliance | `m_26_14-retention-readiness` | ILM policy compliance per data stream |
 | Element 5 — Log Integrity | `m_26_14-log-management` | SHA-256 hash coverage and integrity violations |
-| Attestation Report | `m_26_14-compliance-attestation-dash` | Executive attestation scorecard |
+| Attestation Report | `m_26_14-readiness-attestation-dash` | Executive attestation scorecard |
 
 ---
 

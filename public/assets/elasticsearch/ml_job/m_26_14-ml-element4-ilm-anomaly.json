@@ -3,7 +3,7 @@
   "description": "M-26-14 Element 4: Detects unusual ILM operations in ES audit logs (high_count + rare, 1h)",
   "groups": [
     "m_26_14",
-    "compliance-health"
+    "readiness-health"
   ],
   "analysis_config": {
     "bucket_span": "1h",

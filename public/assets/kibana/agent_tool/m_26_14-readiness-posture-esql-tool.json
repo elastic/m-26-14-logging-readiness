@@ -1,5 +1,5 @@
 {
-  "id": "m_26_14-compliance-posture-query",
+  "id": "m_26_14-readiness-posture-query",
   "type": "esql",
   "description": "Queries M-26-14 alert-coverage posture (Collection Operations) from m_26_14-metrics-alert-coverage using ES|QL. Returns, per Appendix B logging category, whether detections are active/covered plus recent rule and alert counts. Use for POA&M drafting to surface categories with no or partial detection coverage. For classification gaps use m_26_14-classification-audit-query; for retirement gaps use m_26_14-retirement-audit-query.",
   "tags": ["m_26_14", "compliance", "posture", "collection-operations", "poam", "cato"],

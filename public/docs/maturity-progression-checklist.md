@@ -18,7 +18,7 @@ Complete these before targeting any specific level:
 
 - [ ] Elastic cluster deployed (Cloud or self-managed, Kibana ^8.16 or ^9.x)
 - [ ] Fleet Server running and accessible to all agent-eligible hosts
-- [ ] Snapshot repository configured (`m_26_14-compliance-snapshots`) pointing to S3/GCS/Azure Blob (GovCloud recommended)
+- [ ] Snapshot repository configured (`m_26_14-readiness-snapshots`) pointing to S3/GCS/Azure Blob (GovCloud recommended)
 - [ ] M-26-14 Compliance Pack installed (`elastic-package install` or Kibana Fleet → Integrations)
 - [ ] At least one alert connector configured (email, Slack, ServiceNow, or PagerDuty) in Kibana → Stack Management → Connectors
 - [ ] Agency Logging Plan drafted (template: `docs/agency-logging-plan-template.md`)
@@ -105,7 +105,7 @@ At L1, you are not required to cover 50%+ — you are at L1 when alerts exist an
   This already exceeds the L1 6-month retrievable requirement — and the L2 12-month one. Do not deploy a shorter-lived interim policy.
 
 - [ ] **Verify snapshot repository connectivity**  
-  Elastic Cloud Hosted: `GET _snapshot/found-snapshots` (built in). Self-managed: `GET _snapshot/m_26_14-compliance-snapshots/_all` → confirm snapshots exist and repository is reachable
+  Elastic Cloud Hosted: `GET _snapshot/found-snapshots` (built in). Self-managed: `GET _snapshot/m_26_14-readiness-snapshots/_all` → confirm snapshots exist and repository is reachable
 
 - [ ] **Confirm WS1 retention dashboard shows ≥6 months for all data streams**  
   WS1 Dashboard → Element 4 panel → "Retention compliance" → all streams green at 6-month threshold

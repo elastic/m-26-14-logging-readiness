@@ -7,7 +7,9 @@
       "description": "Audit log and state machine for two-gate data retirement approval workflow. Append-only: each state transition creates a new document. Current state = most recent doc per index_name."
     }
   },
-  "index_patterns": ["m_26_14-retirement-requests"],
+  "index_patterns": [
+    "m_26_14-retirement-requests"
+  ],
   "priority": 500,
   "template": {
     "settings": {
@@ -18,29 +20,104 @@
     "mappings": {
       "dynamic": false,
       "properties": {
-        "@timestamp":            { "type": "date" },
-        "request_id":            { "type": "keyword" },
-        "index_name":            { "type": "keyword" },
-        "state":                 { "type": "keyword" },
-        "created_at":            { "type": "date" },
-        "updated_at":            { "type": "date" },
-        "phase_age_days":        { "type": "integer" },
-        "index_size_bytes":      { "type": "long" },
-        "ilm_policy":            { "type": "keyword" },
-        "ilm_phase":             { "type": "keyword" },
-        "gate1_case_id":         { "type": "keyword" },
-        "gate1_approved_by":     { "type": "keyword" },
-        "gate1_approved_at":     { "type": "date" },
-        "gate2_case_id":         { "type": "keyword" },
-        "gate2_approved_by":     { "type": "keyword" },
-        "gate2_approved_at":     { "type": "date" },
-        "snapshot_id":           { "type": "keyword" },
-        "delete_policy_applied": { "type": "boolean" },
-        "deletion_completed_at": { "type": "date" },
-        "cancelled_by":          { "type": "keyword" },
-        "cancelled_at":          { "type": "date" },
-        "notes":                 { "type": "text" },
-        "watcher_id":            { "type": "keyword" }
+        "@timestamp": {
+          "type": "date"
+        },
+        "request_id": {
+          "type": "keyword"
+        },
+        "index_name": {
+          "type": "keyword"
+        },
+        "state": {
+          "type": "keyword"
+        },
+        "created_at": {
+          "type": "date"
+        },
+        "updated_at": {
+          "type": "date"
+        },
+        "phase_age_days": {
+          "type": "integer"
+        },
+        "index_size_bytes": {
+          "type": "long"
+        },
+        "ilm_policy": {
+          "type": "keyword"
+        },
+        "ilm_phase": {
+          "type": "keyword"
+        },
+        "gate1_case_id": {
+          "type": "keyword"
+        },
+        "gate1_approved_by": {
+          "type": "keyword"
+        },
+        "gate1_approved_at": {
+          "type": "date"
+        },
+        "gate2_case_id": {
+          "type": "keyword"
+        },
+        "gate2_approved_by": {
+          "type": "keyword"
+        },
+        "gate2_approved_at": {
+          "type": "date"
+        },
+        "snapshot_id": {
+          "type": "keyword"
+        },
+        "delete_policy_applied": {
+          "type": "boolean"
+        },
+        "deletion_completed_at": {
+          "type": "date"
+        },
+        "cancelled_by": {
+          "type": "keyword"
+        },
+        "cancelled_at": {
+          "type": "date"
+        },
+        "notes": {
+          "type": "text"
+        },
+        "watcher_id": {
+          "type": "keyword"
+        },
+        "delete_policy": {
+          "type": "keyword"
+        },
+        "source_index": {
+          "type": "keyword"
+        },
+        "dest_index": {
+          "type": "keyword"
+        },
+        "held_by": {
+          "type": "keyword"
+        },
+        "hold_reason": {
+          "type": "text"
+        },
+        "reindex_task_id": {
+          "type": "keyword"
+        },
+        "workflow_execution_id": {
+          "type": "keyword"
+        },
+        "event": {
+          "properties": {
+            "ingested": {
+              "type": "date",
+              "format": "strict_date_time_no_millis||strict_date_optional_time||epoch_millis"
+            }
+          }
+        }
       }
     }
   }

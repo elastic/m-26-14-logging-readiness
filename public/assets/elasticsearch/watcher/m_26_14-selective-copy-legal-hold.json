@@ -50,6 +50,12 @@
   },
   "actions": {
     "create_legal_hold_audit_record": {
+      "transform": {
+        "script": {
+          "source": "def d = ctx.payload['audit_doc']; d['_id'] = ctx.payload['request_id']; return d;",
+          "lang": "painless"
+        }
+      },
       "index": {
         "index": "m_26_14-retirement-requests"
       }
@@ -74,7 +80,7 @@
         "host": "__ES_HOST__",
         "port": 443,
         "method": "put",
-        "path": "/_slm/policy/m_26_14-compliance-snapshots/_execute",
+        "path": "/_slm/policy/m_26_14-readiness-snapshots/_execute",
         "headers": {
           "Authorization": "__AUTH_HEADER__"
         },

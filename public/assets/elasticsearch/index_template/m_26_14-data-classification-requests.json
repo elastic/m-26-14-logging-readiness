@@ -1,0 +1,53 @@
+{
+  "_meta": {
+    "managed": true,
+    "managed_by": "m_26_14",
+    "m_26_14": {
+      "workstream": 7,
+      "description": "Audit log for data-classification intake requests written by the m_26_14-data-classification-intake workflow and queried by the m_26_14-classification-audit-query agent tool. Append-only: current state = most recent doc per index_name."
+    }
+  },
+  "index_patterns": [
+    "m_26_14-data-classification-requests"
+  ],
+  "priority": 500,
+  "template": {
+    "settings": {
+      "index.number_of_shards": 1,
+      "index.number_of_replicas": 1,
+      "index.codec": "best_compression"
+    },
+    "mappings": {
+      "dynamic": false,
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "index_name": {
+          "type": "keyword"
+        },
+        "state": {
+          "type": "keyword"
+        },
+        "created_at": {
+          "type": "date"
+        },
+        "updated_at": {
+          "type": "date"
+        },
+        "submitted_by": {
+          "type": "keyword"
+        },
+        "data_steward": {
+          "type": "keyword"
+        },
+        "workflow_execution_id": {
+          "type": "keyword"
+        },
+        "notes": {
+          "type": "text"
+        }
+      }
+    }
+  }
+}

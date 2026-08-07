@@ -71,7 +71,7 @@ export const ASSET_FILES = [
     type: 'kibana-dashboard',
     format: 'ndjson',
     levels: [1, 2, 3, 4],
-    file: '/assets/kibana/dashboard/m_26_14-compliance-attestation-dash.ndjson',
+    file: '/assets/kibana/dashboard/m_26_14-readiness-attestation-dash.ndjson',
     desc: 'Exportable readiness attestation view — summarises coverage, retention, and detection posture for audit evidence.',
     screenshot: '/screenshots/07-compliance-attestation.png',
     docs: [
@@ -100,11 +100,11 @@ export const ASSET_FILES = [
     type: 'kibana-dashboard',
     format: 'ndjson',
     levels: [1, 2, 3, 4],
-    file: '/assets/kibana/dashboard/m_26_14-retention-compliance.ndjson',
+    file: '/assets/kibana/dashboard/m_26_14-retention-readiness.ndjson',
     desc: 'Searchable and retrievable retention coverage by data stream and time window — evidence for M-26-14 retention obligations.',
     screenshot: '/screenshots/04-retention-compliance.png',
     docs: [
-      { label: 'Retention Readiness Guide', file: '/docs/dashboards/m_26_14-retention-compliance.md' },
+      { label: 'Retention Readiness Guide', file: '/docs/dashboards/m_26_14-retention-readiness.md' },
       { label: 'Readiness Dashboard Guide', file: '/docs/detection-rules/compliance-dashboard-guide.md' },
     ],
   },
@@ -542,7 +542,7 @@ export const ASSET_FILES = [
     type: 'kibana-rule',
     format: 'ndjson',
     levels: [3, 4],
-    file: '/assets/kibana/rule/m_26_14-ml-compliance-degradation.ndjson',
+    file: '/assets/kibana/rule/m_26_14-ml-readiness-degradation.ndjson',
     desc: '1 ML rule: anomalous drop in overall readiness element scores — fires when posture degrades unexpectedly.',
     ruleCount: 1,
   },
@@ -703,7 +703,7 @@ export const ASSET_FILES = [
     type: 'slm-policy',
     format: 'json',
     levels: [1, 2, 3, 4],
-    file: '/assets/elasticsearch/slm_policy/m_26_14-compliance-snapshots.json',
+    file: '/assets/elasticsearch/slm_policy/m_26_14-readiness-snapshots.json',
     desc: 'Snapshot Lifecycle Management policy: daily snapshots of all m_26_14-* indices to S3 (found-snapshots), retained for 7 years. Required by ILM wait_for_snapshot gate — deletion cannot proceed until SLM confirms a durable backup exists.',
   },
 
@@ -1385,7 +1385,7 @@ export const ASSET_FILES = [
     type: 'enrich-policy',
     format: 'json',
     levels: [3, 4],
-    file: '/assets/elasticsearch/enrich_policy/m_26_14-asset-compliance-lookup.json',
+    file: '/assets/elasticsearch/enrich_policy/m_26_14-asset-readiness-lookup.json',
     desc: 'Match enrich on host.name against m_26_14-assets; returns asset.* and m_26_14.* compliance context (criticality, element coverage, encryption) to promote onto SIEM alert events for Entity Store.',
   },
   {
@@ -1617,7 +1617,7 @@ export const ASSET_FILES = [
     type: 'kibana-agent-tool',
     format: 'json',
     levels: [2, 3, 4],
-    file: '/assets/kibana/agent_tool/m_26_14-compliance-posture-esql-tool.json',
+    file: '/assets/kibana/agent_tool/m_26_14-readiness-posture-esql-tool.json',
     desc: 'Custom Agent Builder ES|QL tool that queries m_26_14-data-classification-requests and m_26_14-metrics-* for readiness posture metrics. Used by the POA&M Drafting and AAR agents to identify unclassified data streams and maturity score trends.',
   },
 

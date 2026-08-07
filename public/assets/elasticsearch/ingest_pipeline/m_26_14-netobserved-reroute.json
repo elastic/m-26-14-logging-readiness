@@ -1,7 +1,7 @@
 {
   "_meta": {
     "managed": true,
-    "managed_by": "m2614_compliance",
+    "managed_by": "m_26_14",
     "m_26_14": {
       "workstream": 3,
       "description": "OPT-IN router: maps stock integration data (NetFlow/IPFIX, Suricata/Snort, DHCP, Packetbeat) to the M-26-14 network-observed device schema and REROUTES it into logs-m_26_14_netobserved.devices, where the m_26_14-network-device-normalize pipeline enriches it (OUI vendor, OT tagging, asset/host entity). Attach this from a dedicated sensor integration's `logs-<dataset>@custom` pipeline via a {pipeline} processor. NOTE: reroute MOVES the document out of its original stream — use only for dedicated inventory/flow/IDS sensors whose data exists solely for network visibility. To COPY instead of move, use a continuous transform (see docs/ot-iot-network-visibility.md)."

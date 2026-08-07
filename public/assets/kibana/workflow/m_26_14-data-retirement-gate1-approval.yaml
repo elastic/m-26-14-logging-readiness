@@ -3,32 +3,34 @@
 # Category: compliance/data-management
 #
 # Manual workflow triggered after a human approves Gate 1 for a specific
-# index. Switches the index ILM policy to a deletion-enabled variant,
-# records approved_gate1 and pending_gate2 audit states, then opens a
-# Gate 2 (final deletion authorization) Kibana Case.
+# index. Records approved_gate1 and pending_gate2 audit states, then opens
+# a Gate 2 (final deletion authorization) Kibana Case.
 #
-# ILM wait_for_snapshot will then block deletion until the SLM policy
-# m_26_14-compliance-snapshots confirms a durable S3 backup exists.
+# IMPORTANT: No ILM change happens at Gate 1. The index stays on its
+# no-delete policy until Gate 2 approval — the Gate 2 Execution workflow
+# performs the switch to the deletion-enabled variant. This guarantees
+# both gates must pass before deletion becomes possible. ILM
+# wait_for_snapshot then still blocks deletion until the SLM policy
+# m_26_14-readiness-snapshots confirms a durable S3 backup exists.
 #
-# NOTE: kibana.request steps use /internal/es/ prefix to proxy ES API calls
-# through Kibana. Adjust prefix if your Kibana version differs.
 #
 # Schema: github.com/elastic/workflows
-# Author: Elastic / M-26-14 Compliance Pack
-# Tags: M-26-14, Compliance, Data Retirement, Manual
+# Author: Elastic / M-26-14 Readiness Pack
+# Tags: M-26-14, Readiness, Data Retirement, Manual
 # =============================================================================
 version: "1"
 name: M-26-14 Data Retirement — Gate 1 Approval Handler
 description: >
   Manual workflow: run after Gate 1 has been approved for a specific index.
-  Switches the index ILM policy to a deletion-enabled variant, records
-  approved_gate1 and pending_gate2 states in the audit index, and opens a
-  Gate 2 (final deletion authorization) Kibana Case. ILM wait_for_snapshot
-  then enforces a durable snapshot exists before deletion can proceed.
+  Records approved_gate1 and pending_gate2 states in the audit index and
+  opens a Gate 2 (final deletion authorization) Kibana Case. No ILM change
+  happens at Gate 1 — the index keeps its no-delete policy until the Gate 2
+  Execution workflow switches it to the deletion-enabled variant, after
+  which ILM wait_for_snapshot enforces a durable snapshot before deletion.
 enabled: false
 tags:
   - M-26-14
-  - Compliance
+  - Readiness
   - Data Retirement
   - Manual
 
@@ -53,7 +55,7 @@ triggers:
         description: "Username of the Gate 1 approver"
       - name: ilm_delete_policy
         type: string
-        description: "Deletion-enabled ILM policy to apply (e.g. m_26_14-logs-l3-hot-frozen)"
+        description: "Deletion-enabled ILM policy Gate 2 will apply (e.g. m_26_14-logs-l3-hot-frozen) — recorded for audit, NOT applied here"
         default: "m_26_14-logs-l3-hot-frozen"
       - name: original_ilm_policy
         type: string
@@ -70,28 +72,11 @@ triggers:
 steps:
 
   # -------------------------------------------------------------------------
-  # STEP 1: switch_to_delete_policy
+  # STEP 1: record_approved_gate1
   # -------------------------------------------------------------------------
-  # Changes the index ILM policy from the no-delete variant to the
-  # deletion-enabled variant. ILM wait_for_snapshot will then block
-  # actual deletion until a compliant snapshot exists.
-  # NOTE: /internal/es/ proxies ES API through Kibana. Adjust if needed.
-  # -------------------------------------------------------------------------
-  - name: switch_to_delete_policy
-    type: kibana.request
-    with:
-      method: PUT
-      path: /internal/es/{{ inputs.index_name }}/_settings
-      body:
-        index.lifecycle.name: "{{ inputs.ilm_delete_policy }}"
-    on-failure:
-      continue: false
-      retry:
-        max-attempts: 2
-        delay: 10s
-
-  # -------------------------------------------------------------------------
-  # STEP 2: record_approved_gate1
+  # NOTE: deliberately NO ILM change in this workflow. The index keeps its
+  # no-delete policy until Gate 2 Execution applies the delete-enabled
+  # variant. Both gates must pass before deletion becomes possible.
   # -------------------------------------------------------------------------
   - name: record_approved_gate1
     type: elasticsearch.index
@@ -109,13 +94,13 @@ steps:
         delete_policy: "{{ inputs.ilm_delete_policy }}"
         gate1_approved_by: "{{ inputs.approved_by }}"
         gate1_approved_at: "{{ execution.startedAt | date: '%Y-%m-%dT%H:%M:%S.000Z' }}"
-        delete_policy_applied: true
+        delete_policy_applied: false
         watcher_id: m_26_14-data-retirement-gate1-approval
     on-failure:
       continue: true
 
   # -------------------------------------------------------------------------
-  # STEP 3: record_pending_gate2
+  # STEP 2: record_pending_gate2
   # -------------------------------------------------------------------------
   - name: record_pending_gate2
     type: elasticsearch.index
@@ -134,13 +119,13 @@ steps:
         delete_policy: "{{ inputs.ilm_delete_policy }}"
         ilm_phase: frozen
         gate1_approved_by: "{{ inputs.approved_by }}"
-        delete_policy_applied: true
+        delete_policy_applied: false
         watcher_id: m_26_14-data-retirement-gate1-approval
     on-failure:
       continue: true
 
   # -------------------------------------------------------------------------
-  # STEP 4: open_gate2_case
+  # STEP 3: open_gate2_case
   # -------------------------------------------------------------------------
   - name: open_gate2_case
     type: cases.createCase
@@ -158,19 +143,21 @@ steps:
         | **Original Policy** | `{{ inputs.original_ilm_policy }}` |
 
         ---
-        ### What Happens Next (Automatic)
+        ### Current State
 
-        ILM is now managing this index through the deletion lifecycle.
-        The `wait_for_snapshot` action **blocks deletion** until the SLM
-        policy `m_26_14-compliance-snapshots` confirms a durable S3 backup
-        exists. No manual action is needed for the snapshot — it runs daily.
+        The index is **still on its no-delete ILM policy** — no data change
+        has occurred. Deletion only becomes possible after Gate 2, when the
+        Gate 2 Execution workflow switches the index to
+        `{{ inputs.ilm_delete_policy }}`. ILM `wait_for_snapshot` then
+        blocks deletion until the SLM policy `m_26_14-readiness-snapshots`
+        confirms a durable S3 backup exists (runs daily, no manual action).
 
         ---
         ### Gate 2 Authorization Instructions
 
-        1. Verify the snapshot exists:
-           **Kibana → Stack Management → Snapshot and Restore**
-           Look for a recent `m_26_14-compliance-<date>` snapshot.
+        1. Confirm no active legal hold covers this index
+           (search `m_26_14-retirement-requests` for `state: legal_hold_initiated`
+           whose `source_index` pattern matches).
 
         2. Authorize final deletion by indexing to `m_26_14-retirement-requests`:
            ```json
@@ -185,7 +172,8 @@ steps:
            ```
 
         3. Run the **M-26-14 Data Retirement — Gate 2 Execution** workflow
-           with `index_name: {{ inputs.index_name }}`.
+           with `index_name: {{ inputs.index_name }}` — it applies the
+           deletion-enabled ILM policy and records the final audit state.
 
         ---
         *Auto-generated by M-26-14 Data Retirement Gate 1 Approval Handler workflow.*
@@ -200,7 +188,7 @@ steps:
         - compliance
 
   # -------------------------------------------------------------------------
-  # STEP 5: notify_gate2_pending
+  # STEP 4: notify_gate2_pending
   # -------------------------------------------------------------------------
   - name: notify_gate2_pending
     type: kibana.request
@@ -213,18 +201,19 @@ steps:
             [M-26-14] Data Retirement Gate 2 — Authorization Required
             Index: {{ inputs.index_name }}
             Gate 1 approved by: {{ inputs.approved_by }}
-            ILM switched to: {{ inputs.ilm_delete_policy }}
+            Index remains on no-delete policy ({{ inputs.original_ilm_policy }}) until Gate 2.
 
             Next steps:
-            1. Verify snapshot in Kibana Stack Management > Snapshot and Restore
-            2. Run the Gate 2 Execution workflow once snapshot is confirmed
+            1. Confirm no active legal hold covers this index
+            2. Index the approved_gate2 audit record
+            3. Run the Gate 2 Execution workflow (applies {{ inputs.ilm_delete_policy }})
     on-failure:
       continue: true
 
   # -------------------------------------------------------------------------
-  # STEP 6: log_completion
+  # STEP 5: log_completion
   # -------------------------------------------------------------------------
   - name: log_completion
     type: console
     with:
-      message: "Gate 1 approved for {{ inputs.index_name }}. ILM → {{ inputs.ilm_delete_policy }}. Gate 2 case opened. Approved by: {{ inputs.approved_by }}"
+      message: "Gate 1 approved for {{ inputs.index_name }} (no ILM change — happens at Gate 2). Gate 2 case opened. Approved by: {{ inputs.approved_by }}"

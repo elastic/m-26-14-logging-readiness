@@ -3,7 +3,7 @@
   "description": "M-26-14 Element 1: Detects agent-type coverage drops vs. rolling baseline (low_count per agent.type, 1h)",
   "groups": [
     "m_26_14",
-    "compliance-health"
+    "readiness-health"
   ],
   "analysis_config": {
     "bucket_span": "1h",

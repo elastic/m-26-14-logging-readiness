@@ -8,12 +8,10 @@
 # compliance snapshot, and opens a Kibana legal hold Case for audit
 # traceability. Run before the retirement lifecycle begins on an index.
 #
-# NOTE: kibana.request uses /internal/es/ to proxy ES API through Kibana.
-# Adjust prefix if your Kibana version differs.
 #
 # Schema: github.com/elastic/workflows
-# Author: Elastic / M-26-14 Compliance Pack
-# Tags: M-26-14, Compliance, Legal Hold, Data Retention, Manual
+# Author: Elastic / M-26-14 Readiness Pack
+# Tags: M-26-14, Readiness, Legal Hold, Data Retention, Manual
 # =============================================================================
 version: "1"
 name: M-26-14 Legal Hold — Selective Copy
@@ -26,7 +24,7 @@ description: >
 enabled: false
 tags:
   - M-26-14
-  - Compliance
+  - Readiness
   - Legal Hold
   - Data Retention
   - Manual
@@ -71,13 +69,12 @@ steps:
   # -------------------------------------------------------------------------
   # Async reindex — starts the copy without waiting for completion.
   # Monitor progress: GET /_tasks?actions=*reindex&detailed
-  # NOTE: /internal/es/ proxies ES API through Kibana. Adjust if needed.
-  # -------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
   - name: initiate_reindex
-    type: kibana.request
+    type: elasticsearch.request
     with:
       method: POST
-      path: /internal/es/_reindex?wait_for_completion=false
+      path: /_reindex?wait_for_completion=false
       body:
         source:
           index: "{{ inputs.source_index }}"
@@ -105,10 +102,10 @@ steps:
   # cannot enter deletion lifecycle regardless of default template settings.
   # -------------------------------------------------------------------------
   - name: apply_no_delete_ilm
-    type: kibana.request
+    type: elasticsearch.request
     with:
       method: PUT
-      path: /internal/es/{{ inputs.dest_index }}/_settings
+      path: /{{ inputs.dest_index }}/_settings
       body:
         index.lifecycle.name: "{{ inputs.no_delete_ilm_policy }}"
     on-failure:
@@ -121,10 +118,10 @@ steps:
   # before any further lifecycle transitions.
   # -------------------------------------------------------------------------
   - name: trigger_compliance_snapshot
-    type: kibana.request
+    type: elasticsearch.request
     with:
       method: PUT
-      path: /internal/es/_slm/policy/m_26_14-compliance-snapshots/_execute
+      path: /_slm/policy/m_26_14-readiness-snapshots/_execute
       body: {}
     on-failure:
       continue: true
@@ -177,7 +174,7 @@ steps:
 
         1. **Async reindex started** — `{{ inputs.source_index }}` → `{{ inputs.dest_index }}`
         2. **No-delete ILM applied** — `{{ inputs.no_delete_ilm_policy }}` (retained index cannot be deleted)
-        3. **Compliance snapshot triggered** — `m_26_14-compliance-snapshots` SLM policy executed
+        3. **Compliance snapshot triggered** — `m_26_14-readiness-snapshots` SLM policy executed
         4. **Audit record indexed** — `m_26_14-retirement-requests` (state: `legal_hold_initiated`)
 
         ---

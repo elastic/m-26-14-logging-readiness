@@ -166,7 +166,7 @@ export const PILLARS = [
       talkTrack:
         'Walk the bars, then pivot to the matrix. Green means data plus rules plus alerts. That matrix is what the SA brings to the auditor. The ML claim is provable in the alerts list: the demo dataset stages an intrusion chain (a cryptominer on a Linux bastion, credential-dump tools on a Windows workstation, flows to never-seen countries, an off-baseline login surge) and every stage produced a live anomaly (record scores 93-99.9) and a real detection-engine alert. Then show the POA&M agent drafting a gap document from the same data.',
       technical:
-        'Alerts pass through m_26_14-alert-category-pipeline for tagging; m_26_14-alert-coverage-daily rolls per-day counts. ML detection rules reinforce Cat A (auth anomalies, UEBA login), Cat B (DNS entropy, rare destination country), and Cat H (rare process, host-went-silent); seven of the eight wrap m_26_14_-prefixed Elastic Security ML module jobs. The m_26_14-poam-drafting-agent in Agent Builder queries coverage via the m_26_14-compliance-posture-esql-tool.',
+        'Alerts pass through m_26_14-alert-category-pipeline for tagging; m_26_14-alert-coverage-daily rolls per-day counts. ML detection rules reinforce Cat A (auth anomalies, UEBA login), Cat B (DNS entropy, rare destination country), and Cat H (rare process, host-went-silent); seven of the eight wrap m_26_14_-prefixed Elastic Security ML module jobs. The m_26_14-poam-drafting-agent in Agent Builder queries coverage via the m_26_14-readiness-posture-esql-tool.',
       live: [
         { label: 'Alert Coverage (Appendix B)', url: dash('m_26_14-alert-coverage', 'now-30d') },
         { label: 'Appendix B Coverage Matrix', url: dash('m_26_14-appendix-b-coverage', 'now-30d') },
@@ -202,7 +202,7 @@ export const PILLARS = [
       technical:
         'ILM m_26_14-logs-l3-hot-frozen keeps 90 days hot then frozen to a 1-year window; m_26_14-logs-l4-hot-frozen keeps 180 days hot to a 1-year window. Retirement runs through gate1/gate2 watchers and Kibana Workflows, logging every action to m_26_14-retirement-requests.',
       live: [
-        { label: 'Retention Readiness', url: dash('m_26_14-retention-compliance', 'now-30d') },
+        { label: 'Retention Readiness', url: dash('m_26_14-retention-readiness', 'now-30d') },
       ],
       demo: { title: 'Retention & retirement click-through', status: 'planned', url: null },
       docs: [

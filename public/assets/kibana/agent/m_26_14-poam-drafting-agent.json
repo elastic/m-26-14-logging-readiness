@@ -24,7 +24,7 @@
           "platform.core.search",
           "security.alerts",
           "m_26_14-retirement-audit-query",
-          "m_26_14-compliance-posture-query",
+          "m_26_14-readiness-posture-query",
           "m_26_14-classification-audit-query",
           "m_26_14-asset-inventory-search"
         ]

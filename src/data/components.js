@@ -43,9 +43,9 @@ export const COMPONENTS = {
     role:
       'Single unified agent that collects logs and metrics via 300+ prebuilt integrations. Normalizes events to ECS (Elastic Common Schema) at the edge so downstream detection and search are consistent across data sources.',
     requirement:
-      'M-26-14: primary log collection mechanism. ECS normalization satisfies the requirement that logs be usable across agencies and for CISA/FBI sharing without bespoke translation.',
+      'M-26-14: primary log collection mechanism. ECS is a schema CISA\'s Logging Reference Architecture names among validated, open source cybersecurity schemas (Section 4.4, footnote 9); normalizing to it at the edge gives every source one shape, so an export to CISA, the FBI, or an OIG (LRA Section 7.4) is a scoping decision, not a translation project.',
     config:
-      'Use `elastic-agent.yml` integration policies managed via Fleet. Enable NTP sync validation (USNO/NIST traceable per M-26-14). Pin agent versions per environment.',
+      'Use `elastic-agent.yml` integration policies managed via Fleet. Enable the System integration `ntp` data stream against the agency NTP chain (USNO/NIST traceable) so each host\'s clock offset is recorded (Readiness Pack D-20). Pin agent versions per environment.',
     docs: [
       { label: 'Elastic Agent docs', url: 'https://www.elastic.co/guide/en/fleet/current/elastic-agent-installation.html' },
       { label: 'ECS reference', url: 'https://www.elastic.co/guide/en/ecs/current/index.html' },
@@ -75,13 +75,14 @@ export const COMPONENTS = {
     euiIcon: 'logoLogstash',
     optional: true,
     role:
-      'Optional pipeline tier. Use for legacy syslog ingestion, OT protocol translation, complex ETL, or buffering bursts. Can sit between sources and Elasticsearch, or augment an Elastic Agent stream.',
+      'Durable transport tier (optional). Sits between collectors and Elasticsearch where the agency needs a store-and-forward hop that survives an Elasticsearch outage: persistent on-disk queue, checkpointing, dead-letter queue with replay, back pressure to the edge. Also the landing point for syslog, network and OT sources that cannot retry, and for legacy ETL. Logstash is the reference implementation; an existing agency capability with the same properties (Kafka, a message bus, a queueing tier) can take its place.',
     requirement:
-      'M-26-14 treats Logstash as an acceptable alternative or supplement to Elastic Agent — what matters is that the data lands in the searchable/retrievable tiers correctly.',
+      'LRA Section 4.3 requires the dataflow design to address durable handoff, buffering, checkpointing, replay, encryption, back pressure, partial failure and queue-health monitoring, and Section 8.3 names a single fragile central pipeline as a pattern to avoid. M-26-14 does not prescribe the component. What matters is that each property has a mechanism and a place where it is observed, and that the data lands in the same searchable and retrievable tiers through the same ingest chain as Agent-direct.',
     config:
-      'Enable persistent queues to prevent data loss during downstream outages. Output to an Elasticsearch ingest pipeline so ECS normalization is applied centrally.',
+      'The Readiness Pack ships the working configuration (logstash/ bundle): persistent queue sized to the outage window, checkpoint writes, DLQ with a replay pipeline, mutual TLS on both hops, and data-stream routing so events traverse the same ingest pipelines as Agent-direct. Queue depth, growth rate, back pressure and non-retryable output failures are observed on the pack\'s Pipeline Health dashboard, fed by the Logstash integration through Fleet in production or by the pack\'s simulator for demonstrations.',
     docs: [
       { label: 'Logstash persistent queues', url: 'https://www.elastic.co/guide/en/logstash/current/persistent-queues.html' },
+      { label: 'Logstash integration (queue-health metrics)', url: 'https://www.elastic.co/docs/reference/integrations/logstash' },
     ],
   },
 
@@ -485,9 +486,9 @@ export const COMPONENTS = {
     role:
       'Authoritative time source for all agents, collectors, and Elasticsearch nodes. Without traceable time, log correlation and forensic timelines are unreliable.',
     requirement:
-      'M-26-14 L4: time synchronization must be traceable to USNO or NIST. Agents validate clock skew at startup and on a schedule.',
+      'M-26-14 Appendix B and LRA 6.3: accurate, synchronized timestamps traceable to USNO or NIST. The Readiness Pack records each host\'s NTP offset from the System integration ntp data stream as attestation evidence on its asset score (evidence.ntp_attestation) and flags documents whose event time drifts from ingest time past the configured skew threshold.',
     config:
-      'Configure chrony or w32time against USNO / NIST pool. Set Elastic Agent to alert on skew > 1 second. Review skew dashboard during incident triage.',
+      'Configure chrony, ntpd or w32time against the agency NTP chain (USNO / NIST traceable). Enable the System integration ntp data stream with ntp.servers pointed at that chain; the pack rule m_26_14-ntp-offset-exceeded alerts on a host offset over 1000 ms (thresholds.ntp_offset_ms in m_26_14-config) and the m_26_14-timestamp-skew stage flags skewed documents. Review both during incident triage.',
     docs: [
       { label: 'NIST Internet Time Service', url: 'https://www.nist.gov/pml/time-and-frequency-division/time-distribution/internet-time-service-its' },
     ],

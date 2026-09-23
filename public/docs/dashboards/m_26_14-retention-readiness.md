@@ -35,7 +35,7 @@ This dashboard is a drill-down from the **M-26-14 Maturity Overview** hub dashbo
 
 The dashboard contains seven panels: the back-link, three KPI metrics, two horizontal bar charts, and one readiness data table. All read from `m_26_14-metrics-retention` via ES|QL.
 
-![M-26-14 Retention Readiness dashboard — back-link at top, three retention KPI metrics, searchable/retrievable bar charts, and per-stream readiness table](../screenshots/04-retention-compliance.png)
+![M-26-14 Retention Readiness dashboard — back-link at top, three retention KPI metrics, searchable/retrievable bar charts, and per-stream readiness table](../screenshots/m_26_14-retention-readiness.png)
 
 | # | Panel | Type | What It Shows |
 |---|-------|------|---------------|

@@ -12,9 +12,13 @@ export default {
           600: 'rgb(var(--ink-600) / <alpha-value>)',
         },
         line: 'rgb(var(--color-line) / <alpha-value>)',
+        surface: {
+          prepend: 'rgb(var(--surface-prepend) / <alpha-value>)',
+        },
         text: {
           primary: 'rgb(var(--text-primary) / <alpha-value>)',
           muted: 'rgb(var(--text-muted) / <alpha-value>)',
+          neutral: 'rgb(var(--text-neutral) / <alpha-value>)',
         },
         accent: {
           teal:   'rgb(var(--accent-teal)   / <alpha-value>)',

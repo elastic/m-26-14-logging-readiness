@@ -27,13 +27,13 @@ This dashboard is one spoke of the M-26-14 readiness pack's hub-and-spoke naviga
 
 The dashboard contains one navigation panel and nine visualization panels, all driven by ES|QL queries against two indices: `m_26_14-demo-logs` (hashed/unhashed log documents) and `m_26_14-integrity-violations-default` (verification-job findings).
 
-![M-26-14 Log Management dashboard — back-link bar at top, four integrity metric panels, hash coverage trend and per-host bar chart, violations detail table, and category pie with log volume trend at the bottom](../screenshots/05-log-management.png)
+![M-26-14 Log Management dashboard — back-link bar at top, four integrity metric panels, hash coverage trend and per-host bar chart, violations detail table, and category pie with log volume trend at the bottom](../screenshots/m_26_14-log-management.png)
 
 | # | Panel | Type | Source / Query | What It Shows |
 |---|-------|------|----------------|---------------|
 | 0 | **← Back: M-26-14 Maturity Overview** | Links | Dashboard link to `m_26_14-maturity-overview` | Hub navigation; carries time range and filters back to the overview |
-| 1 | **Documents with Integrity Hash** | Metric | `m_26_14-demo-logs` where `event.integrity.hashed == true` | Count of log documents carrying a SHA-256 integrity hash (teal; subtitle notes ~78% of log volume hashed in the demo dataset) |
-| 2 | **Documents Without Hash** | Metric | `m_26_14-demo-logs` where `event.integrity.hashed == false` | Count of logs that bypassed the hash pipeline (yellow — flagged as "needs pipeline rollout") |
+| 1 | **Documents with Integrity Hash** | Metric | `m_26_14-demo-logs` where `event.integrity.hashed == true` | Count of log documents carrying a SHA-256 integrity hash (teal) |
+| 2 | **Documents Without Hash** | Metric | `m_26_14-demo-logs` where `event.integrity.hashed == false` | Count of logs the hashing pipeline has not reached (yellow) |
 | 3 | **Integrity Violations (30d)** | Metric | `m_26_14-integrity-violations-default`, total count | Hash mismatches detected by the verification job within the selected time range (red) |
 | 4 | **Hosts with Hash Coverage** | Metric | `m_26_14-demo-logs`, `COUNT_DISTINCT(host.name)` where hashed | Number of distinct hosts producing hashed logs |
 | 5 | **Log Hash Coverage Trend** | Area chart (XY) | `m_26_14-demo-logs` hashed docs, daily buckets (`DATE_TRUNC(1 day, @timestamp)`) | Daily volume of hashed log documents over time |

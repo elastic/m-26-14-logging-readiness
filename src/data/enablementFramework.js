@@ -1,3 +1,4 @@
+import { LIVE_KIBANA_BASE, withAnonHint } from './liveLinks.js'
 // M-26-14 enablement framework.
 //
 // Single source of truth for the Sales and SA enablement pages. The structure
@@ -12,11 +13,11 @@
 // published Elastic docs. Values that are data-driven (counts) are described
 // qualitatively so a reseed does not make this page wrong.
 
-const KB = 'https://m-26-14-7ae75d.kb.us-east-1.aws.found.io'
+const KB = LIVE_KIBANA_BASE
 const DOCS = 'https://www.elastic.co'
 
 const dash = (id, g = 'now-90d') =>
-  `${KB}/app/dashboards#/view/${id}?_g=(time:(from:${g},to:now))`
+  withAnonHint(`${KB}/app/dashboards#/view/${id}?_g=(time:(from:${g},to:now))`)
 
 export const HUB = {
   title: 'M-26-14 Enablement',
@@ -42,7 +43,7 @@ export const HUB = {
     },
     {
       id: 'walkthrough',
-      to: '/demo-guide',
+      to: '/capabilities/walkthrough',
       label: 'Self-Guided Walkthrough',
       tagline: 'The live cluster, dashboard by dashboard',
       for: 'Customers exploring on their own',
@@ -103,7 +104,7 @@ export const PILLARS = [
       talkTrack:
         'Click a gap tile, it opens Discover filtered to exactly those devices with names and last-seen times. This is what you hand the ISO instead of a spreadsheet. Then show drift: the system caught the change, not a quarterly audit.',
       technical:
-        'osquery reports disk_encryption and installed software; Intune supplies MDM enrollment. m_26_14-asset-canonical-enrich recomputes each live fingerprint, then calls the m_26_14-asset-drift sub-pipeline, which compares it to the certified one via the m_26_14-asset-baseline-lookup enrich policy and sets m_26_14.drift_detected. The m_26_14-ws7-r3-unauth-software rule enforces the authorized catalog; m_26_14-ws7-r1/r2 rules watch OS and encryption drift.',
+        'osquery reports disk_encryption and installed software; Intune supplies MDM enrollment. m_26_14-asset-canonical-enrich recomputes each live fingerprint, then calls the m_26_14-asset-drift sub-pipeline, which compares it to the certified one via the m_26_14-asset-baseline-lookup enrich policy and sets m_26_14.drift_detected. The m_26_14-asset-unauthorized-software rule enforces the authorized catalog; m_26_14-asset-baseline-drift and m_26_14-asset-encryption-disabled watch OS and encryption drift.',
       live: [
         { label: 'HWAM Coverage Gaps', url: dash('m_26_14-hwam-gaps') },
         { label: 'SWAM Software Inventory', url: dash('m_26_14-swam-software') },
@@ -137,7 +138,7 @@ export const PILLARS = [
       technical:
         'Entity Store engines (host/user/service) run continuously and are enabled on this cluster. Risk scoring aggregates anomaly and alert contributions per entity. Asset readiness fields (hwam_source, drift_detected, element*_covered) enrich the host entity, so M-26-14 posture becomes a risk input.',
       live: [
-        { label: 'Entity Analytics (risk scores)', url: `${KB}/app/security/entity_analytics` },
+        { label: 'Entity Analytics (risk scores)', url: withAnonHint(`${KB}/app/security/entity_analytics`) },
       ],
       demo: { title: 'Entity & risk scoring click-through', status: 'planned', url: null },
       docs: [
@@ -170,7 +171,7 @@ export const PILLARS = [
       live: [
         { label: 'Alert Coverage (Appendix B)', url: dash('m_26_14-alert-coverage', 'now-30d') },
         { label: 'Appendix B Coverage Matrix', url: dash('m_26_14-appendix-b-coverage', 'now-30d') },
-        { label: 'Agent Builder (POA&M agent)', url: `${KB}/app/agent_builder/agents` },
+        { label: 'Agent Builder (POA&M agent)', url: withAnonHint(`${KB}/app/agent_builder/agents`) },
       ],
       demo: { title: 'Detection coverage click-through', status: 'planned', url: null },
       docs: [
@@ -255,7 +256,7 @@ export const REQUIREMENTS = {
       },
       {
         title: 'Readiness timelines are tighter and tied to the LRA',
-        text: 'Under M-21-31, agencies had one year to reach EL1, 18 months for EL2, and two years for EL3, with timing measured from the memo\'s issuance date. M-26-14 resets that clock to the LRA publication date and compresses the window significantly: Level 1 within 120 days, Level 2 within 180 days, Level 3 within 320 days. Agencies also have 90 days from LRA publication to submit a formal Agency Logging Plan to both OMB and CISA.',
+        text: 'Under M-21-31, agencies had one year to reach EL1, 18 months for EL2, and two years for EL3, with timing measured from the memo\'s issuance date. M-26-14 resets that clock to the LRA publication date (August 20, 2026) and compresses the window significantly: Level 1 within 120 days (December 18, 2026), Level 2 within 180 days (February 16, 2027), Level 3 within 320 days (July 6, 2027). Agencies also have 90 days from LRA publication to submit a formal Agency Logging Plan to both OMB and CISA (November 18, 2026).',
         aeCallout: 'Customers have to move faster to hit these compressed deadlines, so position Elastic aggressively as the technology that gets them to M-26-14 readiness.',
       },
       {

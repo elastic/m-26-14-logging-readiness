@@ -35,17 +35,17 @@ The maturity overview sits at the top of a hub-and-spoke layout. Pre-aggregated 
 
 The dashboard contains **nine panels**: one navigation links bar, six ES|QL-driven metric panels (three per row, two rows of element scores), and two 30-day trend charts. All metric panels read pre-aggregated metrics indices — never raw alert or event stores — so load time is constant regardless of log volume.
 
-![M-26-14 Maturity Overview dashboard — navigation links bar at top, six element score metrics in the center, and two 30-day coverage trend charts at the bottom](../screenshots/01-maturity-overview.png)
+![M-26-14 Maturity Overview dashboard — navigation links bar at top, six element score metrics in the center, and two 30-day coverage trend charts at the bottom](../screenshots/m_26_14-maturity-overview.png)
 
 | # | Panel | Type | Source Index | What It Computes |
 |---|-------|------|--------------|------------------|
 | 1 | Navigation links bar | Links (horizontal) | n/a | Six dashboard links to the detail dashboards (see Section 3) |
-| 2 | **Element 1: Inventory Coverage %** | Lens metric (ES\|QL) | `m_26_14-metrics-asset-coverage` | `MAX(m_26_14.value)` where `m_26_14.element == "element_1_inventory"`. Subtitle states the threshold: L3 ≥ 90% (current demo value: 90.1% — green) |
-| 3 | **Element 2: Collection Coverage %** | Lens metric (ES\|QL) | `m_26_14-metrics-asset-coverage` | `MAX(m_26_14.value)` where `m_26_14.element == "element_2_collection"`. Subtitle: L2 ≥ 80%, target L3 ≥ 90% (yellow — below L3 threshold) |
-| 4 | **Element 3: Appendix B Categories Covered** | Lens metric (ES\|QL) | `m_26_14-metrics-alert-coverage` | `COUNT_DISTINCT(m_26_14.category)` where `m_26_14.coverage_status == "covered"`. Subtitle: 6 of 11 covered, target L3 ≥ 8 (yellow) |
-| 5 | **Element 4: L3-Compliant Data Streams** | Lens metric (ES\|QL) | `m_26_14-metrics-retention` | `COUNT(*)` where `m_26_14.retention.l3_compliant == true`. Subtitle: 6 of 10 streams meet L3 (green) |
-| 6 | **Element 5: Hashed Log Documents** | Lens metric (ES\|QL) | `m_26_14-demo-logs` | `COUNT(*)` where `event.integrity.hashed == true`. Subtitle: ~78% of logs hashed, target L3 ≥ 80% (yellow) |
-| 7 | **Element 5: Integrity Violations (30d)** | Lens metric (ES\|QL) | `m_26_14-integrity-violations-default` | `COUNT(*)` of recorded hash-mismatch events. Subtitle: 3 hash mismatches detected (red — any non-zero value warrants investigation) |
+| 2 | **Element 1: Inventory Coverage %** | Lens metric (ES\|QL) | `m_26_14-metrics-asset-coverage` | `MAX(m_26_14.value)` where `m_26_14.element == "element_1_inventory"`. Subtitle states the measure and the threshold: managed share of inventoried assets, L3 ≥ 90%. Value-click opens the score's per-day history |
+| 3 | **Element 2: Collection Coverage %** | Lens metric (ES\|QL) | `m_26_14-metrics-asset-coverage` | `MAX(m_26_14.value)` where `m_26_14.element == "element_2_collection"`. Subtitle: software-inventoried share of managed assets, L2 ≥ 80%, L3 ≥ 90%. Value-click opens the per-day history |
+| 4 | **Element 3: Appendix B Categories Covered** | Lens metric (ES\|QL) | `m_26_14-metrics-alert-coverage` | Categories whose latest snapshot has `m_26_14.coverage_status == "covered"`. Subtitle states the target: L3 ≥ 8 of 11. Value-click lists the covered categories |
+| 5 | **Element 4: L3-Compliant Data Streams** | Lens metric (ES\|QL) | `m_26_14-metrics-retention` | `COUNT_DISTINCT(m_26_14.data_stream)` where `m_26_14.retention.l3_compliant == true`. Subtitle states the L3 rule: ≥90d searchable and ≥365d retrievable. Value-click lists the streams |
+| 6 | **Element 5: Hashed Log Documents** | Lens metric (ES\|QL) | `m_26_14-demo-logs` | `COUNT(*)` where `event.integrity.hashed == true`. Subtitle states the target: L3 ≥ 80% of documents hashed |
+| 7 | **Element 5: Integrity Violations (30d)** | Lens metric (ES\|QL) | `m_26_14-integrity-violations-default` | `COUNT(*)` of recorded hash-mismatch events. Subtitle names the source (the verify job); red because any non-zero value warrants investigation |
 | 8 | **Element 1 — Inventory Coverage Trend (30d)** | Lens XY area (ES\|QL) | `m_26_14-metrics-asset-coverage` | Daily `MAX(m_26_14.value)` for `element_1_inventory`, bucketed with `DATE_TRUNC(1 day, @timestamp)` |
 | 9 | **Element 2 — Collection Coverage Trend (30d)** | Lens XY area (ES\|QL) | `m_26_14-metrics-asset-coverage` | Daily `MAX(m_26_14.value)` for `element_2_collection`, same daily bucketing |
 
@@ -68,7 +68,7 @@ Two navigation layers are built into the dashboard:
 | Element 5 — Log Integrity | `m_26_14-log-management` | What fraction of log documents carry integrity hashes, and what produced the recorded violations? |
 | Attestation Report | `m_26_14-readiness-attestation-dash` | Is the evidence package complete and current for AO sign-off? |
 
-**Layer 2 — value-click drilldowns.** Every metric and trend panel has a value-click URL drilldown to its corresponding detail dashboard with a fixed 30-day window (`now-30d` to `now`). Clicking the Element 3 score, for example, lands directly on the Alert Coverage dashboard. Both Element 5 panels (hashed documents and violations) drill into the Log Integrity dashboard; both trend charts drill into Asset Coverage. The hub is therefore fully navigable without the links bar — click any number you do not like.
+**Layer 2 — value-click drilldowns.** Every score panel has a value-click drilldown into Discover on the rows behind the number: Element 1 and 2 open the score's per-day history, Element 3 lists the covered categories, Element 4 the compliant streams, and the two Element 5 panels the hashed documents and the recorded violations. The two trend charts drill into the Asset Coverage dashboard with a fixed 30-day window. Click any number you do not like and the evidence is one page away.
 
 ---
 
@@ -76,7 +76,7 @@ Two navigation layers are built into the dashboard:
 
 **Read top-to-bottom: scores first, trends second.**
 
-1. **Scan the six score panels.** Each subtitle states the L2/L3 threshold next to the current value, so green/yellow status is verifiable at a glance — no external scoring rubric required.
+1. **Scan the six score panels.** Each subtitle states what the panel measures and its L2/L3 threshold, so green/yellow status is verifiable at a glance — no external scoring rubric required.
 2. **Check the Integrity Violations counter specifically.** Unlike the other five panels, this is a *findings* counter, not a coverage score. The target is always **0**. Any non-zero value represents documents whose stored hash failed re-verification — an audit-significant event regardless of overall maturity level. Drill into Log Integrity and document the disposition.
 3. **Use the trend charts to distinguish degradation from stagnation.** A yellow Element 2 score with a rising 30-day trend is a maturity program on track; the same score with a flat or falling trend is a stalled program and belongs in the POA&M with a revised target date.
 

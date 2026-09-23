@@ -2,12 +2,17 @@
   "name": "ms2614-reference-architecture",
   "private": true,
   "version": "0.1.0",
-  "engines": { "node": "22.x" },
+  "engines": {
+    "node": "22.x"
+  },
   "type": "module",
   "scripts": {
+    "predev": "node scripts/check-catalog.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/check-catalog.mjs",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check": "node scripts/check-catalog.mjs"
   },
   "dependencies": {
     "@elastic/datemath": "^5.0.3",
@@ -16,7 +21,6 @@
     "@emotion/css": "^11.13.5",
     "@emotion/react": "^11.14.0",
     "@tailwindcss/typography": "^0.5.19",
-    "jszip": "^3.10.1",
     "moment": "^2.30.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

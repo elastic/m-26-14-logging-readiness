@@ -32,22 +32,22 @@ A "← Back: M-26-14 Maturity Overview" link panel sits at the top of this dashb
 
 All panels read from the `m_26_14-metrics-alert-coverage` index — pre-aggregated per-category metrics — never from raw `.alerts-security.*` documents, so load time is constant regardless of total alert volume.
 
-![M-26-14 Alert Coverage dashboard — back link at top, four coverage metric panels, alerts and rules bar charts, and the per-category coverage status table](../screenshots/03-alert-coverage.png)
+![M-26-14 Alert Coverage dashboard — back link at top, four coverage metric panels, alerts and rules bar charts, and the per-category coverage status table](../screenshots/m_26_14-alert-coverage.png)
 
 ### Panel Reference
 
 | # | Panel | Type | What It Shows |
 |---|-------|------|---------------|
 | 1 | **← Back: M-26-14 Maturity Overview** | Links panel (top row, full width) | Navigation back to the hub dashboard (`m_26_14-maturity-overview`), preserving the current time range and filters |
-| 2 | **Categories Fully Covered** | Metric (teal) | Count of distinct categories where `m_26_14.coverage_status == "covered"` — active rules *and* recent alerts |
-| 3 | **Partial Coverage** | Metric (yellow) | Count of distinct categories where `m_26_14.coverage_status == "partial"` — rules exist but few or no recent alerts |
-| 4 | **No Coverage** | Metric (red) | Count of distinct categories where `m_26_14.coverage_status == "none"` — no active detection rules |
-| 5 | **Total Alerts (30d)** | Metric (blue) | `SUM(m_26_14.alerts_30d)` across all categories — gross detection activity for the trailing 30 days |
+| 2 | **Categories Fully Covered** | Metric (teal) | Categories whose latest snapshot in the time range has `m_26_14.coverage_status == "covered"` — active rules *and* recent alerts. Value-click lists those categories with their rules and alerts |
+| 3 | **Partial Coverage** | Metric (yellow) | Categories whose latest status is `partial` — rules exist but few or no recent alerts. Value-click lists them |
+| 4 | **No Coverage** | Metric (red) | Categories whose latest status is `none` — no active detection rules or no data source. Value-click lists them |
+| 5 | **Total Alerts (30d)** | Metric (blue) | The latest `m_26_14.alerts_30d` per category (`LAST` by `@timestamp`), summed across the 11 categories — gross detection activity for the trailing 30 days. Value-click lists the per-category figures that make up the sum |
 | 6 | **Alerts Last 30 Days by Appendix B Category** | Horizontal bar chart | `m_26_14.alerts_30d` per `m_26_14.category_label`, sorted descending — where alert volume concentrates |
 | 7 | **Active Detection Rules by Category** | Vertical bar chart | `m_26_14.rules_active` per `m_26_14.category_label`, sorted descending — depth of rule coverage per category |
 | 8 | **Appendix B Category Coverage Status** | Data table | One row per category: label, active rule count, and 30-day alert count, sorted alphabetically — the primary evidence panel |
 
-All Lens panels use ES|QL against `m_26_14-metrics-alert-coverage`. The bar charts and table use `MAX()` per category rather than `SUM()` because the transform writes one snapshot document per category per run; `MAX()` returns the latest snapshot value within the selected time range.
+All Lens panels use ES|QL against `m_26_14-metrics-alert-coverage`. The store holds one snapshot document per category per day, and `alerts_30d` and `rules_active` are rolling figures as of that day, so every panel takes the latest snapshot per category (`LAST(field, @timestamp)`) rather than a `SUM()` (which would add up 30 copies of a rolling figure) or a `MAX()` (which would show a category's best day rather than its current state).
 
 The three coverage metric panels (2–4) always sum to 11 — every Appendix B category lands in exactly one status bucket.
 

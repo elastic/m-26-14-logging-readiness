@@ -12,9 +12,11 @@ export function OverviewContent() {
           OMB M-26-14 Logging Maturity Model Overview
         </h1>
         <p className="mt-6 text-base text-text-muted leading-relaxed">
-          OMB Memorandum M-26-14 (May 22, 2026) establishes a four-level Logging Maturity Model
-          for federal agencies and requires Elasticsearch-based logging architectures aligned
-          with two core objectives:
+          OMB Memorandum M-26-14 (May 22, 2026) establishes a five-level Logging Maturity Model
+          for federal agencies (Ineffective, Initial, Intermediate, Advanced, Optimal; Appendix C)
+          and organizes agency logging around two core objectives. CISA's Logging Reference
+          Architecture (LRA, published August 20, 2026) is the implementation guidance for the
+          memo, and its publication started the deadline clock shown below.
         </p>
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="rounded-lg border border-accent-purple/40 bg-ink-800 p-7" style={{ borderStyle: 'solid' }}>
@@ -51,6 +53,26 @@ export function OverviewContent() {
         ))}
       </section>
 
+      {/* What the LRA changed (decisions doc section 5.3) */}
+      <section className="rounded-lg border border-line bg-ink-800 p-6" style={{ borderStyle: 'solid' }}>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-text-primary mb-2">
+          What the CISA LRA added
+        </h2>
+        <p className="text-sm text-text-muted mb-4 leading-relaxed">
+          The memo sets the levels and deadlines. The LRA says what an implementation has to look like and how an agency proves it.
+          Section numbers refer to the LRA.
+        </p>
+        <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5 text-sm text-text-primary list-none pl-0">
+          {LRA_CHANGES.map((c) => (
+            <li key={c.ref} className="flex gap-2.5 leading-relaxed">
+              {/* Fixed width, sized to the widest ref ("6.2, App. D"), so the text column lines up down the list. */}
+              <span className="mt-0.5 shrink-0 w-[5.5rem] text-center self-start text-[10px] font-bold text-accent-blue bg-accent-blue/10 border border-accent-blue/30 px-1.5 py-0.5 rounded whitespace-nowrap" style={{ borderStyle: 'solid' }}>{c.ref}</span>
+              <span>{c.text}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
       {/* Metric definitions glossary */}
       <section className="pt-2">
         <h2 className="text-base font-semibold text-text-primary mb-5">
@@ -69,7 +91,7 @@ export function OverviewContent() {
           <div>
             <dt className="font-semibold text-text-primary">Collection coverage</dt>
             <dd className="mt-1 text-text-muted leading-relaxed">
-              The percentage of inventory that is actively collected, searchable, and/or retrievable according to the agency's Logging Plan (due to CISA within 90 days after the LRA is published).
+              The percentage of inventory that is actively collected, searchable, and/or retrievable according to the agency's Logging Plan (due to OMB and CISA by November 18, 2026, 90 days after LRA publication).
             </dd>
           </div>
           <div>
@@ -82,6 +104,8 @@ export function OverviewContent() {
             <dt className="font-semibold text-text-primary">Data retention <span className="font-normal text-text-muted">(Searchable vs. Retrievable)</span></dt>
             <dd className="mt-1 text-text-muted leading-relaxed">
               Each successive level of maturity requires a higher amount of data retention and searchability.
+              Independently of level, the Appendix B baseline of six months searchable and twelve months
+              retrievable binds at every level; the level thresholds govern maturity reporting only (LRA 5.3).
             </dd>
             <dl className="mt-2 ml-4 space-y-1">
               <div className="flex gap-2">
@@ -97,7 +121,7 @@ export function OverviewContent() {
           <div>
             <dt className="font-semibold text-text-primary">Log management</dt>
             <dd className="mt-1 text-text-muted leading-relaxed">
-              Data storage and management standards increase with each maturity level, to include encryption (both at rest and in-transit) and data integrity, JIT access, and gated deletion are required at Optimal (Level 4).
+              Data storage and management standards rise with each level: encryption at rest and in transit, then regular integrity hashing, with just-in-time access and gated deletion required at Optimal (Level 4). The LRA adds provenance on every record and a single policy enforcement point for minimization, redaction, tagging and access (LRA 4.2, 4.6).
             </dd>
           </div>
         </dl>
@@ -106,6 +130,19 @@ export function OverviewContent() {
     </div>
   )
 }
+
+// What changed with the LRA, in the order the decisions record lists them.
+// Section references are to the LRA (CISA, August 20, 2026).
+const LRA_CHANGES = [
+  { ref: '4.5, 5.3', text: 'Searchable versus retrievable is the central storage decision, and the Appendix B six-month searchable baseline binds at every maturity level.' },
+  { ref: '3.5', text: 'Ten readiness measures turn "do you log" into "can you prove it": timeliness, searchability, validation and cost among them.' },
+  { ref: '4.6', text: 'A policy enforcement point (minimization, redaction, tagging, routing, access) is a named architecture component with managed exceptions.' },
+  { ref: '7.4', text: 'Authorized production of logs to CISA, the FBI, Inspectors General and courts is an explicit obligation with documentation requirements.' },
+  { ref: '5.5, 10', text: 'AI is two-sided: log your AI systems as high-value assets, and govern AI used for logging operations.' },
+  { ref: '6.2, App. D', text: 'Nine telemetry categories with minimum usable fidelity and six common fields that every record should carry.' },
+  { ref: '5.4, 8.3', text: 'Five named architecture patterns and explicit anti-patterns, assuming a heterogeneous estate rather than one pipeline.' },
+  { ref: 'App. E', text: 'Validation is an expected capability: synthetic event injection and demonstrated retrieval, kept as evidence.' },
+]
 
 export default function Overview() {
   return (
@@ -153,8 +190,8 @@ function LevelCard({ level }) {
 
       <p className="mt-1 text-sm text-text-muted">
         Due:{' '}
-        <span className={`font-semibold ${lc.daysColor}`}>{level.days}</span>
-        {level.id < 4 && ' from LRA publication'}
+        <span className={`font-semibold ${lc.daysColor}`}>{level.dueDate ?? level.days}</span>
+        {level.dueDate && ` (${level.days} from LRA publication)`}
       </p>
 
       {/* Appendix C maturity measurements */}
@@ -208,11 +245,11 @@ const MARKER_STYLES = {
 
 function Timeline() {
   const markers = [
-    { pct: 14, label: 'Submit Logging Plan', detail: '90 days',  color: 'gray'        },
-    { pct: 30, label: 'L1',                  detail: '120 days', color: 'accent-teal'  },
-    { pct: 50, label: 'L2',                  detail: '180 days', color: 'accent-blue'  },
-    { pct: 76, label: 'L3',                  detail: '320 days', color: 'pink'         },
-    { pct: 90, label: 'L4',                  detail: 'ongoing',  color: 'accent-coral' },
+    { pct: 14, label: 'Submit Logging Plan', detail: 'Nov 18, 2026 · 90 days',  color: 'gray'         },
+    { pct: 30, label: 'L1',                  detail: 'Dec 18, 2026 · 120 days', color: 'accent-teal'  },
+    { pct: 50, label: 'L2',                  detail: 'Feb 16, 2027 · 180 days', color: 'accent-blue'  },
+    { pct: 76, label: 'L3',                  detail: 'Jul 6, 2027 · 320 days',  color: 'pink'         },
+    { pct: 90, label: 'L4',                  detail: 'ongoing',                 color: 'accent-coral' },
   ]
   return (
     <div className="relative pt-2 pb-10">
@@ -227,7 +264,8 @@ function Timeline() {
           <polyline points="10,4 16,10 10,16"/>
         </svg>
         <div className="mt-1 text-center">
-          <p className="text-xs text-text-muted whitespace-nowrap">LRA publication</p>
+          <p className="text-xs text-text-muted whitespace-nowrap">LRA published</p>
+          <p className="text-xs text-text-muted whitespace-nowrap">Aug 20, 2026</p>
         </div>
       </div>
 

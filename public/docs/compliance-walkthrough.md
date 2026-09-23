@@ -55,7 +55,7 @@ The CEM objective requires agencies to achieve full-coverage log collection acro
 
 ### 2.2 Centralized Collection Architecture
 
-All telemetry flows through **Elastic Fleet**, which manages agent enrollment, policy distribution, and integration configuration from a central control plane. The collection architecture in this pack follows the ECS (Elastic Common Schema) model — all events are normalized to consistent field names regardless of source, enabling cross-platform correlation rules.
+All telemetry flows through **Elastic Fleet**, which manages agent enrollment, policy distribution, and integration configuration from a central control plane. The collection architecture in this pack follows the ECS (Elastic Common Schema) model — all events are normalized to consistent field names regardless of source, enabling cross-platform correlation rules. CISA's Logging Reference Architecture names ECS among "validated, open source cybersecurity schemas" (Section 4.5, footnote 9, alongside OCSF and STIX/TAXII).
 
 **Fleet deployment pattern for FCEB agencies:**
 
@@ -82,6 +82,8 @@ GET /_cat/indices/logs-*?v&h=index,docs.count,store.size&s=index
 Review this output against the integration requirements table in `docs/detection-rules/README.md`. Every required data stream must show a non-zero `docs.count` with a recent write timestamp before enabling detection rules.
 
 > **Note:** CEM requires collection from *all* asset types. An agency that has deployed Elastic Defend on Windows endpoints but has not yet integrated Okta or Azure AD has a partial CEM posture. The Element 1 ML job (`m_26_14-ml-element1-asset-coverage`) monitors coverage ratios and fires when a whole asset type stops reporting. See [Section 5.1](#51-element-1--asset-coverage).
+
+> **Note (failure store):** Every pack data stream ships with its failure store enabled. A document the ingest pipeline or the mapping rejects is kept in `logs-m_26_14*::failures` with the pipeline name, the failing processor tag and the error, counted on the `M-26-14 - Pipeline Health (D-04)` dashboard and alerted on by `m_26_14-pipeline-failure-spike`. Those documents are stored **as they arrived, before the policy enforcement point ran** (no redaction, no minimization, no sharing-class tag), so treat the failure store as raw evidence: only the pack-generated `m_26_14-failure-store-reader` role can read it, and it should be granted to named investigators, not to general analyst roles or a shared demo user.
 
 ---
 
@@ -150,7 +152,7 @@ M-26-14 Appendix B §5 specifies eleven categories of events that all FCEB agenc
 | **(h)** Off-hours execution | Non-system user launches ≥50 processes during 22:00–05:00 UTC in 1 hour | `m_26_14-appendixb-h-offhours-bulk-process-execution` | ES\|QL | High | `DATE_EXTRACT("hour")` filter + `COUNT(*) >= 50` per (user, host) in 1h window | [rule-h-offhours-execution.md](detection-rules/rule-h-offhours-execution.md) |
 | **(i)** Exfiltration | Anomalous outbound data volume — ≥500 MB to non-RFC1918 destination in 1 hour | `m_26_14-appendixb-i-exfiltration-volume` | ES\|QL | High | `SUM(network.bytes) >= 524,288,000` per (src IP, host, process) in 1h window | [rule-i-exfiltration-volume.md](detection-rules/rule-i-exfiltration-volume.md) |
 | **(j)** APT chain | Three-stage correlated intrusion: inbound connection → LOLBin/script execution → lateral movement to SMB/RDP/SSH | `m_26_14-appendixb-j-apt-chain-2h`, `m_26_14-appendixb-j-apt-chain-4h` | EQL sequence | Critical | EQL 3-event sequence on same `host.id`: external inbound network → scripting engine spawn → lateral movement egress | [rule-j-apt-chain.md](detection-rules/rule-j-apt-chain.md) |
-| **(k)** Coverage gap | Meta-detection: monitors whether categories A–J have fired recently; alerts on silence | `m_26_14-appendixb-k-alert-presence`, `m_26_14-appendixb-k-silent-category` | ES\|QL | Medium | Aggregates `.alerts-security.*` by M-26-14 tag; fires when a category shows zero alerts over 24h (Rule 1) or 30 days (Rule 2 / companion Watcher) | [rule-k-coverage-gap.md](detection-rules/rule-k-coverage-gap.md) |
+| **(k)** Coverage gap | Meta-detection: monitors whether categories A–J have fired recently; alerts on silence | `m_26_14-appendixb-k-alert-presence`, `m_26_14-appendixb-k-silent-category` | ES\|QL | Medium | Aggregates `.alerts-security.*` by M-26-14 category tag; Rule 1 reports the categories that produced alerts in the last 25h (a missing row is the gap), Rule 2 fires when no Appendix B alert of any category has landed in 30 days | [rule-k-coverage-gap.md](detection-rules/rule-k-coverage-gap.md) |
 
 ### 4.2 Detailed Category Implementations
 
@@ -253,7 +255,7 @@ The following subsections provide per-category implementation notes, prerequisit
 
 **Elastic implementation**: New Terms rule (`m_26_14-appendixb-e-rogue-device-fleet-enrollment`) that uses a 7-day history window on `host.name`. The rule fires exactly once when a new hostname enrolls in Elastic Fleet — providing a reliable, low-noise signal for unauthorized device introduction. It is sourced from `logs-elastic_agent.*` and `logs-fleet_server.*`.
 
-**HWAM cross-reference workflow**: When this rule fires, the investigation guide instructs analysts to query `m_26_14-osquery-hardware-inventory-*` by `host.mac` and `host.serial_number` to determine whether the device exists in the authorized hardware inventory. An unenrolled match is a compliance gap; no match at all is an immediate incident.
+**HWAM cross-reference workflow**: When this rule fires, the investigation guide instructs analysts to query `logs-m_26_14_osquery.hardware_inventory-*` and the canonical store `m_26_14-assets` by `host.mac` and `host.serial_number` to determine whether the device exists in the authorized hardware inventory. An unenrolled match is a compliance gap; no match at all is an immediate incident.
 
 **OT/ICS scope**: For operational technology environments without Elastic Agent installed on devices, passive network discovery (Zeek DHCP/ARP logs) provides coverage for new MAC addresses appearing on monitored segments. This is a complementary, not equivalent, control.
 
@@ -397,11 +399,11 @@ Both rules enforce a three-step sequence on the same `host.id`:
 | Rule ID | Detection Logic | Fire Condition | Use |
 |---|---|---|---|
 | `m_26_14-appendixb-k-alert-presence` | Aggregates M-26-14-tagged alerts from last 25h by category letter | Each result row is one active category — a missing row is the gap | Daily health attestation |
-| `m_26_14-appendixb-k-silent-category` | Counts M-26-14 alerts by category over 30 days | Companion Watcher (`m_26_14-watcher-registry-zero-count`) fires when a category has zero alerts for 30 days | POA&M evidence generation |
+| `m_26_14-appendixb-k-silent-category` | Counts M-26-14 alerts across categories A–J over 30 days (lookback `now-721h`) | Fires when the count is zero: a global tripwire, since an ES\|QL rule cannot emit a row for a category that produced nothing | POA&M evidence generation |
 
-**Companion Watcher**: The Elasticsearch Watcher `m_26_14-watcher-registry-zero-count` runs daily at 06:00 UTC, compares alert counts per category against the `m_26_14-rule-registry` reference index, and fires notifications for missing categories via webhook (Kibana alert) and email to the ISSO.
+**Per-category silence** is read from the **Alert Coverage** dashboard (`m_26_14-alert-coverage`), which the `m_26_14-alert-coverage-daily` and `m_26_14-alert-coverage-latest` transforms feed grouped on `m_26_14.appendix_b_category`, and from the Element 3 ML job `m_26_14-ml-element3-rule-silence`, which learns each category's normal alert cadence and flags a category that goes quiet. No companion Watcher ships for Category K; the pack's six Watchers are the data-retirement chain (registered inactive) and the JIT access pair.
 
-**Required custom index**: `m_26_14-rule-registry` — must be created and seeded before Category K is meaningful. Fixture: `tests/ws5_detection/fixtures/fixture_k_registry.ndjson`.
+**Optional registry index**: `m_26_14-rule-registry`, an agency-maintained inventory of the rules expected per category, is described in the Category K investigation guide as the authoritative A–L list for a registry-driven gap check. The pack does not ship or seed it. A fixture for one lives in the companion repo at `tests/ws5_detection/fixtures/fixture_k_registry.ndjson`.
 
 **Audit value**: When a Category K alert fires before an AO audit, the agency can present a documented self-identified gap with root cause, discovery date, and remediation date — which is substantially better than a gap discovered during the audit itself.
 
@@ -449,7 +451,7 @@ M-26-14 Appendix C defines a five-element maturity model. Each element has multi
 
 **M-26-14 requirement**: All agency hardware assets must be enrolled and reporting telemetry. HWAM coverage must meet the level-specific threshold (e.g., Level 3 requires ≥95% of known hardware enrolled in Elastic Agent).
 
-**Elastic implementation**: The `m_26_14-ml-element1-asset-coverage` anomaly detection job monitors coverage ratios from HWAM/SWAM tracking indices. It uses a `low_count by agent.type` detector with a 1-hour bucket span. A sustained drop in the fraction of expected assets reporting to Fleet — regardless of which asset type — fires an anomaly. The corresponding alert rule `m_26_14-ml-e1-coverage-drop` fires when the anomaly score exceeds 75.
+**Elastic implementation**: The `m_26_14-ml-element1-asset-coverage` anomaly detection job monitors coverage ratios from HWAM/SWAM tracking indices. It uses a `low_distinct_count(host.name)` detector partitioned by `m_26_14.coverage_source` with a 1-hour bucket span. A sustained drop in the number of distinct assets reporting from any one inventory source (Fleet, osquery hardware inventory, network discovery) fires an anomaly for that source. The corresponding alert rule `m_26_14-ml-e1-coverage-drop` fires when the anomaly score exceeds 75.
 
 **Job details**:
 - Job ID: `m_26_14-ml-element1-asset-coverage`
@@ -457,7 +459,7 @@ M-26-14 Appendix C defines a five-element maturity model. Each element has multi
 - Bucket span: 1 hour
 - Model memory: 128 MB
 
-**Data source**: HWAM asset data from `m_26_14-osquery-hardware-inventory-*` (Osquery hardware inventory pack) and `m_26_14-hwam_assets-*` (CDM HWAM integration, if deployed). Agents must be enrolled in Fleet and reporting to these indices.
+**Data source**: the datafeed reads `logs-m_26_14_asset.inventory-*` (Fleet, MDM and network-discovery inventory reports) and `logs-m_26_14_osquery.hardware_inventory-*` (the osquery hardware inventory pack), each stamped with `m_26_14.coverage_source`. Agents must be enrolled in Fleet and reporting to these streams.
 
 **Dashboard**: `m_26_14-asset-coverage` — shows hardware inventory table, per-agent-type coverage treemap, and last-seen heatmap.
 
@@ -481,7 +483,7 @@ M-26-14 Appendix C defines a five-element maturity model. Each element has multi
 
 **Baseline period**: 14 days minimum before anomaly scores are reliable. Monitor job status in Kibana → Machine Learning → Anomaly Detection during the warm-up period.
 
-**Dashboard**: `m_26_14-retention-readiness` — shows ILM policy matrix with per-data-stream retention status. The element2 anomaly data feeds into the retention compliance view.
+**Dashboard**: `m_26_14-retention-readiness` (M-26-14 Retention Readiness) shows the ILM policy matrix with per-data-stream retention status. Ingestion-rate anomalies surface in the ML Anomaly Explorer and through the `m_26_14-ml-e2-ingestion-drop` rule; the **Pipeline Health (D-04)** dashboard (`m_26_14-pipeline-health`) shows the per-stream ingest picture the job learns from.
 
 **Key documentation links**:
 - [ML anomaly detection jobs](https://www.elastic.co/guide/en/machine-learning/current/ml-ad-run-jobs.html)
@@ -536,7 +538,7 @@ M-26-14 Appendix C defines a five-element maturity model. Each element has multi
 **M-26-14 requirement**: Implement tamper-evident log management. Hashing for tamper detection is required at Level 3 and above under the THIRF objective.
 
 **Elastic implementation**: Two-part implementation:
-1. **Ingest pipeline** (`m_26_14-log-integrity-hash` / `m_26_14-integrity-hash-pipeline`): Appends SHA-256 hash of canonical fields to `event.hash` on every ingested document. Sets `event.integrity.hashed: true`. Applied at the index template level — no agent changes required.
+1. **Ingest pipeline** (`m_26_14-log-integrity-hash`): Appends SHA-256 hash of canonical fields to `event.hash` on every ingested document. Sets `event.integrity.hashed: true`. It is the last stage of the pack's final chain (`m_26_14-final`), reached on the pack's own streams through their index templates and on Fleet-managed streams through the `logs@custom` hook that the loader's `estate` stage wires (see `docs/estate-binding.md` in the pack). No agent changes required.
 2. **ML job** (`m_26_14-ml-element5-hash-coverage`): Counts integrity-hashed documents per data stream. Fires when the hashed-document count drops below the ML-learned baseline for that stream, indicating the ingest pipeline was bypassed, removed, or is failing.
 
 **Job details**:
@@ -559,15 +561,15 @@ M-26-14 Appendix C defines a five-element maturity model. Each element has multi
 
 ### 5.6 ML Deployment Procedure
 
-All seven custom ML jobs (five element jobs, the new-network-device discovery job, and the DNS-entropy job) must be deployed before the corresponding Kibana alert rules can reference them. Follow this sequence:
+All eight custom ML jobs (five element jobs, the new-network-device discovery job, the DNS-entropy job, and the `m_26_14-ml-schema-drift` job behind the Pipeline Health dashboard) must be deployed before the corresponding Kibana alert rules can reference them. Follow this sequence:
 
 1. Verify Platinum or Enterprise license: `GET /_license`
-2. Create all 7 job definitions via `PUT /_ml/anomaly_detectors/{job_id}`
-3. Create all 7 datafeeds via `PUT /_ml/datafeeds/{datafeed_id}`
-4. Open all 7 jobs: `POST /_ml/anomaly_detectors/{job_id}/_open`
-5. Start all 7 datafeeds: `POST /_ml/datafeeds/{datafeed_id}/_start`
+2. Create all 8 job definitions via `PUT /_ml/anomaly_detectors/{job_id}`
+3. Create all 8 datafeeds via `PUT /_ml/datafeeds/{datafeed_id}`
+4. Open all 8 jobs: `POST /_ml/anomaly_detectors/{job_id}/_open`
+5. Start all 8 datafeeds: `POST /_ml/datafeeds/{datafeed_id}/_start`
 6. Wait for baseline period: minimum 14 days for all jobs except `m_26_14-ml-catb-dns-entropy` (7 days for 15-minute bucket span)
-7. Enable the 7 Kibana rules bound to the custom jobs (five element rules, the meta compliance-degradation rule, and the DNS-entropy rule) after baseline is established
+7. Enable the 8 Kibana rules bound to the custom jobs (five element rules, the meta readiness-degradation rule, the DNS-DGA rule, and the schema-drift rule) after baseline is established
 8. Prefix-install the five Elastic Security ML modules (`security_auth`, `security_host`, `security_network`, `security_linux_v3`, `security_windows_v3`) with job-id prefix `m_26_14_` — see `docs/ml-jobs-guide.md` Section 6 step 8 and `assets/elasticsearch/ml_job/prebuilt/README.md`
 9. After 14-day module-job baseline, enable the 7 behavioral Kibana rules
 
@@ -583,29 +585,32 @@ M-26-14 establishes minimum retention requirements by maturity level. All Append
 
 | Maturity Level | Minimum Retention | This Pack's ILM Policy |
 |---|---|---|
-| Level 2 | 6 months searchable | `m_26_14-logs-l3-hot-frozen` (hot 30d, warm 6mo, cold 12mo) — meets L2 and L3 |
-| Level 3 | 12 months | `m_26_14-logs-l3-hot-frozen` — same policy; 12-month cold phase satisfies L3 |
-| Level 4 | 24 months | `m_26_14-logs-l4-hot-frozen` (hot 7d, warm 1mo, cold 24mo) |
-| Audit logs (all levels) | No deletion | `m_26_14-logs-l3-no-delete` / `m_26_14-logs-l4-no-delete` — cold phase: indefinite |
-| HWAM/SWAM asset inventory | 90 days | `m_26_14-asset-inventory` (90d, no archive) |
+| Level 2 | 6 months searchable | `m_26_14-logs-l3-no-delete` (hot 90d, then frozen, no delete phase) — the shipped default; meets L2 and L3 |
+| Level 3 | 12 months retrievable | `m_26_14-logs-l3-no-delete` — same policy; retirement past 365 days only through the two-gate chain, which switches the index to `m_26_14-logs-l3-hot-frozen` |
+| Level 4 | 6 months searchable | `m_26_14-logs-l4-no-delete` (hot 180d, then frozen, no delete phase); two-gate retirement switches to `m_26_14-logs-l4-hot-frozen` |
+| HVA-tagged streams | Extended | `m_26_14-logs-hva-extended` (not switchable by the retirement chain) |
+| Legal-hold retained copies | No deletion | `m_26_14-hold-no-delete` (no rollover, frozen at 90d, no delete phase) |
 
 ### 6.2 ILM Policy Definitions
 
-This pack deploys five ILM policies:
+The pack ships 13 ILM policies. The six that govern the pack's own log streams and retained copies:
 
-| Policy Name | Hot | Warm | Cold / Frozen | Delete | Applicable To |
-|---|---|---|---|---|---|
-| `m_26_14-logs-l3-hot-frozen` | 30 days | 6 months, read-only, forcemerge | 12 months (searchable) | None | General L3 log streams — all Appendix B categories |
-| `m_26_14-logs-l3-no-delete` | 30 days | 6 months | Indefinite | None | Audit logs, investigation-grade evidence, legal hold |
-| `m_26_14-logs-l4-hot-frozen` | 7 days | 1 month | 24 months | None | L4 enhanced retention environments |
-| `m_26_14-logs-l4-no-delete` | 7 days | 1 month | Indefinite | None | L4 + FIPS audit log permanence |
-| `m_26_14-asset-inventory` | 90 days | — | — | 90 days | HWAM/SWAM asset inventory indices |
+| Policy Name | Hot | Frozen (searchable snapshot) | Delete | Applicable To |
+|---|---|---|---|---|
+| `m_26_14-logs-l3-no-delete` | rollover, 90 days | from day 90, indefinite | None | Default for every `logs-m_26_14.*` stream at L3 |
+| `m_26_14-logs-l3-hot-frozen` | rollover, 90 days | from day 90 | day 365, behind `wait_for_snapshot` on `m_26_14-readiness-snapshots` | Applied only by Gate 2 of the retirement chain |
+| `m_26_14-logs-l4-no-delete` | rollover, 180 days | from day 180, indefinite | None | Default at L4 |
+| `m_26_14-logs-l4-hot-frozen` | rollover, 180 days | from day 180 | day 365, behind `wait_for_snapshot` | Applied only by Gate 2 |
+| `m_26_14-logs-hva-extended` | rollover, 365 days | from day 365, indefinite | None | HVA-tagged streams and the AI audit store (`docs/hva-uplift.md`) |
+| `m_26_14-hold-no-delete` | no rollover | from day 90, indefinite | None | Legal-hold retained indices |
 
-**Frozen tier note**: The production frozen tier uses Elasticsearch searchable snapshots — stored in a snapshot repository (S3, GCS, Azure Blob, or on-prem NFS) at dramatically reduced storage cost while maintaining full query capability. The demo cluster uses hot/warm/cold (no frozen tier) because a snapshot repository is not configured. For production deployments, configure a snapshot repository and update the ILM policies to use the frozen phase.
+Three more (`m_26_14-retention-l1`, `-l2`, `-l3`) are the COMPAT maturity ladder of decision D-08, applied by an agency choosing a dated exception below the L3 default. The remaining four (`m_26_14-asset-inventory`, `m_26_14-asset-inventory-hot-only`, `m_26_14-metrics-store`, `m_26_14-derived-store`) govern the pack's inventory and evidence stores, not agency logs.
 
-**Frozen tier setup**:
+**Frozen tier note**: The frozen phase mounts each backing index as a searchable snapshot from the snapshot repository (S3, GCS, Azure Blob, or on-prem NFS) at reduced storage cost with full query capability; ILM renames the mounted index `partial-.ds-<stream>-<generation>`, and the retirement chain and legal-hold guard account for that name. The demo cluster of record (`pubsec-m2614`) has a frozen tier; a cluster without one keeps indices on hot and the frozen phase waits.
+
+**Frozen tier setup**: the shipped SLM policy `m_26_14-readiness-snapshots` names the repository `found-snapshots`, the built-in repository on Elastic Cloud Hosted, so nothing needs registering there. Self-managed and GovCloud deployments register their own repository and set it as `repository` in the SLM policy before the `slm` loader stage:
 ```
-PUT /_snapshot/m_26_14-compliance-repo
+PUT /_snapshot/<repository-name>
 {
   "type": "s3",
   "settings": {
@@ -620,10 +625,10 @@ For GovCloud deployments, use `region: "us-gov-west-1"` and verify FedRAMP autho
 
 ### 6.3 Assigning ILM Policies to Data Streams
 
-Apply the appropriate ILM policy to each data stream via its index template component. Example for endpoint logs:
+The pack's own data streams carry their ILM policy in their index templates. For Fleet-managed integration streams, Fleet owns the integration's component templates and overwrites them on upgrade, so the policy goes in the stream's `@custom` component template, which Fleet leaves alone. Example for Elastic Defend process events:
 
 ```
-PUT /_component_template/m_26_14-endpoint-settings
+PUT /_component_template/logs-endpoint.events.process@custom
 {
   "template": {
     "settings": {
@@ -640,9 +645,9 @@ Then include this component template in the data stream's composed index templat
 GET /_data_stream/logs-endpoint.events.process-default/_settings?filter_path=*.settings.index.lifecycle
 ```
 
-### 6.4 Retention Compliance Dashboard
+### 6.4 Retention Readiness Dashboard
 
-The `m_26_14-retention-readiness` Kibana dashboard (ID: `m_26_14-retention-readiness`) provides a visual ILM policy matrix:
+The **M-26-14 Retention Readiness** dashboard (ID: `m_26_14-retention-readiness`) provides a visual ILM policy matrix:
 - Green: meets L3 target (12 months)
 - Yellow: meets L2 (6 months), needs upgrade for L3
 - Red: non-compliant
@@ -665,7 +670,7 @@ M-26-14 requires agencies to maintain an up-to-date hardware asset inventory as 
 
 **Mechanism 1 — Elastic Osquery (active inventory)**
 
-The `m_26_14-osquery-hardware-inventory` integration deploys hardware inventory queries to all Fleet-enrolled endpoints via Osquery. Queries collect `host.hardware.model`, `host.ip`, `host.mac`, `host.serial_number`, and OS details. Results are normalized to ECS by the `m_26_14-osquery-normalize` ingest pipeline and stored in `m_26_14-osquery-hardware-inventory-*`.
+The `m_26_14-osquery-hardware-inventory` integration deploys hardware inventory queries to all Fleet-enrolled endpoints via Osquery. Queries collect `host.hardware.model`, `host.ip`, `host.mac`, `host.serial_number`, and OS details. Results are normalized to ECS by the `m_26_14-osquery-normalize` ingest pipeline and stored in `logs-m_26_14_osquery.hardware_inventory-*`, and the `m_26_14-asset-entity-resolution` transform merges them into the canonical store `m_26_14-assets`.
 
 ```sql
 -- Osquery hardware query (runs on schedule via Fleet)
@@ -675,9 +680,9 @@ SELECT address, mac, interface FROM interface_details WHERE interface != 'lo';
 
 **Mechanism 2 — CDM HWAM API integration (authoritative inventory)**
 
-For agencies with an existing CDM HWAM system, the mock HWAM API integration (`tools/fake-hwam-api/`) provides a reference implementation for ingesting the authoritative hardware inventory from the CDM dashboard API into `m_26_14-hwam_assets-*`. Replace the mock API endpoint with the production CDM API endpoint in the integration configuration.
+For agencies with an existing CDM HWAM system, the authoritative inventory enters through the `m_26_14-inventory-csv` ingest pipeline: a CSV export from the CDM dashboard (columns `asset_id,hostname,component,type,criticality,source,last_seen,ip`) is parsed into the same inventory contract as the osquery rows and written to `logs-m_26_14_asset.inventory-*`, and the entity-resolution transform merges both feeds into `m_26_14-assets`, most authoritative source winning. The demo exercises this path with a mock HWAM API that lives in the planning repository, not in the pack; a production deployment points the export at the agency's CDM API instead.
 
-**HWAM cross-reference in rule investigation**: When a rogue device alert (Category E / §5(e)) fires, the SOC playbook queries `m_26_14-osquery-hardware-inventory-*` by `host.mac` and `host.serial_number` to determine authorization status. See [rule-e-rogue-device.md](detection-rules/rule-e-rogue-device.md) Investigation Guide Step 2.
+**HWAM cross-reference in rule investigation**: When a rogue device alert (Category E / §5(e)) fires, the SOC playbook queries `logs-m_26_14_osquery.hardware_inventory-*` and the canonical store `m_26_14-assets` by `host.mac` and `host.serial_number` to determine authorization status. See [rule-e-rogue-device.md](detection-rules/rule-e-rogue-device.md) Investigation Guide Step 2.
 
 **Mechanism 3 — Canonical entity store (the resolved truth SAs demo)**
 
@@ -688,9 +693,9 @@ Raw inventory from osquery and Intune lands as multiple per-source documents in 
 
 **Representative live fleet** (deterministic seed): **60** canonical assets — **55 managed** (25 macOS laptops, 20 Windows workstations, 10 Linux servers) and **5 unmanaged** network-discovered devices (`UNKNOWN-001…005`). Posture gaps are pinned to named devices for a stable demo: **5 unencrypted** managed devices and **4 not enrolled in MDM** (`WKSTN-004`, `WKSTN-016`, `LAPTOP-022`, `SERVER-006`). **55** certified baselines (one per managed asset).
 
-**Config drift (derived, stable)**: `m_26_14.drift_detected` (the field the drift dashboard counts; also mirrored to `asset.compliance.drift_detected`) is **not** a manually stamped flag and is **not** written by a watcher (an earlier design referenced a "WS3 drift watcher" that was never built). It is derived in `m_26_14-asset-canonical-enrich`: after computing the live `baseline_hash`, an `enrich` processor (policy `m_26_14-asset-baseline-lookup`, keyed on `asset.id`) fetches the certified hash from the frozen `m_26_14-asset-baselines`, and a script sets `drift_detected = (live_hash != certified_hash)`. Because it runs on **every** transform checkpoint, the count is stable across re-enrichment. The demo fleet has **2 drifted assets** — `WKSTN-003` and `WKSTN-013` (OS-version drift from their certified baseline). The `m_26_14-ws7-r1-os-version-changed` and `m_26_14-ws7-r2-encryption-disabled` detection rules provide the real-time alerting complement on the same fields.
+**Config drift (derived, stable)**: `m_26_14.drift_detected` (the field the drift dashboard counts; also mirrored to `asset.compliance.drift_detected`) is **not** a manually stamped flag and is **not** written by a watcher (an earlier design planned a drift watcher that was never built). It is derived in `m_26_14-asset-canonical-enrich`: after computing the live `baseline_hash`, an `enrich` processor (policy `m_26_14-asset-baseline-lookup`, keyed on `asset.id`) fetches the certified hash from the frozen `m_26_14-asset-baselines`, and a script sets `drift_detected = (live_hash != certified_hash)`. Because it runs on **every** transform checkpoint, the count is stable across re-enrichment. On the demo cluster of record the tile reads **4 drifted assets** (`LAPTOP-001`, `WKSTN-003`, `WKSTN-013`, `WKSTN-015`): the baselines were certified from the seeded state, then those four devices were re-reported with a newer OS version (the procedure is in the operational note below), so their live hash no longer matches the certified one. The tile counts the drifted devices and the **Config Drift & Readiness Posture** dashboard lists them by `asset.id` with the changed field. The `m_26_14-asset-baseline-drift` and `m_26_14-asset-encryption-disabled` detection rules provide the real-time alerting complement on the same fields (the encryption rule has fired on the seeded unencrypted devices).
 
-> **Operational note for SAs:** drift stability depends on the `m_26_14-asset-baseline-snapshot` transform staying **stopped**. If it is restarted it will re-snapshot current (drifted) state, the baselines move to match, and the drift count collapses to 0. To re-establish a drift story: stop the snapshot transform, re-execute the `m_26_14-asset-baseline-lookup` enrich policy, change a fingerprint field (OS version or encryption) on a few devices in the inventory stream, then let the entity-resolution transform re-checkpoint.
+> **Operational note for SAs:** drift stability depends on the `m_26_14-asset-baseline-snapshot` transform staying **stopped** after its first checkpoint. If it is left running it re-snapshots current (drifted) state on every checkpoint, the baselines move to match, and the drift count collapses to 0. Since 0.3.1 the loader treats the snapshot as run-once (one checkpoint, then stopped, then the `m_26_14-asset-baseline-lookup` policy re-executed so the certified hashes are live), and a re-run of the transforms stage never restarts it. On the demo cluster of record it is **stopped** with 55 certified baselines, and four devices drift by design: after certification the planning seeder's `--drift` mode re-reported `LAPTOP-001`, `WKSTN-003`, `WKSTN-013` and `WKSTN-015` with a newer OS version, and the next entity-resolution checkpoint derived `drift_detected: true` for exactly those four. To re-certify on purpose (a new baseline after an approved change): `python3 load_bootstrap.py --reset-transforms m_26_14-asset-baseline-snapshot`; drift then reads zero until something changes again.
 
 **Key documentation links**:
 - [Osquery Fleet integration](https://www.elastic.co/guide/en/fleet/current/osquery-manager-integration.html)
@@ -717,11 +722,11 @@ The CDM (Continuous Diagnostics and Mitigation) program integration connects thi
 
 | CDM Capability | Elastic Integration Method | Data Flow |
 |---|---|---|
-| HWAM asset inventory | CDM API → Elastic Agent custom integration → `m_26_14-hwam_assets-*` | CDM → Elastic |
+| HWAM asset inventory | CDM API → CSV export → `m_26_14-inventory-csv` pipeline → `m_26_14-assets` | CDM → Elastic |
 | Alerting to CDM dashboard | Kibana Connector → CDM webhook | Elastic → CDM |
 | AIS threat indicators | CISA AIS TAXII → `logs-ti_cisa.*` | CDM/CISA → Elastic |
 
-> **Note:** CDM integration specifics vary by agency CDM deployment configuration. The `tools/fake-hwam-api/` mock provides a test harness for the HWAM integration. Agencies should work with their CDM integrator to map the production CDM API endpoints to the integration configuration.
+> **Note:** CDM integration specifics vary by agency CDM deployment configuration. The mock HWAM API used by the demo is a planning-repository test harness, not a shipped pack asset. Agencies should work with their CDM integrator to map the production CDM API endpoints to the integration configuration.
 
 ---
 
@@ -731,9 +736,9 @@ The following sequence represents the minimum path from zero to M-26-14 Level 2 
 
 > **Two delivery paths.** The M-26-14 assets ship two ways:
 > 1. **EPR integration package** (`m_26_14`, format_version 3.x, Enterprise, **Kibana/Elasticsearch 9.4+**) — install from Fleet → Integrations. This carries every EPR-packageable asset (ingest pipelines, transforms, data-stream templates, dashboards, ML modules, security rules, osquery pack). Recommended for new deployments.
-> 2. **Bootstrap + web app** for assets EPR cannot carry. A Dev Console / REST bootstrap runbook loads ES-level assets (ILM policies, enrich policies, standalone index templates, watchers, SLM); agents, agent tools, and workflows load via the reference-architecture web app or the Kibana API.
+> 2. **Bootstrap loader** for assets EPR cannot carry. `bootstrap/m_26_14/load_bootstrap.py` in the pack repo runs dependency-ordered stages (`roles`, `ilm`, `templates`, `seed`, `enrich`, `pipelines`, `transforms`, `slm`, `watchers`, `triage`, `osquery`, and with `--kibana` the `agents`, `tools`, `workflows`, `genai` and `estate` stages) from an API key in `.env`; `--dry-run` prints the plan and `--only <stage>` re-runs one stage. `BOOTSTRAP.md` beside it gives the Dev Console equivalent of every stage for air-gapped sites. Watchers load registered but inactive; Workflows are the default control plane (`--activate-watchers` switches).
 >
-> The deployment scripts referenced below (`setup-kibana/setup.py`, `setup_ws5.py`, the `seed-demo-data/` seeders) live in the **`elastic-m2614-compliance`** companion repo, not in this reference-architecture repo. Run them from that repo's root with a populated `.env`. They are the scripted equivalent of the package + bootstrap install and are used to stand up the live demo cluster.
+> The demo seeders referenced below (`tools/seed_*.py`, `tools/seed-demo-data/`, `tools/setup_ws5.py`) live in the **`elastic-m2614-compliance`** companion repo, not in this reference-architecture repo. Run them from that repo's root with a populated `.env`; they read the pack checkout (`M_26_14_PACK_ROOT`, sibling directory by default) and are used to stand up the live demo cluster on top of the package + loader install.
 
 ### Step 1 — Deploy Elastic Fleet and Enroll Endpoints
 
@@ -757,31 +762,31 @@ Navigate to Fleet → Integrations and install:
 - `zeek` or Elastic Network Packet Capture (network flow)
 - TAXII Threat Intelligence (CISA AIS)
 
-### Step 3 — Deploy Ingest Pipelines and Index Templates
+### Step 3 — Install the Package and Run the Loader
+
+Upload the `m_26_14` package zip in Fleet → Integrations (or point the stack at a package registry that carries it), then from the pack checkout:
 
 ```bash
-python tools/setup-kibana/setup.py
+cd bootstrap/m_26_14
+python3 load_bootstrap.py --dry-run
+python3 load_bootstrap.py --kibana https://<kibana>
 ```
 
-This deploys:
-- `m_26_14-log-integrity-hash` ingest pipeline (Element 5)
-- `m_26_14-osquery-normalize` ingest pipeline (HWAM/SWAM ECS normalization)
-- All M-26-14 index templates with ILM policy assignments
+Between them the package and the loader deploy:
+- the final ingest chain ending in `m_26_14-log-integrity-hash` (Element 5) and the policy enforcement point
+- `m_26_14-osquery-normalize` and the other 46 ingest pipelines (HWAM/SWAM ECS normalization, provenance, triage)
+- all 38 M-26-14 index templates with their ILM policy assignments, the 13 enrich policies and 18 transforms
 
-### Step 4 — Deploy ILM Policies
+### Step 4 — Verify ILM Policies
 
-All five ILM policies are deployed by `setup.py`. Verify:
+All 13 ILM policies are deployed by the `ilm` stage. Verify:
 ```
 GET /_ilm/policy/m_26_14-logs-l3-hot-frozen
 ```
 
-### Step 5 — Import and Enable Detection Rules
+### Step 5 — Enable Detection Rules
 
-```bash
-python tools/setup_ws5.py
-```
-
-Import order per deployment phases (see Section 4.3):
+The package installs all 58 rules disabled (`tools/setup_ws5.py` in the companion repo imports the same set by API for a cluster without the package). Enable them in this order, per the deployment phases (see Section 4.3):
 1. Phase 1: §5(f), §5(g), §5(d), §5(a)
 2. Phase 2: §5(j), §5(k)
 3. Phase 3: §5(b), §5(c), §5(e)
@@ -806,15 +811,15 @@ Open Kibana → Dashboards → search "M-26-14". Validate:
 
 | Requirement | Minimum Version / Tier | Notes |
 |---|---|---|
-| Elasticsearch | 8.16+ (recommended: 9.4.x) | ES\|QL `DATE_DIFF`, `CIDR_MATCH`, `COUNT_DISTINCT` required |
-| Kibana | 8.16+ (recommended: 9.4.x) | ES\|QL rule type, EQL sequence rules |
+| Elasticsearch | 8.16+ (recommended: 9.5.x) | ES\|QL `DATE_DIFF`, `CIDR_MATCH`, `COUNT_DISTINCT` required |
+| Kibana | 8.16+ (recommended: 9.5.x) | ES\|QL rule type, EQL sequence rules |
 | Elastic Security | 8.16+ | Detection Engine, EQL `with runs=` syntax |
 | Elastic License | Enterprise (for full feature set) | Indicator Match rules require Enterprise; ML requires Platinum+ |
 | Elastic Defend | 8.10+ | Process, network, file events; memory acquisition |
 | Fleet Server | 8.14+ | Enrollment events for Category E (rogue device) |
 | `m_26_14` EPR package | **Kibana / Elasticsearch 9.4+** | Integration package format_version 3.x; Entity Store v2 scoring requires 9.4+ and Enterprise |
 
-> **Version split.** The detection rules, ML jobs, and ingest pipelines run on 8.16+. The **EPR integration package** and the **Entity Store v2 scoring engine** (canonical entity store, observed-ledger retention, expected/observed quadrant) require **9.4+ and Enterprise**. Deploy on 9.4.x to get both the rule set and the packaged + scored experience. The live demo cluster runs 9.4.2.
+> **Version split.** The detection rules, ML jobs, and ingest pipelines run on 8.16+. The **EPR integration package** and the **Entity Store v2 scoring engine** (canonical entity store, observed-ledger retention, expected/observed quadrant) require **9.4+ and Enterprise**. Deploy on 9.4 or later to get both the rule set and the packaged + scored experience. The live demo cluster runs 9.5.4.
 
 **License verification**:
 ```
@@ -822,7 +827,7 @@ GET /_license
 ```
 The `type` field must be `enterprise` for Indicator Match rules (Category G). `platinum` or `enterprise` for ML anomaly detection (Appendix C elements).
 
-**Tested against**: Elastic Security 9.4.2.
+**Tested against**: Elastic Security 9.4.2 and 9.5.4 (the demo cluster of record).
 
 ---
 

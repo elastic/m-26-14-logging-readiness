@@ -1,67 +1,29 @@
-// Live demo cluster deep links — maps each compliance pack asset to its
-// representation in the live Elastic cluster (dashboards open directly;
-// Stack Management objects open their detail/list page).
-//
-// Naming convention: the deployed object name/id equals the asset file
-// basename (verified against the live cluster). Assets whose deployed ids
-// are generated at import time (detection rules, workflows, agents) link
-// to the relevant listing page instead.
+// Live demo cluster link base for the Readiness Pack site.
 
-export const LIVE_KIBANA_BASE = 'https://m-26-14-7ae75d.kb.us-east-1.aws.found.io'
+// Base URL of the demo Kibana. Swapped in one place; every live link on the
+// site builds from it.
+export const LIVE_KIBANA_BASE = 'https://pubsec-m2614-63e0e0.kb.us-east4.gcp.elastic-cloud.com'
 
-// strip path + extension: '/assets/elasticsearch/transform/m_26_14-foo.json' -> 'm_26_14-foo'
-function basename(file) {
-  return file.split('/').pop().replace(/\.(json|ndjson|yaml|yml)$/, '')
+// Name of the Kibana anonymous authentication provider on the demo cluster
+// (xpack.security.authc.providers.anonymous.<name>). Passing it as
+// auth_provider_hint skips the login selector and opens the linked page as
+// the read-only demo viewer. Kibana requires the parameter before the hash.
+export const ANON_PROVIDER = 'anonymous1'
+
+// Append the anonymous-provider hint to a demo Kibana URL (absolute or a
+// path under LIVE_KIBANA_BASE). Non-demo URLs pass through untouched.
+export function withAnonHint(url) {
+  if (!url) return url
+  if (!(url.startsWith(LIVE_KIBANA_BASE) || url.startsWith('/'))) return url
+  const i = url.indexOf('#')
+  const head = i < 0 ? url : url.slice(0, i)
+  const hash = i < 0 ? '' : url.slice(i)
+  if (/[?&]auth_provider_hint=/.test(head)) return url
+  const sep = head.includes('?') ? '&' : '?'
+  return `${head}${sep}auth_provider_hint=${ANON_PROVIDER}${hash}`
 }
 
-// Per-type URL builders. `name` is the deployed object name (file basename
-// unless the asset declares `liveId`).
-const TYPE_LINKS = {
-  // Window start pinned to the earliest demo data (governance/retirement
-  // records begin 2026-04-01); the end is rolling `now` because several
-  // streams are continuous (detection alerts, hash coverage, triage ledger,
-  // staged ML anomaly bursts) and a fixed end date hides everything after it.
-  // Update the start only if the dataset is reseeded to a different period.
-  'kibana-dashboard': name =>
-    `/app/dashboards#/view/${name}?_g=(time:(from:'2026-04-01T00:00:00.000Z',to:now))`,
-  'index-template': name =>
-    `/app/management/data/index_management/templates/${encodeURIComponent(name)}`,
-  'ilm-policy': name =>
-    `/app/management/data/index_lifecycle_management/policies/edit/${encodeURIComponent(name)}`,
-  'ingest-pipeline': name =>
-    `/app/management/ingest/ingest_pipelines?pipeline=${encodeURIComponent(name)}`,
-  'transform': name =>
-    `/app/management/data/transform?_a=(transform:(queryText:'${name}'))`,
-  'es-watcher': name =>
-    `/app/management/insightsAndAlerting/watcher/watches/watch/${encodeURIComponent(name)}/status`,
-  'slm-policy': name =>
-    `/app/management/data/snapshot_restore/policies/${encodeURIComponent(name)}`,
-  'ml-job': name =>
-    `/app/ml/jobs?mlManagement=(jobId:${name})`,
-  // Deployed ids generated at import — link to the listing page.
-  'kibana-rule': () =>
-    `/app/security/rules/management`,
-  'kibana-workflow': () =>
-    `/app/workflows`,
-  'kibana-agent': () =>
-    `/app/agent_builder/agents`,
-  'kibana-agent-tool': () =>
-    `/app/agent_builder/tools`,
-  'fleet-pack': () =>
-    `/app/osquery/packs`,
-}
-
-// Returns the absolute live-cluster URL for an asset, or null if the type
-// has no live representation.
-export function liveClusterUrl(asset) {
-  if (!asset) return null
-  const build = TYPE_LINKS[asset.type]
-  if (!build) return null
-  const name = asset.liveId ?? basename(asset.file)
-  return `${LIVE_KIBANA_BASE}${build(name)}`
-}
-
-// True when the link points at a listing page rather than the exact object.
-export function liveLinkIsListing(asset) {
-  return ['kibana-rule', 'kibana-workflow', 'kibana-agent', 'kibana-agent-tool', 'fleet-pack'].includes(asset?.type)
+// Absolute demo URL for a Kibana app path, with the anonymous hint applied.
+export function liveUrl(path) {
+  return path ? withAnonHint(`${LIVE_KIBANA_BASE}${path}`) : null
 }

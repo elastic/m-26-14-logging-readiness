@@ -2,6 +2,8 @@ import React, { useRef, useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { EuiToolTip } from '@elastic/eui'
 import { useTheme } from '../ThemeContext.jsx'
+import { ENABLEMENT_ON } from '../flags.js'
+import { liveUrl } from '../data/liveLinks.js'
 import logoColor from '../img/logo-elastic-horizontal-color.svg'
 import logoReverse from '../img/logo-elastic-horizontal-color-reverse.svg'
 
@@ -33,9 +35,11 @@ const SunIcon = () => (
   </svg>
 )
 
+// The reference architecture itself is distributed as PDF (Docs flyout), not as
+// a top-level page; the living markdown stays reachable from the flyout only.
 const NAV_ITEMS = [
   { label: 'Maturity Levels', to: '/maturity/small/1', matchPrefix: '/maturity' },
-  { label: 'Asset Inventory', to: '/asset-inventory',  matchPrefix: '/asset-inventory' },
+  { label: 'Capabilities',    to: '/capabilities',     matchPrefix: '/capabilities' },
 ]
 
 export default function Nav() {
@@ -62,8 +66,9 @@ export default function Nav() {
       <div className="mx-auto max-w-[1800px] px-8 py-4 flex items-center gap-6">
         {/* Logo + title */}
         <div className="flex items-center gap-3 shrink-0">
-          {/* Hidden entry point to field enablement — logo doubles as the door. */}
-          <Link to="/enablement" aria-label="Field enablement" title="" className="shrink-0">
+          {/* Hidden entry point to field enablement — logo doubles as the door,
+              only in a build with VITE_ENABLEMENT=on (DC-8); otherwise the logo is home. */}
+          <Link to={ENABLEMENT_ON ? '/enablement' : '/'} aria-label={ENABLEMENT_ON ? 'Field enablement' : 'Home'} title="" className="shrink-0">
             <img
               src={theme === 'dark' ? logoReverse : logoColor}
               alt="Elastic"
@@ -72,7 +77,7 @@ export default function Nav() {
           </Link>
           <div className="h-7 w-px bg-line" />
           <h1 className="text-xl font-bold text-text-primary leading-tight">
-            Elastic M-26-14 Reference Architecture
+            Elastic M-26-14 Logging Readiness Package
           </h1>
         </div>
 
@@ -139,64 +144,137 @@ export default function Nav() {
   )
 }
 
-const PRINTABLES = [
+// Docs flyout content, in reading order: Elastic's briefings first, then the
+// architecture, the live demo, and finally the authoritative sources (OMB memo,
+// CISA LRA). `secondary` renders a small second link inside the card.
+const DOC_GROUPS = [
   {
-    title: 'From M-21-31 to M-26-14: What CISOs Need to Do Now',
-    description: 'CISO briefing on the shift from M-21-31 to M-26-14 — what changed, readiness deadlines, and how to build a prioritized action plan with Elastic.',
-    detail: 'PDF · CISO Briefing',
-    href: '/docs/Elastic%20M-26-14%20for%20CISOs.pdf',
+    heading: 'Briefings',
+    blurb: 'Audience-specific decks and the two Elastic blog posts. The decks are print editions that predate the August 2026 LRA; the September post covers what the LRA changed.',
+    items: [
+      {
+        title: 'Elastic Blog: CISA Logging Reference Architecture for OMB M-26-14',
+        description: 'A federal agency action plan: the eight shifts the LRA makes and five focus areas for an agency logging strategy on Elastic.',
+        detail: 'Web · Elastic blog · September 2026',
+        href: 'https://www.elastic.co/blog/cisa-logging-omb-m-26-14',
+      },
+      {
+        title: 'From M-21-31 to M-26-14: What CISOs Need to Do Now',
+        description: 'What changed from M-21-31, the readiness deadlines, and how to build a prioritized action plan with Elastic.',
+        detail: 'PDF · CISO briefing',
+        href: '/docs/Elastic%20M-26-14%20for%20CISOs.pdf',
+      },
+      {
+        title: 'Executive Briefing: Elastic M-26-14 Reference Architecture',
+        description: 'Executive briefing deck for agency CXO and leadership audiences.',
+        detail: 'PDF · CXO deck',
+        href: '/docs/CXO%20-%20Elastic%20M-26-14%20Reference%20Architectures.pdf',
+      },
+      {
+        title: 'M-26-14 Level 2 Readiness',
+        description: 'Deck on reaching Level 2 (Intermediate) with the readiness pack.',
+        detail: 'PDF · Level 2 deck',
+        href: '/docs/Elastic%20M-26-14%20Level%202%20Readiness.pdf',
+      },
+      {
+        title: 'Elastic Blog: M-26-14 Memorandum Explained',
+        description: 'How M-26-14 shifts federal logging from tiering to outcome-focused CEM and THIRF.',
+        detail: 'Web · Elastic blog · June 2026',
+        href: 'https://www.elastic.co/blog/m-26-14-memorandum',
+      },
+    ],
+  },  {
+    heading: 'Reference architecture',
+    blurb: 'The architecture text. The PDF is the marketing-approved print; the living copy carries the sections written after the LRA was published.',
+    items: [
+      {
+        title: 'Elastic M-26-14 Reference Architecture (print)',
+        description: 'Architecture diagrams and deployment guidance across all five maturity levels.',
+        detail: 'PDF · July 2026 print · predates the August 2026 LRA',
+        href: '/docs/Elastic%20M-26-14%20Reference%20Architectures.pdf',
+      },
+      {
+        title: 'Reference Architecture (living document)',
+        description: 'Current text, including the LRA architecture-pattern and maturity-stage sections added after the July print. The next PDF edition is printed from this file.',
+        detail: 'Web · Rendered in this app',
+        href: '/reference-architecture',
+        internal: true,
+      },
+    ],
   },
   {
-    title: 'CXO — Elastic M-26-14 Reference Architecture',
-    description: 'Executive briefing deck for agency CXO and leadership audiences.',
-    detail: 'PDF · Executive Briefing',
-    href: '/docs/CXO%20-%20Elastic%20M-26-14%20Reference%20Architectures.pdf',
+    heading: 'Live demo',
+    blurb: 'Every Readiness Pack asset running on Elastic Cloud, with a guided tour.',
+    items: [
+      {
+        title: 'Live Demo Cluster (Kibana, read-only)',
+        description: 'The pack installed end to end on Elastic Cloud with synthetic agency data. Opens as a read-only demo viewer; no login needed.',
+        detail: 'Web · Elastic Cloud · Kibana 9.5',
+        href: liveUrl('/app/home'),
+      },
+      {
+        title: 'Self-Guided Demo Walkthrough',
+        description: 'Dashboard-by-dashboard tour of the live cluster: what each view proves, and how the data gets there.',
+        detail: 'Web · Rendered in this app',
+        href: '/capabilities/walkthrough',
+        internal: true,
+      },
+    ],
   },
   {
-    title: 'Elastic M-26-14 Reference Architecture',
-    description: 'Architecture diagrams and deployment guidance across all five maturity levels.',
-    detail: 'PDF · Reference Architecture · July 2026',
-    href: '/docs/Elastic%20M-26-14%20Reference%20Architectures.pdf',
-  },
-  {
-    title: 'M-26-14 Level 2 Readiness',
-    description: 'M-26-14 Level 2 Readiness deck.',
-    detail: 'PDF · Level 2 Readiness',
-    href: '/docs/Elastic%20M-26-14%20Level%202%20Readiness.pdf',
-  },
-  {
-    title: 'Live Demo Cluster — Kibana (Read-Only)',
-    description: 'Every readiness pack asset running live on Elastic Cloud. Read-only — credentials from the Elastic team on request.',
-    detail: 'Web · Live Elastic Cluster · Kibana 9.4',
-    href: 'https://m-26-14-7ae75d.kb.us-east-1.aws.found.io',
-  },
-  {
-    title: 'Self-Guided Demo Walkthrough',
-    description: 'Self-directed tour of the live cluster — what each dashboard shows and how the data gets there.',
-    detail: 'Web · Interactive Walkthrough',
-    href: '/demo-guide',
-    internal: true,
-  },
-  {
-    title: 'Elastic Blog: M-26-14 Memorandum Explained',
-    description: "Elastic's official blog post on how M-26-14 shifts federal logging from readiness-driven tiering to outcome-focused CEM and THIRF.",
-    detail: 'Web · Elastic Blog · June 2026',
-    href: 'https://www.elastic.co/blog/m-26-14-memorandum',
-  },
-  { type: 'separator' },
-  {
-    title: 'OMB M-26-14 Memorandum',
-    description: 'Official OMB memorandum establishing M-26-14 logging requirements for federal agencies.',
-    detail: 'PDF · Official OMB Memorandum',
-    href: 'https://www.whitehouse.gov/wp-content/uploads/2026/05/M-26-14-Ensuring-Effective-and-Efficient-Agency-Logging-and-Network-Visibility-to-Defend-Against-Evolving-Cyber-Threats.pdf',
-  },
-  {
-    title: 'CISA M-26-14 Logging Reference Architecture',
-    description: "CISA's Logging Reference Architecture — the authoritative technical baseline for M-26-14.",
-    detail: 'Web · CISA Resource',
-    href: 'https://www.cisa.gov/resources-tools/resources/logging-reference-architecture',
+    heading: 'Authoritative sources',
+    blurb: 'The memorandum that sets the requirements and the CISA architecture that interprets them.',
+    items: [
+      {
+        title: 'OMB Memorandum M-26-14',
+        description: 'Ensuring Effective and Efficient Agency Logging and Network Visibility to Defend Against Evolving Cyber Threats. Sets the maturity model, Appendix B logging activities, and the deadline clock.',
+        detail: 'PDF · Office of Management and Budget · May 22, 2026',
+        href: 'https://www.whitehouse.gov/wp-content/uploads/2026/05/M-26-14-Ensuring-Effective-and-Efficient-Agency-Logging-and-Network-Visibility-to-Defend-Against-Evolving-Cyber-Threats.pdf',
+      },
+      {
+        title: 'CISA Logging Reference Architecture (LRA)',
+        description: 'CISA\'s implementation guidance for M-26-14: architecture patterns, telemetry categories and minimum fidelity, readiness measures, the policy enforcement point, and the Agency Logging Plan template. Publication started the 90/120/180/320-day clocks.',
+        detail: 'Web · CISA · August 20, 2026',
+        href: 'https://www.cisa.gov/resources-tools/resources/logging-reference-architecture',
+        secondary: { label: 'Direct PDF', href: 'https://www.cisa.gov/sites/default/files/2026-09/logging-reference-architecture-508.pdf' },
+      },
+    ],
   },
 ]
+
+const ExternalIcon = () => (
+  <svg className="w-4 h-4 text-accent-blue/50 group-hover:text-accent-blue transition-colors shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+  </svg>
+)
+
+function DocCard({ item }) {
+  const linkProps = item.internal
+    ? {}
+    : { target: '_blank', rel: 'noopener noreferrer' }
+  return (
+    <div className="rounded-lg bg-ink-800 hover:bg-ink-700 transition-colors flex flex-col group">
+      <a href={item.href} {...linkProps} className="p-5 pb-3 flex flex-col gap-2 flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <span className="text-sm font-semibold text-accent-blue group-hover:underline leading-snug">{item.title}</span>
+          <ExternalIcon />
+        </div>
+        <p className="text-sm text-text-muted leading-relaxed">{item.description}</p>
+        <p className="text-xs text-text-muted/60 italic mt-auto">{item.detail}</p>
+      </a>
+      {item.secondary && (
+        <a
+          href={item.secondary.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mx-5 mb-4 self-start text-xs font-medium text-accent-teal hover:underline"
+        >
+          {item.secondary.label} ↗
+        </a>
+      )}
+    </div>
+  )
+}
 
 function PrintablesFlyout({ onClose }) {
   const overlayRef = useRef(null)
@@ -217,10 +295,10 @@ function PrintablesFlyout({ onClose }) {
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
       {/* Panel */}
-      <div className="relative w-full max-w-md h-full bg-ink-900 border-l border-line shadow-2xl flex flex-col overflow-y-auto"
+      <div className="relative w-full max-w-3xl h-full bg-ink-900 border-l border-line shadow-2xl flex flex-col overflow-y-auto"
         style={{ borderStyle: 'solid' }}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-line/40">
+        <div className="flex items-center justify-between px-8 py-5 border-b border-line/40">
           <div className="flex items-center gap-2 text-text-primary font-semibold text-lg">
             <DocumentsIcon />
             <span>Reference Documentation</span>
@@ -236,59 +314,24 @@ function PrintablesFlyout({ onClose }) {
           </button>
         </div>
 
-        <p className="px-6 pt-4 pb-2 text-sm text-text-muted leading-relaxed">
-          Reference guides, architecture docs, and live resources for the Elastic M-26-14 readiness pack.
+        <p className="px-8 pt-4 pb-2 text-sm text-text-muted leading-relaxed">
+          The official sources, the live demo, and Elastic's architecture and briefing material for the M-26-14 Readiness Pack.
         </p>
 
-        {/* Doc cards */}
-        <div className="flex flex-col gap-3 px-6 py-4">
-          {PRINTABLES.map((p, i) => {
-            if (p.type === 'separator') {
-              return <hr key={`sep-${i}`} className="border-line/40 my-1" />
-            }
-            if (p.comingSoon) {
-              return (
-                <div
-                  key={p.title}
-                  className="rounded-lg bg-ink-800/50 p-5 flex flex-col gap-2 opacity-50 cursor-not-allowed"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="text-sm font-semibold text-accent-blue leading-snug">{p.title}</span>
-                    <span className="text-[10px] font-medium text-text-muted/80 bg-ink-700 px-2 py-0.5 rounded shrink-0 mt-0.5 uppercase tracking-wide">Soon</span>
-                  </div>
-                  <p className="text-sm text-text-muted leading-relaxed">{p.description}</p>
-                  <p className="text-xs text-text-muted/60 italic">{p.detail}</p>
-                </div>
-              )
-            }
-            return (
-              <a
-                key={p.title}
-                href={p.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-lg bg-ink-800 p-5 flex flex-col gap-2 hover:bg-ink-700 transition-colors group"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <span className="text-sm font-semibold text-accent-blue group-hover:underline leading-snug">{p.title}</span>
-                  <svg className="w-4 h-4 text-accent-blue/50 group-hover:text-accent-blue transition-colors shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </div>
-                <p className="text-sm text-text-muted leading-relaxed">{p.description}</p>
-                {p.credentials && (
-                  <div
-                    className="mt-1 rounded-md bg-ink-900/70 border border-line/40 px-3 py-2 font-mono text-xs text-text-primary flex flex-col gap-1 cursor-text select-text"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
-                  >
-                    <div><span className="text-text-muted">username&nbsp;</span>{p.credentials.username}</div>
-                    <div><span className="text-text-muted">password&nbsp;</span>{p.credentials.password}</div>
-                  </div>
-                )}
-                <p className="text-xs text-text-muted/60 italic">{p.detail}</p>
-              </a>
-            )
-          })}
+        {/* Groups */}
+        <div className="flex flex-col gap-8 px-8 py-5">
+          {DOC_GROUPS.map((g) => (
+            <section key={g.heading}>
+              <div className="flex items-center gap-3 mb-1">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-text-primary">{g.heading}</h3>
+                <div className="flex-1 h-px bg-line/60" />
+              </div>
+              <p className="text-xs text-text-muted mb-3 leading-relaxed">{g.blurb}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {g.items.map((item) => <DocCard key={item.title} item={item} />)}
+              </div>
+            </section>
+          ))}
         </div>
       </div>
     </div>

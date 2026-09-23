@@ -32,7 +32,7 @@ Use the matrix for *visual gap identification*; use the Attestation Dashboard fo
 
 The dashboard contains nineteen panels in five rows.
 
-![M-26-14 Appendix B Coverage Matrix — color-coded 11-category tiles, KPI row, alert volume and detection rules bar charts, and full-detail coverage table](../screenshots/06-appendix-b-coverage.png)
+![M-26-14 Appendix B Coverage Matrix — color-coded 11-category tiles, KPI row, alert volume and detection rules bar charts, and full-detail coverage table](../screenshots/m_26_14-appendix-b-coverage.png)
 
 ### Row 0 — Navigation
 
@@ -46,18 +46,18 @@ Four metric panels summarizing posture. The first three always sum to 11.
 
 | Panel | Color | What It Computes |
 |-------|-------|------------------|
-| **Fully Covered Categories** | Teal `#00BFB3` | `COUNT_DISTINCT(m_26_14.category)` where `coverage_status == "covered"` — active rules with alerts firing |
-| **Partial Coverage** | Yellow `#FEC514` | Distinct categories where `coverage_status == "partial"` — rules deployed, low or no alerts |
-| **No Coverage** | Orange `#E7664C` | Distinct categories where `coverage_status == "none"` — missing rules or missing data source |
-| **Active Detection Rules** | Blue `#006BB4` | `MAX(m_26_14.rules_active)` per category, summed — total active rules across all 11 categories |
+| **Fully Covered Categories** | Teal `#00BFB3` | Categories whose latest snapshot has `coverage_status == "covered"` — active rules with alerts firing. Value-click lists them |
+| **Partial Coverage** | Yellow `#FEC514` | Categories whose latest status is `partial` — rules deployed, low or no alerts. Value-click lists them |
+| **No Coverage** | Orange `#E7664C` | Categories whose latest status is `none` — missing rules or missing data source. Value-click lists them |
+| **Active Detection Rules** | Blue `#006BB4` | Latest `m_26_14.rules_active` per category (`LAST` by `@timestamp`), summed — total active rules across all 11 categories. Value-click lists the per-category figures |
 
 ### Rows 2–3 — The 11 Category Tiles (A–K)
 
 Eleven metric tiles, one per Appendix B category, arranged six across (A–F) and five across (G–K). Each tile shows:
 
 - **Title** — category letter and name (e.g., "A: Identity Events")
-- **Large value** — alert count for that category over the last 30 days (`MAX(m_26_14.alerts_30d)`)
-- **Subtitle** — active rule count and coverage status (e.g., "4 rules | fully covered")
+- **Large value** — the category's rolling 30-day alert count as of its latest snapshot (`LAST(m_26_14.alerts_30d, @timestamp)`); value-click opens the category's per-day history in Discover ("View 30-day history")
+- **Subtitle** — the telemetry the category represents (Section 4)
 - **Tile color** — coverage status (see Section 3)
 
 ### Row 4 — Bar Charts
@@ -113,7 +113,7 @@ Categories A–J each map to one or more dedicated detection rules; Category K i
 
 1. **Set the time range** to the reporting period (default: last 30 days, matching the `alerts_30d` window).
 2. **Read the KPI row first.** A clean submission shows Fully Covered = 11, Partial = 0, No Coverage = 0. Any non-zero "No Coverage" value blocks submission until remediated or documented.
-3. **Scan the tile grid for non-teal tiles.** Each yellow or orange tile is a finding. The subtitle tells you whether the issue is missing rules (e.g., "0 rules | no coverage") or rules without evidence (e.g., "1 rule | no alerts yet").
+3. **Scan the tile grid for non-teal tiles.** Each yellow or orange tile is a finding. The Full Detail table tells you whether the issue is missing rules (`rules` is 0) or rules without evidence (`rules` above 0 with `alerts` at 0).
 4. **Use the two bar charts to distinguish gap types.** A category present in the *Rules* chart but absent from the *Alerts* chart means rules are deployed but silent — verify the data source is flowing before concluding the rule is broken.
 5. **Export the Full Detail table** (panel menu → *Download as CSV*) as the per-category evidence artifact. Its five columns (`category`, `label`, `status`, `rules`, `alerts`) map directly to an Appendix B readiness worksheet.
 6. **Document residual gaps.** Any `partial` or `none` row requires a POA&M entry with a remediation date; attach the exported CSV and a dashboard screenshot to the AO package.

@@ -10,9 +10,11 @@
     ink-800 → euiColorEmptyShade          (panel / card bg)
     ink-700 → euiColorLightestShade       (nested panel / hover bg)
     ink-600 → euiColorLightShade          (input bg / deep bg)
+    surface-prepend → euiColorBackgroundBaseFormsPrepend (in-page nav panel)
     color-line → euiColorBorderBasePlain  (panel borders — prominent variant)
     text-primary → euiTextColor           (body text)
     text-muted → euiTextSubduedColor      (secondary text)
+    text-neutral → euiColorTextNeutral    (asset identifiers)
     accent-teal → euiColorAccentSecondary (teal / turquoise)
     accent-blue → euiColorPrimary         (blue)
     accent-gray → euiColorMediumShade
@@ -28,9 +30,11 @@
   --ink-800: 255 255 255;       /* euiColorEmptyShade      #FFFFFF */
   --ink-700: 236 241 249;       /* euiColorLightestShade   #ECF1F9 */
   --ink-600: 202 211 226;       /* euiColorLightShade      #CAD3E2 */
+  --surface-prepend: 236 241 249; /* euiColorBackgroundBaseFormsPrepend #ECF1F9 */
   --color-line: 162 177 201;    /* colorBorderBaseProminent #A2B1C9 */
   --text-primary: 29 42 62;     /* euiTextColor            #1D2A3E */
   --text-muted: 81 99 129;      /* euiTextSubduedColor     #516381 */
+  --text-neutral: 15 101 138;   /* euiColorTextNeutral     #0F658A */
   --accent-teal: 0 139 135;     /* euiColorAccentSecondary #008B87 */
   --accent-blue: 11 100 221;    /* euiColorPrimary         #0B64DD */
   --accent-gray: 142 159 188;   /* euiColorMediumShade     #8E9FBC */
@@ -46,9 +50,11 @@
   --ink-800: 11 22 40;          /* euiColorEmptyShade      #0B1628 */
   --ink-700: 23 35 54;          /* euiColorLightestShade   #172336 */
   --ink-600: 36 49 71;          /* euiColorLightShade      #243147 */
+  --surface-prepend: 36 49 71;  /* euiColorBackgroundBaseFormsPrepend #243147 */
   --color-line: 72 89 117;      /* colorBorderBasePlain    #485975 */
   --text-primary: 202 211 226;  /* euiTextColor            #CAD3E2 */
   --text-muted: 152 168 195;    /* euiTextSubduedColor     #98A8C3 */
+  --text-neutral: 55 184 220;   /* euiColorTextNeutral     #37B8DC */
   --accent-teal: 22 197 192;    /* euiColorAccentSecondary #16C5C0 */
   --accent-blue: 97 162 255;    /* euiColorPrimary         #61A2FF */
   --accent-gray: 81 99 129;     /* euiColorMediumShade     #516381 */

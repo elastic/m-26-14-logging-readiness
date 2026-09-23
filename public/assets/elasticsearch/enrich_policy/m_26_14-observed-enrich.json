@@ -1,7 +1,0 @@
-{
-  "match": {
-    "indices": "m_26_14-observed",
-    "match_field": "host.name",
-    "enrich_fields": ["last_log", "first_log", "datasets", "skew_exceeded", "event_count"]
-  }
-}

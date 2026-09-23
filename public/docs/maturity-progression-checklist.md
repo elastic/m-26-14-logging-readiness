@@ -1,13 +1,13 @@
 # M-26-14 Maturity Level Progression Checklist
 
-**Purpose:** Step-by-step guide for agencies using the Elastic M-26-14 Compliance Pack to achieve and maintain each maturity level across all five Appendix C elements.
+**Purpose:** Step-by-step guide for agencies using the Elastic M-26-14 Readiness Pack to achieve and maintain each maturity level across all five Appendix C elements.
 
 **Scoring:** Overall maturity = lowest level across all five elements (lowest watermark). Advance the weakest element first.
 
-**Timelines (from CISA LRA publication, ~August 2026):**
-- Level 1 (Initial): LRA + 120 days
-- Level 2 (Intermediate): LRA + 180 days
-- Level 3 (Advanced): LRA + 320 days
+**Timelines (from CISA LRA publication, August 20, 2026):**
+- Level 1 (Initial): LRA + 120 days (December 18, 2026)
+- Level 2 (Intermediate): LRA + 180 days (February 16, 2027)
+- Level 3 (Advanced): LRA + 320 days (July 6, 2027)
 - Level 4 (Optimal): No mandatory deadline
 
 ---
@@ -19,7 +19,7 @@ Complete these before targeting any specific level:
 - [ ] Elastic cluster deployed (Cloud or self-managed, Kibana ^8.16 or ^9.x)
 - [ ] Fleet Server running and accessible to all agent-eligible hosts
 - [ ] Snapshot repository configured (`m_26_14-readiness-snapshots`) pointing to S3/GCS/Azure Blob (GovCloud recommended)
-- [ ] M-26-14 Compliance Pack installed (`elastic-package install` or Kibana Fleet → Integrations)
+- [ ] M-26-14 Readiness Pack installed (`elastic-package install` or Kibana Fleet → Integrations)
 - [ ] At least one alert connector configured (email, Slack, ServiceNow, or PagerDuty) in Kibana → Stack Management → Connectors
 - [ ] Agency Logging Plan drafted (template: `docs/agency-logging-plan-template.md`)
 - [ ] HVAs and High Impact Systems identified per OMB M-19-03 and FIPS 199
@@ -40,13 +40,15 @@ What changes as you progress is **policy parameters and governance, never the ti
 
 All four are the same H/F architecture (hot rollover at 1d/50GB, frozen via searchable snapshot on the snapshot repository). At L1/L2, deploying any of these policies already exceeds the 6-month/12-month *retrievable* requirements — the per-level Element 4 checklist items below verify thresholds, they do not require different architectures.
 
+> **LRA Section 5.3:** the Appendix B baseline (6 months actively searchable, 12 months retrievable) binds at every maturity level; the interim per-level retention metrics satisfy maturity reporting only. Deploying H/F on day 1 is therefore not just cheaper than re-architecting later, it is the posture that meets the standing obligation from the first day.
+
 > **Snapshot repository note:** On Elastic Cloud Hosted, the built-in `found-snapshots` repository backs the frozen tier's searchable snapshots — no setup needed. Self-managed clusters must register an S3/GCS/Azure repository before the frozen phase can mount searchable snapshots.
 
 ---
 
 ## Level 0 → Level 1 (Initial)
 
-**Deadline:** LRA + 120 days  
+**Deadline:** LRA + 120 days (December 18, 2026)  
 **Overall goal:** Basic logging infrastructure in place, logs retained 6 months, alerts generating for some threat categories
 
 ### Element 1 — Inventory Visibility: ≥70% of IT/OT/IoT assets in centralized inventory
@@ -119,7 +121,7 @@ At L1, you are not required to cover 50%+ — you are at L1 when alerts exist an
 
 ## Level 1 → Level 2 (Intermediate)
 
-**Deadline:** LRA + 180 days  
+**Deadline:** LRA + 180 days (February 16, 2027)  
 **Overall goal:** 80% asset coverage with daily inventory updates, 12-month retrieval, encrypted at rest, 50-70% alert category coverage with periodic tuning
 
 ### Element 1 — Inventory Visibility: ≥80%, updated daily
@@ -201,7 +203,7 @@ At L1, you are not required to cover 50%+ — you are at L1 when alerts exist an
 
 ## Level 2 → Level 3 (Advanced)
 
-**Deadline:** LRA + 320 days  
+**Deadline:** LRA + 320 days (July 6, 2027)  
 **Overall goal:** 90% asset coverage, 3-month searchable + 12-month retrievable, TLS + hashing, 70%+ alert categories with routine tuning
 
 ### Element 1 — Inventory Visibility: ≥90%, updated daily
@@ -454,3 +456,5 @@ Level 4 is not a destination — it requires ongoing operational discipline. Rec
 | **Log Management** | Logs stored | Encrypted at rest | Encrypted transit + at rest + hashed | + JIT access + permission monitoring + two-gate retirement |
 
 **Remember:** Overall maturity = minimum level across all five elements.
+
+**LRA note (Section 5.3):** the L1-L3 Data Retention thresholds above are maturity reporting metrics; the Appendix B baseline of 6 months searchable and 12 months retrievable binds at every level. The Day-1 H/F design meets the baseline from the first day.

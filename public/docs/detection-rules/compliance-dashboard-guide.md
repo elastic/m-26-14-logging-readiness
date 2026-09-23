@@ -31,7 +31,7 @@ This architecture is identical to how Elastic's own Cloud Security Posture Manag
 
 The dashboard (`m_26_14-readiness-attestation-dash`) contains three primary panel groups. All panels read from the `m_26_14-metrics-alert-coverage` index, not from the raw `.alerts-security.*` store, which keeps load times fast regardless of total alert volume.
 
-![M-26-14 Readiness Attestation dashboard — three coverage KPI metrics at top, 11-category evidence table in the middle, and alert volume bar chart at the bottom](../screenshots/07-compliance-attestation.png)
+![M-26-14 Readiness Attestation dashboard — three coverage KPI metrics at top, 11-category evidence table in the middle, and alert volume bar chart at the bottom](../screenshots/m_26_14-readiness-attestation-dash.png)
 
 ### Panel Group 1 — Coverage KPI Metrics (top row)
 
@@ -331,7 +331,7 @@ Kibana Compliance Attestation Dashboard
 
 The **M-26-14 Maturity Overview** dashboard serves as the hub. A horizontal navigation links panel at the top of that dashboard provides one-click access to every compliance dashboard. The time range and active KQL filters are inherited by each drilldown target.
 
-![M-26-14 Maturity Overview — navigation links panel at top, six element score metrics, and 30-day trend charts](../screenshots/01-maturity-overview.png)
+![M-26-14 Maturity Overview — navigation links panel at top, six element score metrics, and 30-day trend charts](../screenshots/m_26_14-maturity-overview.png)
 
 | Link Label | Target Dashboard | Purpose |
 |---|---|---|
@@ -348,7 +348,7 @@ The **M-26-14 Maturity Overview** dashboard serves as the hub. A horizontal navi
 
 The **M-26-14 Appendix B Coverage Matrix** (`m_26_14-appendix-b-coverage`) is a companion dashboard modeled after the Elastic MITRE ATT&CK Coverage view. It provides a heat-map-style view of all eleven mandatory log categories.
 
-![M-26-14 Appendix B Coverage Matrix — color-coded 11-category tiles, KPI row, alert volume and detection rules bar charts, and full-detail coverage table](../screenshots/06-appendix-b-coverage.png)
+![M-26-14 Appendix B Coverage Matrix — color-coded 11-category tiles, KPI row, alert volume and detection rules bar charts, and full-detail coverage table](../screenshots/m_26_14-appendix-b-coverage.png)
 
 ### Layout
 

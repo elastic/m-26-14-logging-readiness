@@ -36,7 +36,7 @@ This dashboard is a **drill-down target** from **M-26-14 Maturity Overview** (`m
 
 One navigation panel and ten Lens visualizations, all ES|QL over `m_26_14-assets` (the trend panel reads the coverage-metrics store). Headline tiles are collapsed to a single number + subtitle.
 
-![M-26-14 Asset Coverage dashboard — asset count tiles across the top, coverage tiles in the second row, OS and component composition charts in the third row, and the daily collection coverage trend across the bottom](../screenshots/02-asset-coverage.png)
+![M-26-14 Asset Coverage dashboard — asset count tiles across the top, coverage tiles in the second row, OS and component composition charts in the third row, and the daily collection coverage trend across the bottom](../screenshots/m_26_14-asset-coverage.png)
 
 ### Navigation (top)
 

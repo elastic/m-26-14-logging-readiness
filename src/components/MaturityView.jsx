@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
 import { LEVELS } from '../data/levels.js'
 import { SIZE_ORDER, sizingTable } from '../data/sizing.js'
@@ -28,10 +28,34 @@ export default function MaturityView() {
   const [selectedNode, setSelectedNode] = useState(null)
   const { theme } = useTheme()
   const diagramRef = useRef(null)
+  const panelRef = useRef(null)
+  const orgRowRef = useRef(null)
   const [zoom, setZoom] = useState(1)
+  // Diagram panel height: fill the viewport from the panel's top down to the
+  // org-size row, so that row is always on screen without scrolling. Measured
+  // from the DOM (nav, title, level row, footer all vary) rather than assumed.
+  const [panelH, setPanelH] = useState(null)
   const ZOOM_MIN = 0.5
   const ZOOM_MAX = 2
   const ZOOM_STEP = 0.1
+  const PANEL_MIN_H = 360
+  const ROW_GAP = 32   // space-y-8 between the panel and the org-size row
+  const MAIN_PAD_B = 40 // py-10 bottom padding on <main>
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const panel = panelRef.current
+      if (!panel) return
+      const top = panel.getBoundingClientRect().top + window.scrollY
+      const orgH = orgRowRef.current?.offsetHeight ?? 0
+      const footerH = document.querySelector('footer')?.offsetHeight ?? 0
+      const h = window.innerHeight - top - ROW_GAP - orgH - MAIN_PAD_B - footerH
+      setPanelH(Math.max(PANEL_MIN_H, Math.floor(h)))
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [levelNum, size])
 
   useEffect(() => {
     const id = requestAnimationFrame(() => {
@@ -41,9 +65,8 @@ export default function MaturityView() {
       if (!svg?.viewBox?.baseVal?.width) return
       const vb = svg.viewBox.baseVal
       const padding = 16
-      const maxContainerH = Math.min(800, window.innerHeight - 300)
       const availW = Math.max(0, container.clientWidth - padding)
-      const availH = Math.max(0, maxContainerH - padding)
+      const availH = Math.max(0, container.clientHeight - padding)
       if (availW === 0 || availH === 0) return
       const naturalH = availW * (vb.height / vb.width)
       const fit = naturalH > availH
@@ -52,7 +75,7 @@ export default function MaturityView() {
       setZoom(fit)
     })
     return () => cancelAnimationFrame(id)
-  }, [levelNum, size])
+  }, [levelNum, size, panelH])
 
   if (!SIZE_ORDER.includes(size)) return <Navigate to="/maturity/small/1" replace />
   const meta = LEVELS.find((l) => l.id === levelNum)
@@ -106,7 +129,7 @@ export default function MaturityView() {
       </div>
 
       {/* Architecture diagram with zoom controls */}
-      <div className="relative" style={{ height: 'min(800px, calc(100vh - 300px))' }}>
+      <div ref={panelRef} className="relative" style={{ height: panelH ? `${panelH}px` : 'min(800px, calc(100vh - 300px))' }}>
         <div
           ref={diagramRef}
           className="rounded-lg p-2 overflow-auto h-full"
@@ -144,7 +167,7 @@ export default function MaturityView() {
       </div>
 
       {/* Org size selector row */}
-      <div className="flex items-center gap-4">
+      <div ref={orgRowRef} className="flex items-center gap-4">
         <h2 className="text-text-primary text-xl font-semibold w-44 shrink-0 text-right">
           Organization Size
         </h2>

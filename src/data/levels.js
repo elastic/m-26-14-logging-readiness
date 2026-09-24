@@ -33,7 +33,10 @@ export const LEVELS = [
     summary:
       'Establishes the foundational logging baseline. Agencies must collect logs across all required Appendix B event categories and retain them in a retrievable state for a minimum of 6 months. No level-specific searchable (CEM) metric applies at this level, though the Appendix B six-month searchable baseline binds independently of maturity level (LRA Section 5.3). Agencies must also submit their Agency Logging Plan by November 18, 2026 (90 days from the August 20, 2026 LRA publication).',
     keyPoints: [
-      'Collect all Appendix B event categories from applicable log sources.',
+      'Inventory Visibility: at least 70% of IT, OT and IoT assets in a central HWAM/SWAM inventory.',
+      'Collection Coverage: logs searchable and retrievable for at least 50% of the assets in that inventory.',
+      'Collection Operations: alerting exists on the Appendix B baseline (below 50% of it).',
+      'Log Management: logs are stored.',
       'Retain logs in a retrievable state for a minimum of 6 months.',
       'No level-specific searchable (CEM) metric at this level; the Appendix B six-month searchable baseline still binds independently (LRA Section 5.3).',
       'Agency Logging Plan due November 18, 2026 (90 days from LRA publication).',
@@ -56,8 +59,10 @@ export const LEVELS = [
     summary:
       'Expands log source coverage and increases the retrievable retention window to 12 months. Agencies must achieve complete Appendix B log coverage and maintain a full asset and system inventory reflected in their logging pipeline. No level-specific searchable (CEM) metric applies at this level, though the Appendix B searchable baseline binds independently (LRA Section 5.3).',
     keyPoints: [
-      'Full coverage of all Appendix B log categories with no gaps.',
-      'Complete asset and system inventory must be reflected in collected logs.',
+      'Inventory Visibility: at least 80% of assets in the central inventory, updated daily.',
+      'Collection Coverage: logs searchable and retrievable for at least 80% of inventoried assets.',
+      'Collection Operations: alerts covering 50% to 70% of the Appendix B baseline.',
+      'Log Management: stored logs encrypted at rest.',
       'Retain logs in a retrievable state for a minimum of 12 months.',
       'No level-specific searchable (CEM) metric at this level; the Appendix B six-month searchable baseline still binds independently (LRA Section 5.3).',
     ],
@@ -77,13 +82,14 @@ export const LEVELS = [
       logManagement: 'Encrypted transit + rest, regularly hashed',
     },
     summary:
-      'Introduces the CEM searchable requirement for the first time. Agencies must maintain at least 3 months of immediately searchable log data covering all Appendix B categories, and at least 12 months of retrievable log data. Agencies must also implement automated threat detection, anomaly detection, and sensitive data protections (e.g., PII masking) prior to log storage.',
+      'Introduces the CEM searchable requirement for the first time. Agencies must maintain at least 3 months of immediately searchable log data and at least 12 months of retrievable log data, with 90% of assets inventoried daily and collected, alerts covering at least 70% of the Appendix B baseline and routinely tuned, and logs encrypted in transit and at rest and regularly hashed for veracity.',
     keyPoints: [
       'Maintain ≥ 3 months of searchable log data (CEM metric first applies).',
       'Three months searchable satisfies maturity reporting only; the Appendix B six-month searchable baseline binds regardless (LRA Section 5.3).',
       'Maintain ≥ 12 months of retrievable log data (THIRF).',
-      'Implement automated threat detection and anomaly detection capabilities.',
-      'Apply sensitive data protections (PII masking, field redaction) before storage.',
+      'Inventory Visibility ≥ 90% updated daily; Collection Coverage ≥ 90% of inventoried assets.',
+      'Collection Operations: alerts covering ≥ 70% of the Appendix B baseline, routinely tuned.',
+      'Log Management: encrypted in transit and at rest, regularly hashed for veracity.',
     ],
   },
   {
@@ -101,11 +107,11 @@ export const LEVELS = [
       logManagement: 'Encrypted, JIT access, two-gate retirement',
     },
     summary:
-      'Achieves the highest maturity level with 6 months of searchable and 12 months of retrievable log data. Agencies must operate a federated, distributed logging architecture with full encryption at rest and in transit, tamper-evident log integrity, NTP-traceable timestamps, and a documented, tested procedure for sharing logs with CISA and the FBI on demand.',
+      'Achieves the highest maturity level with 6 months of searchable and 12 months of retrievable log data, 95% of assets inventoried and collected, alerts covering at least 95% of the baseline with ML and AI tuning, and log management that adds just-in-time access, monitored access and two-gate approval before any log is retired. NTP-traceable timestamps and a documented, tested procedure for sharing logs with CISA and the FBI on demand sit beside the element thresholds.',
     keyPoints: [
       'Maintain ≥ 6 months of searchable log data (CEM) and ≥ 12 months retrievable (THIRF).',
-      'Operate a federated, distributed logging architecture at scale.',
-      'Enforce encryption at rest and in transit with tamper-evident log integrity.',
+      'Inventory Visibility, Collection Coverage and Collection Operations at ≥ 95%, with ML and AI tuning the alerts.',
+      'Log Management: encrypted, just-in-time and monitored access, two-gate approval before retiring logs.',
       'Documented and tested CISA/FBI log sharing procedure in the Agency Logging Plan.',
     ],
   },

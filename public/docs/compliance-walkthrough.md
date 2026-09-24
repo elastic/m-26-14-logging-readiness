@@ -431,25 +431,25 @@ Rules are imported in disabled state by default. Enable them after verifying the
 
 ## 5. Appendix C — Five-Element Maturity Model
 
-M-26-14 Appendix C defines a five-element maturity model. Each element has multiple levels (L1 through L4+). Agencies self-assess and must progress toward full coverage over time.
+M-26-14 Appendix C scores five elements at five levels (Ineffective 0, Initial 1, Intermediate 2, Advanced 3, Optimal 4); an agency's overall level is the lowest of the five. The elements and thresholds below are the memo's. The pack scores each element from the `m_26_14-config` thresholds into `m_26_14-scores` (the Maturity Overview dashboard reads that store) and backs each score with a custom anomaly-detection job that alerts when the underlying measure degrades. The job ids keep the pack's `element1` to `element5` numbering, which follows the memo's row order.
 
-### Appendix C Maturity Coverage Matrix
+### Appendix C Maturity Model and the pack's evidence
 
-| Element | Description | M-26-14 Requirement | Elastic ML Job | Kibana Alert Rule | Maturity Level |
-|---|---|---|---|---|---|
-| **1** | Asset Coverage — all asset types logging | HWAM/SWAM enrollment tracking | `m_26_14-ml-element1-asset-coverage` | `m_26_14-ml-e1-coverage-drop` | L2+ |
-| **2** | Ingestion Rate — log pipeline health | Data stream ingestion rate monitoring | `m_26_14-ml-element2-ingestion-rate` | `m_26_14-ml-e2-ingestion-drop` | L2+ |
-| **3** | Rule Coverage — all log categories have active detection rules | Appendix B category silence detection | `m_26_14-ml-element3-rule-silence` | `m_26_14-ml-e3-rule-silence` | L4 |
-| **4** | Privileged Operations — monitoring privileged/admin actions | ILM lifecycle anomaly (retention integrity) | `m_26_14-ml-element4-ilm-anomaly` | `m_26_14-ml-e4-retention-anomaly` | L3+ |
-| **5** | Log Integrity — cryptographic tamper detection | Hash coverage ratio per data stream | `m_26_14-ml-element5-hash-coverage` | `m_26_14-ml-e5-hash-drop` | L3+ |
+| Element (memo) | Level 1 | Level 2 | Level 3 | Level 4 | Pack score (transform) | Readiness-health ML job and rule |
+|---|---|---|---|---|---|---|
+| **1 Inventory Visibility** | 70% of IT, OT and IoT assets in a central HWAM/SWAM inventory | 80%, updated daily | 90%, updated daily | 95%, updated daily | `m_26_14-score-entity` per asset, rolled up by `m_26_14-score-rollup`; freshness window `thresholds.inventory_fresh_days` | `m_26_14-ml-element1-asset-coverage` / `m_26_14-ml-e1-coverage-drop` |
+| **2 Collection Coverage** | logs searchable and retrievable for 50% of inventoried assets | 80% | 90% | 95% | same per-asset score, coverage axis | `m_26_14-ml-element2-ingestion-rate` / `m_26_14-ml-e2-ingestion-drop` |
+| **3 Collection Operations** | alerts covering under 50% of the Appendix B baseline | 50% to 70% | at least 70%, routinely tuned | at least 95%, with ML and AI tuning | `m_26_14-score-operations` (Appendix B categories with an alert in 30 days, of eleven) | `m_26_14-ml-element3-rule-silence` / `m_26_14-ml-e3-rule-silence` |
+| **4 Data Retention** | retrievable 6 months | retrievable 12 months | searchable 3 months and retrievable 12 | searchable 6 months and retrievable 12 | `m_26_14-score-dataset-retention` per dataset from the configured ILM and snapshot policies (`retention.basis: policy`), with the measured horizon beside it | `m_26_14-ml-element4-ilm-anomaly` / `m_26_14-ml-e4-retention-anomaly` |
+| **5 Log Management** | logs stored | encrypted at rest | encrypted in transit and at rest, regularly hashed for veracity | plus just-in-time access, monitored access, two-gate approval before retiring logs | `m_26_14-score-log-management` from the hash-coverage rollup and the operator attestations in `m_26_14-config` | `m_26_14-ml-element5-hash-coverage` / `m_26_14-ml-e5-hash-drop` |
 
-> **Note:** All Appendix C ML jobs are custom anomaly detection jobs specific to this compliance pack. They are not Elastic Security prebuilt jobs and must be deployed and managed by the agency. All require a Platinum or Enterprise Elasticsearch license. See `docs/ml-jobs-guide.md` for the full deployment procedure.
+> **Note:** The ML jobs are evidence that a measure is holding, not the score itself. All five are custom anomaly detection jobs specific to this pack, not Elastic Security prebuilt jobs, and require a Platinum or Enterprise license. See `docs/ml-jobs-guide.md` for the deployment procedure. Encryption, just-in-time access, access monitoring and two-gate retirement cannot be observed from inside the cluster; the operator attests them in the config document and the Element 5 score reads the attestations.
 
 ---
 
-### 5.1 Element 1 — Asset Coverage
+### 5.1 Element 1 — Inventory Visibility
 
-**M-26-14 requirement**: All agency hardware assets must be enrolled and reporting telemetry. HWAM coverage must meet the level-specific threshold (e.g., Level 3 requires ≥95% of known hardware enrolled in Elastic Agent).
+**M-26-14 requirement**: The share of IT, OT and IoT assets held in a central HWAM/SWAM inventory: 70% at Level 1, 80% at Level 2, 90% at Level 3 and 95% at Level 4, updated daily from Level 2. The pack's per-asset score applies the freshness window from `m_26_14-config` (one day as shipped) and the level thresholds from the same document.
 
 **Elastic implementation**: The `m_26_14-ml-element1-asset-coverage` anomaly detection job monitors coverage ratios from HWAM/SWAM tracking indices. It uses a `low_distinct_count(host.name)` detector partitioned by `m_26_14.coverage_source` with a 1-hour bucket span. A sustained drop in the number of distinct assets reporting from any one inventory source (Fleet, osquery hardware inventory, network discovery) fires an anomaly for that source. The corresponding alert rule `m_26_14-ml-e1-coverage-drop` fires when the anomaly score exceeds 75.
 
@@ -469,9 +469,9 @@ M-26-14 Appendix C defines a five-element maturity model. Each element has multi
 
 ---
 
-### 5.2 Element 2 — Ingestion Rate
+### 5.2 Element 2 — Collection Coverage
 
-**M-26-14 requirement**: Log ingestion pipelines must be healthy and producing data continuously. A data stream going silent is a compliance gap, not just an operational issue.
+**M-26-14 requirement**: Logs searchable and retrievable for 50% of the inventoried assets at Level 1, 80% at Level 2, 90% at Level 3 and 95% at Level 4. A data stream going silent lowers this number for every asset behind it, which is why the pack watches ingestion rate as the leading indicator.
 
 **Elastic implementation**: The `m_26_14-ml-element2-ingestion-rate` job monitors document counts per `data_stream.dataset` per hour using dual detectors: `low_count` (detects a data stream going completely silent) and `low_non_zero_count` (detects a significant drop even if some documents are still arriving). Fires when ingestion falls below the ML-learned historical baseline.
 
@@ -490,9 +490,9 @@ M-26-14 Appendix C defines a five-element maturity model. Each element has multi
 
 ---
 
-### 5.3 Element 3 — Rule Coverage
+### 5.3 Element 3 — Collection Operations
 
-**M-26-14 requirement**: All Appendix B categories (A through K) must have active detection rules producing alerts on an ongoing basis. Agencies at Level 3 must demonstrate 11/11 categories active.
+**M-26-14 requirement**: Alerts covering the Appendix B baseline: under 50% of it at Level 1, 50% to 70% at Level 2, at least 70% and routinely tuned at Level 3, at least 95% with ML and AI tuning at Level 4. The pack's operations score counts the Appendix B categories (a through k) with at least one alert in the last 30 days against the eleven the memo lists; a category with rules that never fire does not count.
 
 **Elastic implementation**: The `m_26_14-ml-element3-rule-silence` job uses a 6-hour bucket span to detect Appendix B detection categories that have gone silent. It uses a `low_count by m_26_14.category` detector — the ML complement to the threshold-based Category K coverage-gap rule. The ML job catches gradual degradation where alert rates slowly decline before reaching zero, while Category K catches binary silence.
 
@@ -510,9 +510,9 @@ M-26-14 Appendix C defines a five-element maturity model. Each element has multi
 
 ---
 
-### 5.4 Element 4 — Privileged Operations
+### 5.4 Element 4 — Data Retention
 
-**M-26-14 requirement**: Monitor privileged and administrative actions. Detect anomalous ILM lifecycle activity that could indicate retention tampering or evidence destruction (MITRE T1485, T1070.004).
+**M-26-14 requirement**: Logs retrievable for 6 months at Level 1 and 12 months from Level 2; searchable for 3 months at Level 3 and 6 months at Level 4, both with 12 months retrievable. The pack scores each dataset from its configured ILM and snapshot policies and measures the realized horizon beside it. The ML job below guards the policies themselves: anomalous ILM lifecycle activity can mean retention tampering or evidence destruction (MITRE T1485, T1070.004).
 
 **Elastic implementation**: The `m_26_14-ml-element4-ilm-anomaly` job monitors Elasticsearch ILM rollover and transition events using dual detectors: `high_count by action` (unusual volume of lifecycle operations) and `rare by action` (unusual operation types). Fires on: indices rolling over faster than expected (potential log injection), indices skipping lifecycle phases (retention tampering), or unexpected index deletions.
 
@@ -533,9 +533,9 @@ M-26-14 Appendix C defines a five-element maturity model. Each element has multi
 
 ---
 
-### 5.5 Element 5 — Log Integrity
+### 5.5 Element 5 — Log Management
 
-**M-26-14 requirement**: Implement tamper-evident log management. Hashing for tamper detection is required at Level 3 and above under the THIRF objective.
+**M-26-14 requirement**: Logs stored at Level 1, encrypted at rest at Level 2, encrypted in transit and at rest and regularly hashed for veracity at Level 3, and at Level 4 also held behind just-in-time access that is itself monitored, with two-gate approval before any log is retired. The pack measures the hashing; the operator attests the rest in `m_26_14-config` and the score reads those attestations.
 
 **Elastic implementation**: Two-part implementation:
 1. **Ingest pipeline** (`m_26_14-log-integrity-hash`): Appends SHA-256 hash of canonical fields to `event.hash` on every ingested document. Sets `event.integrity.hashed: true`. It is the last stage of the pack's final chain (`m_26_14-final`), reached on the pack's own streams through their index templates and on Fleet-managed streams through the `logs@custom` hook that the loader's `estate` stage wires (see `docs/estate-binding.md` in the pack). No agent changes required.

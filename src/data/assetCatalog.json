@@ -1,12 +1,12 @@
 {
  "pack_version": "0.3.1",
- "generated": "2026-09-23",
+ "generated": "2026-09-24",
  "generator": "tools/gen-asset-catalog.py",
  "types": [
   {
    "key": "index_template",
    "label": "Index templates",
-   "count": 37,
+   "count": 39,
    "delivery": "Bootstrap",
    "list_path": "/app/management/data/index_management/templates",
    "stack_management": true
@@ -22,7 +22,7 @@
   {
    "key": "ingest_pipeline",
    "label": "Ingest pipelines",
-   "count": 47,
+   "count": 50,
    "delivery": "Bootstrap",
    "list_path": "/app/management/ingest/ingest_pipelines",
    "stack_management": true
@@ -30,7 +30,7 @@
   {
    "key": "transform",
    "label": "Transforms",
-   "count": 18,
+   "count": 20,
    "delivery": "Bootstrap",
    "list_path": "/app/management/data/transform",
    "stack_management": true
@@ -38,7 +38,7 @@
   {
    "key": "enrich_policy",
    "label": "Enrich policies",
-   "count": 13,
+   "count": 14,
    "delivery": "Bootstrap",
    "list_path": "/app/management/data/index_management/enrich_policies",
    "stack_management": true
@@ -134,13 +134,13 @@
   {
    "key": "workflow",
    "label": "Workflows",
-   "count": 14,
+   "count": 15,
    "delivery": "Bootstrap (Kibana API)",
    "list_path": "/app/workflows",
    "stack_management": false
   }
  ],
- "live_ids_resolved": true,
+ "live_ids_resolved": false,
  "assets": [
   {
    "id": "m_26_14-ai-audit",
@@ -623,6 +623,21 @@
    "live_path": "/app/management/data/index_management/templates/m_26_14-pipeline-health"
   },
   {
+   "id": "m_26_14-poam-drafts",
+   "type": "index_template",
+   "name": "m_26_14-poam-drafts",
+   "description": "M-26-14 POA&M drafts store: one document per run of the m_26_14-poam-draft workflow, carrying the full markdown Plan of Action and Milestones the POA&M drafting agent produced (m_26_14.poam.report) with its finding counts by risk rating, the run id, the trigger (scheduled or manual) and the lookback. Read by the POA&M drafts table on the Readiness Attestation dashboard (row click opens the draft in Discover). Drafts are ISSO-reviewed before they reach the POA&M of record.",
+   "delivery": "bootstrap",
+   "facts": {
+    "index_patterns": [
+     "m_26_14-poam-drafts"
+    ],
+    "data_stream": false,
+    "priority": 500
+   },
+   "live_path": "/app/management/data/index_management/templates/m_26_14-poam-drafts"
+  },
+  {
    "id": "m_26_14-production-ledger",
    "type": "index_template",
    "name": "m_26_14-production-ledger",
@@ -653,6 +668,22 @@
    "live_path": "/app/management/data/index_management/templates/m_26_14-retention"
   },
   {
+   "id": "m_26_14-retention-policy",
+   "type": "index_template",
+   "name": "m_26_14-retention-policy",
+   "description": "R-114: one document per data stream the scoring chain watches, written by the loader stage retention_policy (Ansible task type retention_policy) from the cluster's own ILM, data stream lifecycle and SLM configuration. The default pipeline m_26_14-retention-policy-derive turns the raw phases into searchable_days (ILM delete age or DSL retention; unbounded when neither deletes) and retrievable_days (the larger of searchable_days and the expiry of a pack SLM policy that snapshots the stream). m_26_14-retention-policy-lookup serves it by dataset to m_26_14-retention-to-scores. Re-run the stage after any ILM, lifecycle or SLM change; it is not continuous.",
+   "delivery": "bootstrap",
+   "facts": {
+    "index_patterns": [
+     "m_26_14-retention-policy"
+    ],
+    "data_stream": false,
+    "ilm_policy": "m_26_14-derived-store",
+    "priority": 500
+   },
+   "live_path": "/app/management/data/index_management/templates/m_26_14-retention-policy"
+  },
+  {
    "id": "m_26_14-retirement-requests",
    "type": "index_template",
    "name": "m_26_14-retirement-requests",
@@ -671,7 +702,7 @@
    "id": "m_26_14-scores",
    "type": "index_template",
    "name": "m_26_14-scores",
-   "description": "Scoring output: one document per (asset x element x run), written by the m_26_14 transforms (M3). element is one of: inventory | coverage | operations | retention | log_mgmt | waterline. score is the Appendix C level achieved: 0=Ineffective, 1=Basic, 2=Intermediate, 3=Advanced, 4=Optimal (naming per Elastic public messaging on the M-26-14 five-level model). evidence holds the raw numbers behind the score; read it to understand any score. Dashboards are pure presentation over this index.",
+   "description": "Scoring output, written by the m_26_14 transforms. element is one of: asset (one doc per entity, score_inventory/score_coverage 0|1), dataset_retention (one doc per dataset, score = Appendix C retention level; searchable_days/retrievable_days/retention_basis say which basis produced it, score_policy and score_empirical carry both), rollup (one doc per component per UTC day in m_26_14-scores, the enterprise doc per day in m_26_14-scores-rollup-ent; score_inventory/score_coverage levels plus inventory_pct/coverage_pct), operations (Element 3, one enterprise doc: covered_categories of categories_total Appendix B categories with an alert in the last 30 days, operations_pct, score_operations), log_management (Element 5, one enterprise doc: hash_pct over the last 7 days of m_26_14-hash-coverage plus the operator attestations, score_log_management). score is the Appendix C level: 0 Ineffective, 1 Initial, 2 Intermediate, 3 Advanced, 4 Optimal. The overall level is the lowest element level. evidence holds the raw numbers behind every score; dashboards are pure presentation over this index.",
    "delivery": "bootstrap",
    "facts": {
     "index_patterns": [
@@ -791,10 +822,10 @@
    "id": "m_26_14-alert-coverage-daily-provenance",
    "type": "ingest_pipeline",
    "name": "m_26_14-alert-coverage-daily-provenance",
-   "description": "Dest pipeline for the m_26_14-alert-coverage-daily transform (daily alert counts per Appendix B category). Design call DC-4 (2026-09-18): every transform output carries the D-13 provenance append and derived stamp (producer, method, pack version, computation time) so consumer-without-producer and unstamped-derived-data classes are closed for this store. No field logic here; the transform body owns the aggregation.",
+   "description": "Dest pipeline for the m_26_14-alert-coverage-daily transform (daily alert counts per Appendix B category). Design call DC-4 (2026-09-18): every transform output carries the D-13 provenance append and derived stamp (producer, method, pack version, computation time) so consumer-without-producer and unstamped-derived-data classes are closed for this store. Stamps @timestamp from day_bucket (R-128); no other field logic here, the transform body owns the aggregation.",
    "delivery": "bootstrap",
    "facts": {
-    "processors": 2,
+    "processors": 3,
     "processor_types": [
      "append",
      "set"
@@ -1087,6 +1118,23 @@
    "live_path": "/app/management/ingest/ingest_pipelines?pipeline=m_26_14-log-integrity-hash"
   },
   {
+   "id": "m_26_14-log-management-to-scores",
+   "type": "ingest_pipeline",
+   "name": "m_26_14-log-management-to-scores",
+   "description": "Dest pipeline for m_26_14-score-log-management (R-113). Receives total_docs, hashed_docs, datasets and last_bucket over the last 7 days of m_26_14-hash-coverage; enriches config thresholds and attestations; hash_pct = 100 * hashed / total; ladder: 0 no documents, 1 stored, 2 attestations.encryption_at_rest, 3 plus attestations.encryption_in_transit and hash_pct >= thresholds.log_management.hash_pct_l3 (95), 4 plus attestations.jit_access, access_monitored and two_gate_retirement. Emits element 'log_management' with score, score_log_management, hash_pct, the attestations used, and evidence. Deterministic _id 'log_management::_enterprise'.",
+   "delivery": "bootstrap",
+   "facts": {
+    "processors": 6,
+    "processor_types": [
+     "append",
+     "enrich",
+     "script",
+     "set"
+    ]
+   },
+   "live_path": "/app/management/ingest/ingest_pipelines?pipeline=m_26_14-log-management-to-scores"
+  },
+  {
    "id": "m_26_14-netobserved-reroute",
    "type": "ingest_pipeline",
    "name": "m_26_14-netobserved-reroute",
@@ -1151,6 +1199,23 @@
     ]
    },
    "live_path": "/app/management/ingest/ingest_pipelines?pipeline=m_26_14-observed-freshness"
+  },
+  {
+   "id": "m_26_14-operations-to-scores",
+   "type": "ingest_pipeline",
+   "name": "m_26_14-operations-to-scores",
+   "description": "Dest pipeline for m_26_14-score-operations (R-113). Receives covered_categories (distinct Appendix B categories with an alert in the last 30 days), rules_alerting and last_alert; enriches config thresholds; operations_pct = 100 * covered / thresholds.appendix_b_categories (11); level 0 when nothing alerted, otherwise the Appendix C operations ladder (thresholds.operations l1..l4, l1 0 reads as any alerting). Emits element 'operations' with score, score_operations, covered_categories, categories_total, rules_alerting and evidence. Deterministic _id 'operations::_enterprise'.",
+   "delivery": "bootstrap",
+   "facts": {
+    "processors": 6,
+    "processor_types": [
+     "append",
+     "enrich",
+     "script",
+     "set"
+    ]
+   },
+   "live_path": "/app/management/ingest/ingest_pipelines?pipeline=m_26_14-operations-to-scores"
   },
   {
    "id": "m_26_14-ops-metrics-derive",
@@ -1350,13 +1415,29 @@
    "live_path": "/app/management/ingest/ingest_pipelines?pipeline=m_26_14-retention-horizon"
   },
   {
+   "id": "m_26_14-retention-policy-derive",
+   "type": "ingest_pipeline",
+   "name": "m_26_14-retention-policy-derive",
+   "description": "Default pipeline of m_26_14-retention-policy (R-114). Input: stream (the data stream name), dataset, namespace, ilm_policy, phases (the ILM policy's phases object), dsl_retention (data stream lifecycle data_retention, when set) and snapshot_candidates (every SLM policy as {name, indices, expire_after}). Output: searchable_days from the ILM delete phase min_age (or the DSL retention), unbounded when no delete exists (capped at unbounded_cap_days 3650 for the ladder), snapshot_policies whose index patterns cover the stream or its backing indices, snapshot_expire_days, and retrievable_days = max(searchable_days, snapshot_expire_days). Duration strings accept d, h, m, s and ms.",
+   "delivery": "bootstrap",
+   "facts": {
+    "processors": 4,
+    "processor_types": [
+     "append",
+     "script",
+     "set"
+    ]
+   },
+   "live_path": "/app/management/ingest/ingest_pipelines?pipeline=m_26_14-retention-policy-derive"
+  },
+  {
    "id": "m_26_14-retention-to-scores",
    "type": "ingest_pipeline",
    "name": "m_26_14-retention-to-scores",
-   "description": "Dest pipeline for m_26_14-score-dataset-retention transform. Projects a m_26_14-retention doc into a m_26_14-scores dataset_retention doc. Enriches config thresholds and runs the retention_level ladder (same logic as score.py retention_level() with single-axis empirical horizon: s_days == r_days == horizon_days). Deterministic _id = 'dataset::<dataset>' so each run upserts in place.",
+   "description": "Dest pipeline for m_26_14-score-dataset-retention transform. Projects a m_26_14-retention doc into a m_26_14-scores dataset_retention doc. Enriches config thresholds and the stream's configured retention (m_26_14-retention-policy, R-114) and runs the retention ladder twice: score_policy from the ILM/DSL searchable window and the SLM-extended retrievable window, score_empirical from the observed horizon (first log to now). score follows retention.basis in m_26_14-config (policy by default); retention_basis records which one was used, and searchable_days/retrievable_days are typed top-level fields so ES|QL panels read them directly. Deterministic _id = 'dataset::<dataset>' so each run upserts in place.",
    "delivery": "bootstrap",
    "facts": {
-    "processors": 6,
+    "processors": 7,
     "processor_types": [
      "append",
      "enrich",
@@ -1385,7 +1466,7 @@
    "id": "m_26_14-score-entity-pipeline",
    "type": "ingest_pipeline",
    "name": "m_26_14-score-entity-pipeline",
-   "description": "Dest pipeline for m_26_14-score-entity transform (Stage 1). Receives one entity-store doc per canonical or discovered host entity and scores it for inventory freshness and coverage. Enriches: (1) m_26_14-inventory by host.name -> asset.* (canonical marker: enrich succeeds IFF the entity maps back to an inventory row by hostname); (2) m_26_14-observed by host.name -> last_log, first_log, datasets, skew_exceeded; (3) m_26_14-config-enrich -> thresholds. Produces a combined element:'asset' doc per entity with score_inventory (0/1), score_coverage (0/1), effective_horizon_days, is_canonical, provenance, and quadrant. Deterministic _id = 'asset::<effective_asset_id>'. Phase 1 NOTE: spine IP-fold (folding observed-<ip>@collector entries into canonical entities via host.ip) is deferred to Phase 2 -- only exact host.name enrich matching is performed. Entities only discoverable via IP-keyed observed entries will appear as expected_silent until Phase 2. D-20: enriches the host's latest NTP sample (m_26_14-ntp-enrich) into evidence.ntp_attestation {synced, offset_ms, server, last_sample, threshold_ms, source}; synced is null (source none) when the System ntp data stream has no sample for the host.",
+   "description": "Dest pipeline for m_26_14-score-entity transform (Stage 1). Receives one entity-store doc per canonical or discovered host entity and scores it for inventory freshness and coverage. Enriches: (1) m_26_14-inventory by host.name -> asset.* (canonical marker: enrich succeeds IFF the entity maps back to an inventory row by hostname); (2) m_26_14-observed by host.name -> last_log, first_log, datasets, skew_exceeded; (3) m_26_14-config-enrich -> thresholds. Produces a combined element:'asset' doc per entity with score_inventory (0/1), score_coverage (0/1), effective_horizon_days, is_canonical, provenance, and quadrant. Deterministic _id = 'asset::<effective_asset_id>'. Phase 1 NOTE: spine IP-fold (folding observed-<ip>@collector entries into canonical entities via host.ip) is deferred to Phase 2 -- only exact host.name enrich matching is performed. Entities only discoverable via IP-keyed observed entries will appear as expected_silent until Phase 2. D-20: enriches the host's latest NTP sample (m_26_14-ntp-enrich) into evidence.ntp_attestation {synced, offset_ms, server, last_sample, threshold_ms, source}; synced is null (source none) when the System ntp data stream has no sample for the host. R-115 (2026-09-23): the reporting window is thresholds.inventory_fresh_days from m_26_14-config (default 1 day), no longer a hard-coded 7.",
    "delivery": "bootstrap",
    "facts": {
     "processors": 11,
@@ -1403,10 +1484,10 @@
    "id": "m_26_14-score-rollup-pipeline",
    "type": "ingest_pipeline",
    "name": "m_26_14-score-rollup-pipeline",
-   "description": "Dest pipeline shared by m_26_14-score-rollup (per-component) and m_26_14-score-rollup-enterprise transforms (Stage 2). Receives a pivot aggregation doc with fields: n (entity count), reporting (sum score_inventory), covered (sum score_coverage), min_horizon (min effective_horizon_days), and either asset.component (component rollup) or run_id='engine' (enterprise rollup). Enriches config thresholds, runs level_from_pct for inventory/coverage and retention_level for retention (same math as score.py with single-axis empirical horizon), and emits a combined element:'rollup' doc. Deterministic _id = 'rollup::<component|_enterprise>' so each run upserts.",
+   "description": "Dest pipeline shared by m_26_14-score-rollup (per-component) and m_26_14-score-rollup-enterprise transforms (Stage 2). Receives a pivot aggregation doc with fields: n (entity count), reporting (sum score_inventory), covered (sum score_coverage), min_horizon (min effective_horizon_days), and either asset.component (component rollup) or run_id='engine' (enterprise rollup). Enriches config thresholds, runs level_from_pct for inventory/coverage and retention_level for retention (single-axis empirical horizon; the policy-basis retention level lives on the dataset_retention docs, R-114), and emits a combined element:'rollup' doc with typed inventory_pct/coverage_pct. Deterministic _id = 'rollup::<component|_enterprise>::<UTC day>' (R-112, 2026-09-23): each checkpoint upserts today's doc, so the store keeps one row per day and the Maturity Overview trend panels read a real history instead of a seeded metrics index.",
    "delivery": "bootstrap",
    "facts": {
-    "processors": 6,
+    "processors": 7,
     "processor_types": [
      "append",
      "enrich",
@@ -1555,7 +1636,7 @@
    "id": "m_26_14-alert-coverage-daily",
    "type": "transform",
    "name": "m_26_14-alert-coverage-daily",
-   "description": "M-26-14 Appendix B alert coverage — daily buckets per detection category",
+   "description": "M-26-14 Appendix B alert coverage — daily buckets per detection category R-129: the runtime category field emits EVERY Appendix-B-* tag on the rule, so an alert from a rule tagged for two categories counts under both (a composite terms source buckets a multi-valued field once per value); before, only the first tag was emitted and a category evidenced solely by a multi-tagged rule showed zero alerts while the latest store marked it covered.",
    "delivery": "bootstrap",
    "facts": {
     "kind": "pivot",
@@ -1839,6 +1920,48 @@
    "live_path": "/app/management/data/transform?_a=(transform:(queryText:'m_26_14-score-entity'))"
   },
   {
+   "id": "m_26_14-score-log-management",
+   "type": "transform",
+   "name": "m_26_14-score-log-management",
+   "description": "M-26-14 Element 5 log-management score: hash coverage plus operator attestations (R-113)",
+   "delivery": "bootstrap",
+   "facts": {
+    "kind": "pivot",
+    "source": [
+     "m_26_14-hash-coverage"
+    ],
+    "dest_index": "m_26_14-scores",
+    "dest_pipeline": "m_26_14-log-management-to-scores",
+    "frequency": "1h",
+    "group_by": [
+     "scope"
+    ],
+    "continuous": true
+   },
+   "live_path": "/app/management/data/transform?_a=(transform:(queryText:'m_26_14-score-log-management'))"
+  },
+  {
+   "id": "m_26_14-score-operations",
+   "type": "transform",
+   "name": "m_26_14-score-operations",
+   "description": "M-26-14 Element 3 operations score: Appendix B categories with an alert in the last 30 days (R-113)",
+   "delivery": "bootstrap",
+   "facts": {
+    "kind": "pivot",
+    "source": [
+     "m_26_14-metrics-alert-coverage-latest"
+    ],
+    "dest_index": "m_26_14-scores",
+    "dest_pipeline": "m_26_14-operations-to-scores",
+    "frequency": "1h",
+    "group_by": [
+     "scope"
+    ],
+    "continuous": true
+   },
+   "live_path": "/app/management/data/transform?_a=(transform:(queryText:'m_26_14-score-operations'))"
+  },
+  {
    "id": "m_26_14-score-rollup",
    "type": "transform",
    "name": "m_26_14-score-rollup",
@@ -2013,7 +2136,8 @@
     "match_field": "config_key",
     "enrich_fields": [
      "thresholds",
-     "attestations"
+     "attestations",
+     "retention"
     ]
    },
    "live_path": "/app/management/data/index_management/enrich_policies?policy=m_26_14-config-enrich"
@@ -2147,6 +2271,29 @@
     ]
    },
    "live_path": "/app/management/data/index_management/enrich_policies?policy=m_26_14-pep-policy-lookup"
+  },
+  {
+   "id": "m_26_14-retention-policy-lookup",
+   "type": "enrich_policy",
+   "name": "m_26_14-retention-policy-lookup",
+   "description": "R-114: configured retention per dataset (from m_26_14-retention-policy) for m_26_14-retention-to-scores. One row per data stream; a dataset present in several namespaces resolves to the first match, so keep one namespace per dataset or accept the first row. Re-executed by the retention_policy stage after it writes the rows.",
+   "delivery": "bootstrap",
+   "facts": {
+    "kind": "match",
+    "source_indices": "m_26_14-retention-policy",
+    "match_field": "dataset",
+    "enrich_fields": [
+     "stream",
+     "ilm_policy",
+     "dsl_retention",
+     "searchable_days",
+     "retrievable_days",
+     "unbounded",
+     "snapshot_policies",
+     "basis"
+    ]
+   },
+   "live_path": "/app/management/data/index_management/enrich_policies?policy=m_26_14-retention-policy-lookup"
   },
   {
    "id": "m_26_14-zone-map",
@@ -2873,7 +3020,7 @@
    "id": "m_26_14-alert-coverage",
    "type": "dashboard",
    "name": "M-26-14 Alert Coverage (Appendix B)",
-   "description": "Element 3: detection rule coverage across all 11 Appendix B log categories",
+   "description": "Element 3: Appendix B category coverage from the pack alert stores (m_26_14-metrics-alert-coverage-latest per rule, -by-day per category and day). A category is covered when one of its rules alerted in the last 30 days. Evidence trail (R-127): both stores are written by the m_26_14-alert-coverage-latest and m_26_14-alert-coverage-daily transforms from .alerts-security.alerts-*; a category is covered when a rule tagged Appendix-B-<letter> alerted in the last 30 days. Row click on the category table offers three evidence views: the rules that alerted (latest store), the alerts themselves in the Security app filtered by the category tag, and the alert volume per day.",
    "delivery": "epr",
    "facts": {
     "panels": 8
@@ -2884,7 +3031,7 @@
    "id": "m_26_14-appendix-b-coverage",
    "type": "dashboard",
    "name": "M-26-14 Appendix B Coverage Matrix",
-   "description": "Element 3: MITRE ATT&CK-style detection coverage grid for all 11 Appendix B log categories",
+   "description": "Element 3: MITRE ATT&CK-style detection coverage grid for all 11 Appendix B log categories, read from the pack alert stores (latest alert per rule, alerts per category per day). Evidence trail (R-127): both stores are written by the m_26_14-alert-coverage-latest and m_26_14-alert-coverage-daily transforms from .alerts-security.alerts-*; a category is covered when a rule tagged Appendix-B-<letter> alerted in the last 30 days. Row click on the category table offers three evidence views: the rules that alerted (latest store), the alerts themselves in the Security app filtered by the category tag, and the alert volume per day.",
    "delivery": "epr",
    "facts": {
     "panels": 19
@@ -2917,10 +3064,10 @@
    "id": "m_26_14-hwam-gaps",
    "type": "dashboard",
    "name": "M-26-14 HWAM — Coverage Gaps",
-   "description": "M-26-14 readiness gap dashboard. Identifies assets with no Element 1/2 coverage, missing encryption status, and no MDM enrollment. Drives self-attestation gap closure.",
+   "description": "M-26-14 readiness gap dashboard. Identifies assets with no Element 1/2 coverage, missing encryption status, and no MDM enrollment. Drives self-attestation gap closure. The software-inventory gap is split (R-126): managed assets are the agency's to fix; unmanaged or unclaimed devices belong to the unknown-device triage runbook, and the table beneath lists the managed ones only.",
    "delivery": "epr",
    "facts": {
-    "panels": 9
+    "panels": 10
    },
    "live_path": "/app/dashboards#/view/m_26_14-hwam-gaps?_g=(time:(from:now-30d,to:now))"
   },
@@ -2950,7 +3097,7 @@
    "id": "m_26_14-log-management",
    "type": "dashboard",
    "name": "M-26-14 Log Management (Element 5)",
-   "description": "Element 5: log integrity hash coverage, tamper detection violations, and encryption status",
+   "description": "Element 5: integrity hash coverage from the hourly m_26_14-hash-coverage rollup over logs-*, the ML hash-coverage-drop alert, and the attested controls scored by m_26_14-score-log-management.",
    "delivery": "epr",
    "facts": {
     "panels": 10
@@ -2961,7 +3108,7 @@
    "id": "m_26_14-maturity-overview",
    "type": "dashboard",
    "name": "M-26-14 Maturity Overview",
-   "description": "Executive summary: Elements 1 and 4 at L3. Elements 2, 3, and 5 blocking L3 advancement.",
+   "description": "Executive summary of the five Appendix C elements from the pack's own scoring stores (m_26_14-scores, m_26_14-scores-rollup-ent, the alert-coverage stores, m_26_14-hash-coverage). The overall level is the lowest element; Elements 3 and 5 are scored by m_26_14-score-operations and m_26_14-score-log-management, and Element 5 stays at Initial until the operator attests encryption and access controls in m_26_14-config.",
    "delivery": "epr",
    "facts": {
     "panels": 9
@@ -2983,10 +3130,10 @@
    "id": "m_26_14-readiness-attestation-dash",
    "type": "dashboard",
    "name": "M-26-14 Readiness Attestation — Appendix B Detection Coverage",
-   "description": "Executive attestation view: active category count, per-category evidence table, and alert volume summary for AO submissions",
+   "description": "Executive attestation view: active category count, per-category evidence table, and alert volume summary for AO submissions Evidence trail (R-127): both stores are written by the m_26_14-alert-coverage-latest and m_26_14-alert-coverage-daily transforms from .alerts-security.alerts-*; a category is covered when a rule tagged Appendix-B-<letter> alerted in the last 30 days. Row click on the category table offers three evidence views: the rules that alerted (latest store), the alerts themselves in the Security app filtered by the category tag, and the alert volume per day. The POA&M drafts table lists every pre-generated Plan of Action and Milestones written to m_26_14-poam-drafts by the m_26_14-poam-draft workflow (weekly schedule, ships disabled); row click opens the full markdown draft in Discover.",
    "delivery": "epr",
    "facts": {
-    "panels": 7
+    "panels": 8
    },
    "live_path": "/app/dashboards#/view/m_26_14-readiness-attestation-dash?_g=(time:(from:now-30d,to:now))"
   },
@@ -3035,8 +3182,8 @@
      "kibana-audit"
     ]
    },
-   "live_path": "/app/security/rules/id/3df15376-4406-4072-b56f-332bfde3e6bb",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-ai-connector-lifecycle",
@@ -3062,8 +3209,8 @@
      "kibana-audit"
     ]
    },
-   "live_path": "/app/security/rules/id/892eea29-f942-435f-8d1d-7eaaf7099a03",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-ai-guardrail-indicators",
@@ -3086,8 +3233,8 @@
      "ai-audit"
     ]
    },
-   "live_path": "/app/security/rules/id/dc338bb5-7691-4c29-8ecf-586803764509",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-appendixa-l-new-network-device",
@@ -3114,8 +3261,8 @@
      "Passive-Discovery"
     ]
    },
-   "live_path": "/app/security/rules/id/493d0887-d0d6-4706-a43c-f8915d1b7eaa",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-appendixb-a-azure-credential-stuffing",
@@ -3141,8 +3288,8 @@
      "Brute Force"
     ]
    },
-   "live_path": "/app/security/rules/id/efcddb99-1ace-47e0-a384-ba2edd9c8e3a",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-appendixb-a-linux-ssh-credential-stuffing",
@@ -3167,8 +3314,8 @@
      "Brute Force"
     ]
    },
-   "live_path": "/app/security/rules/id/017f94d7-cc6e-47ad-b1dc-38e102ea4fdf",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-appendixb-a-okta-credential-stuffing",
@@ -3196,8 +3343,8 @@
      "Brute Force"
     ]
    },
-   "live_path": "/app/security/rules/id/34ac7e6f-3391-415c-93da-4790dcdd7cef",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-appendixb-a-windows-credential-stuffing",
@@ -3227,8 +3374,8 @@
      "Brute Force"
     ]
    },
-   "live_path": "/app/security/rules/id/17cfda08-1042-4d1d-a36c-0255176bbf62",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-appendixb-b-c2-beaconing",
@@ -3250,8 +3397,8 @@
      "THIRF"
     ]
    },
-   "live_path": "/app/security/rules/id/0635fe2c-0880-47e2-aaf8-829bbb022359",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-appendixb-c-mass-file-access",
@@ -3273,8 +3420,8 @@
      "THIRF"
     ]
    },
-   "live_path": "/app/security/rules/id/b3760265-3f8b-4cf8-8f45-c36e1419928a",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-appendixb-d-privilege-escalation-sequence",
@@ -3299,8 +3446,8 @@
      "THIRF"
     ]
    },
-   "live_path": "/app/security/rules/id/039a1fe6-48ac-4637-9d91-8a63e9553a3a",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-appendixb-e-ot-config-change",
@@ -3326,8 +3473,8 @@
      "Dragos"
     ]
    },
-   "live_path": "/app/security/rules/id/f77fe529-ef13-4a12-a9f8-1fc420d35d02",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-appendixb-e-ot-infra-changes",
@@ -3357,8 +3504,8 @@
      "Dragos"
     ]
    },
-   "live_path": "/app/security/rules/id/53cb9f8a-820d-4745-896c-78c9ab42e8f5",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-appendixb-e-rogue-device-fleet-enrollment",
@@ -3384,8 +3531,8 @@
      "THIRF"
     ]
    },
-   "live_path": "/app/security/rules/id/3a45a2e3-e203-4b7c-aacf-c70e580f362f",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-appendixb-f-edr-tamper",
@@ -3413,8 +3560,8 @@
      "THIRF"
     ]
    },
-   "live_path": "/app/security/rules/id/d8687f65-7b4a-4e9a-8df3-8843500b8db4",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-appendixb-g-ioc-domain-match",
@@ -3447,8 +3594,8 @@
      "DNS"
     ]
    },
-   "live_path": "/app/security/rules/id/c186081a-d9f8-4b78-bb0b-7fb323451935",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-appendixb-h-offhours-bulk-process-execution",
@@ -3470,8 +3617,8 @@
      "THIRF"
     ]
    },
-   "live_path": "/app/security/rules/id/f955f039-b58a-4d44-82a6-0a33d5f0075a",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-appendixb-i-exfiltration-volume",
@@ -3493,8 +3640,8 @@
      "THIRF"
     ]
    },
-   "live_path": "/app/security/rules/id/8fa3099c-75f8-44df-9c53-4fcb870fb42d",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-appendixb-j-apt-chain-2h",
@@ -3521,8 +3668,8 @@
      "THIRF"
     ]
    },
-   "live_path": "/app/security/rules/id/8a7ad535-bddc-489d-b849-f7645ae2f6b7",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-appendixb-j-apt-chain-4h",
@@ -3549,8 +3696,8 @@
      "THIRF"
     ]
    },
-   "live_path": "/app/security/rules/id/a80c13dd-e53e-41c9-9c2a-10fdbaa22035",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-appendixb-k-alert-presence",
@@ -3573,8 +3720,8 @@
      "Coverage-Health"
     ]
    },
-   "live_path": "/app/security/rules/id/2ae7c53b-0fe2-417c-aeab-50b6f77cfa78",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-appendixb-k-silent-category",
@@ -3596,8 +3743,8 @@
      "Coverage-Gap"
     ]
    },
-   "live_path": "/app/security/rules/id/f76baa75-87c1-4052-8a2b-625a36d0200c",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-appendixb-l-ot-protocol-egress",
@@ -3623,8 +3770,8 @@
      "OT-IoT"
     ]
    },
-   "live_path": "/app/security/rules/id/8982d818-f8cd-4234-9eaa-b9f468596ac0",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-asset-baseline-drift",
@@ -3645,8 +3792,8 @@
      "config-drift"
     ]
    },
-   "live_path": "/app/security/rules/id/d29fbd43-46e0-4178-b2de-4ce05aac8fd7",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-asset-critical-checkin-stopped",
@@ -3668,8 +3815,8 @@
      "agent-health"
     ]
    },
-   "live_path": "/app/security/rules/id/a9f35817-1e11-4149-beb6-ed1d4cf2f9dc",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-asset-encryption-disabled",
@@ -3694,8 +3841,8 @@
      "compliance"
     ]
    },
-   "live_path": "/app/security/rules/id/d82fc2f8-664a-4fe9-8c88-9b04f1873de8",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-asset-new-local-user",
@@ -3720,8 +3867,8 @@
      "persistence"
     ]
    },
-   "live_path": "/app/security/rules/id/128f2bcc-a7de-445d-8a29-0f88c3ad5d6d",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-asset-new-network-interface",
@@ -3746,8 +3893,8 @@
      "config-drift"
     ]
    },
-   "live_path": "/app/security/rules/id/be14030f-b243-4c66-afed-e092a3ba7442",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-asset-security-software-removed",
@@ -3770,8 +3917,8 @@
      "defense-evasion"
     ]
    },
-   "live_path": "/app/security/rules/id/413a1edd-1994-4f01-8c4f-c51a40048dc5",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-asset-unauthorized-software",
@@ -3795,8 +3942,8 @@
      "software-inventory"
     ]
    },
-   "live_path": "/app/security/rules/id/ce792fd9-805c-4fca-b123-10e9c3451fb7",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-canary-alert",
@@ -3821,8 +3968,8 @@
      "D-09"
     ]
    },
-   "live_path": "/app/security/rules/id/b9cce36d-2dba-44b1-88da-1365706cdcb4",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-canary-stage-failure",
@@ -3844,8 +3991,8 @@
      "D-09"
     ]
    },
-   "live_path": "/app/security/rules/id/44a440ad-62e2-4dba-bd03-5d23c3925fb0",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-data-retirement-gate1-pending",
@@ -3867,8 +4014,8 @@
      "compliance"
     ]
    },
-   "live_path": "/app/security/rules/id/5ba35944-49dc-43f0-a74b-8bbc1202ef9d",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-data-retirement-gate2-pending",
@@ -3891,8 +4038,8 @@
      "deletion"
     ]
    },
-   "live_path": "/app/security/rules/id/24276256-ba30-4db0-a1e7-22f84f4a3e80",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-hva-config-change",
@@ -3917,8 +4064,8 @@
      "Element-3"
     ]
    },
-   "live_path": "/app/security/rules/id/bceaeae2-0e68-4211-b265-7eed7e5cfed0",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-hva-failed-auth",
@@ -3943,8 +4090,8 @@
      "Element-3"
     ]
    },
-   "live_path": "/app/security/rules/id/10622791-fbaf-48bb-8f8c-094cad11c6c6",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-hva-new-process",
@@ -3969,8 +4116,8 @@
      "Element-3"
     ]
    },
-   "live_path": "/app/security/rules/id/a97fb009-ed77-4362-a547-e3e7c762e14f",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-hva-retention-lock-drift",
@@ -3994,8 +4141,8 @@
      "App-D.9"
     ]
    },
-   "live_path": "/app/security/rules/id/0c260da4-f0f3-4cc5-8063-acf80abf380c",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-ingest-latency-breach",
@@ -4018,8 +4165,8 @@
      "LRA-3.5"
     ]
    },
-   "live_path": "/app/security/rules/id/744027cb-b608-4492-b734-86c21ef5253f",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-ml-cata-high-auth-failures",
@@ -4048,8 +4195,8 @@
      "m_26_14_auth_high_count_logon_fails_ea"
     ]
    },
-   "live_path": "/app/security/rules/id/64929ab8-baa8-4be0-ad41-caf10569d008",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-ml-cata-rare-auth-ip",
@@ -4077,8 +4224,8 @@
      "m_26_14_auth_rare_source_ip_for_a_user_ea"
     ]
    },
-   "live_path": "/app/security/rules/id/fe7e3cee-54b9-4667-9a1f-199dfb9af0cd",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-ml-cata-ueba-login",
@@ -4108,8 +4255,8 @@
      "m_26_14_suspicious_login_activity_ea"
     ]
    },
-   "live_path": "/app/security/rules/id/74240fca-3bc9-4459-8a10-15cd77a856e6",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-ml-catb-dns-dga",
@@ -4136,8 +4283,8 @@
      "m_26_14-ml-catb-dns-entropy"
     ]
    },
-   "live_path": "/app/security/rules/id/42845b1d-89fe-487d-a5e5-db9b7c2ece3b",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-ml-catb-rare-country",
@@ -4165,8 +4312,8 @@
      "m_26_14_rare_destination_country"
     ]
    },
-   "live_path": "/app/security/rules/id/ddb9d3fc-fa5b-43f7-bcfd-78a77ee8cac3",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-ml-cath-host-silent",
@@ -4178,7 +4325,7 @@
     "rule_type": "machine_learning",
     "severity": "low",
     "risk_score": 21,
-    "ships_enabled": true,
+    "ships_enabled": false,
     "tags": [
      "M-26-14",
      "Element-3",
@@ -4193,8 +4340,8 @@
      "m_26_14_low_count_events_for_a_host_name_ea"
     ]
    },
-   "live_path": "/app/security/rules/id/6a681f29-c5cc-4e94-834c-22e5a20cf659",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-ml-cath-rare-process-linux",
@@ -4222,8 +4369,8 @@
      "m_26_14_v3_rare_process_by_host_linux_ea"
     ]
    },
-   "live_path": "/app/security/rules/id/43548e69-1857-4d8f-8bb1-060144fc5ed8",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-ml-cath-rare-process-windows",
@@ -4251,8 +4398,8 @@
      "m_26_14_v3_rare_process_by_host_windows_ea"
     ]
    },
-   "live_path": "/app/security/rules/id/13805757-13a5-419d-8302-e687c5490a68",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-ml-e1-coverage-drop",
@@ -4276,8 +4423,8 @@
      "m_26_14-ml-element1-asset-coverage"
     ]
    },
-   "live_path": "/app/security/rules/id/56071af6-9cae-4d95-9585-f70c19366438",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-ml-e2-ingestion-drop",
@@ -4302,8 +4449,8 @@
      "m_26_14-ml-element2-ingestion-rate"
     ]
    },
-   "live_path": "/app/security/rules/id/8b74832f-56fb-42fa-80f1-d4c8ee6ed5cd",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-ml-e3-rule-silence",
@@ -4329,8 +4476,8 @@
      "m_26_14-ml-element3-rule-silence"
     ]
    },
-   "live_path": "/app/security/rules/id/f23bc659-bbcb-4c6d-8cf2-4fd18287e4e0",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-ml-e4-retention-anomaly",
@@ -4356,8 +4503,8 @@
      "m_26_14-ml-element4-ilm-anomaly"
     ]
    },
-   "live_path": "/app/security/rules/id/015eedef-7f53-4a78-9ba5-64e23918f98f",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-ml-e5-hash-drop",
@@ -4382,8 +4529,8 @@
      "m_26_14-ml-element5-hash-coverage"
     ]
    },
-   "live_path": "/app/security/rules/id/e1f1c264-8671-4f1c-a308-2732ab9fe7c0",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-ml-readiness-degradation",
@@ -4417,8 +4564,8 @@
      "m_26_14-ml-schema-drift"
     ]
    },
-   "live_path": "/app/security/rules/id/e3d3de56-87a2-4980-9a71-34a3f9f4b4a5",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-ml-schema-drift",
@@ -4444,8 +4591,8 @@
      "m_26_14-ml-schema-drift"
     ]
    },
-   "live_path": "/app/security/rules/id/5f713fef-cdd6-4b56-a8fd-e5456ba21336",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-ntp-offset-exceeded",
@@ -4467,8 +4614,8 @@
      "Element-5"
     ]
    },
-   "live_path": "/app/security/rules/id/7cc7dece-34c2-4a31-b0e0-3f5fd642d694",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-ops-metrics-stale",
@@ -4490,8 +4637,8 @@
      "LRA-3.5"
     ]
    },
-   "live_path": "/app/security/rules/id/00fea40f-75a1-4d31-b146-604b0696427c",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-pep-expired-exception",
@@ -4513,8 +4660,8 @@
      "D-07"
     ]
    },
-   "live_path": "/app/security/rules/id/58cd5bc6-d515-41f2-9bcf-d04accb9b05e",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-pipeline-failure-spike",
@@ -4536,8 +4683,8 @@
      "D-04"
     ]
    },
-   "live_path": "/app/security/rules/id/1a61f555-7c0e-497b-a62b-d8b8a20a0bf9",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-dv-alerts",
@@ -4662,8 +4809,8 @@
      "m_26_14_network_interfaces"
     ]
    },
-   "live_path": "/app/osquery/packs/010058eb-eb16-4fb0-8e35-ce1a7178f89d",
-   "live_note": null
+   "live_path": null,
+   "live_note": "object id is minted at install; open the list page"
   },
   {
    "id": "m_26_14-aar-agent",
@@ -4792,7 +4939,7 @@
    "id": "m_26_14-readiness-posture-query",
    "type": "agent_tool",
    "name": "m_26_14-readiness-posture-query",
-   "description": "Queries M-26-14 alert-coverage posture (Collection Operations) from m_26_14-metrics-alert-coverage using ES|QL. Returns, per Appendix B logging category, whether detections are active/covered plus recent rule and alert counts. Use for POA&M drafting to surface categories with no or partial detection coverage. For classification gaps use m_26_14-classification-audit-query; for retirement gaps use m_26_14-retirement-audit-query.",
+   "description": "Queries M-26-14 Appendix B detection posture (Element 3, Collection Operations) from the pack alert store m_26_14-metrics-alert-coverage-latest (one row per M-26-14 rule, its most recent alert) using ES|QL. Returns, per Appendix B category tag (Appendix-B-A..K), how many rules have alerted, the newest alert, and coverage_status: covered when a rule in the category alerted in the last 30 days, partial when the newest alert is older. Categories absent from the result have no alerting rule at all (a gap). Use for POA&M drafting to surface categories with no or partial detection coverage. For classification gaps use m_26_14-classification-audit-query; for retirement gaps use m_26_14-retirement-audit-query.",
    "delivery": "bootstrap",
    "facts": {
     "tool_type": "esql",
@@ -5011,6 +5158,22 @@
     "ships_enabled": false
    },
    "live_path": "/app/workflows/m-26-14-ops-metrics-snapshot"
+  },
+  {
+   "id": "m-26-14-poa-m-draft",
+   "type": "workflow",
+   "name": "M-26-14 POA&M Draft",
+   "description": "Weekly pre-generated Plan of Action and Milestones: runs the pack's POA&M drafting agent over the open findings (unresolved Cases, retirement gaps, unclassified data, recurring alerts, inventory gaps) and writes the full markdown draft with its finding counts by risk rating to m_26_14-poam-drafts, so the Readiness Attestation dashboard can list and open the latest draft without a live Agent Builder session.",
+   "delivery": "bootstrap",
+   "facts": {
+    "source_file": "m_26_14-poam-draft",
+    "triggers": [
+     "scheduled",
+     "manual"
+    ],
+    "ships_enabled": false
+   },
+   "live_path": "/app/workflows/m-26-14-poa-m-draft"
   },
   {
    "id": "m-26-14-retrieval-drill",

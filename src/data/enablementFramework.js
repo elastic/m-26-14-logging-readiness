@@ -172,6 +172,7 @@ export const PILLARS = [
         { label: 'Alert Coverage (Appendix B)', url: dash('m_26_14-alert-coverage', 'now-30d') },
         { label: 'Appendix B Coverage Matrix', url: dash('m_26_14-appendix-b-coverage', 'now-30d') },
         { label: 'Agent Builder (POA&M agent)', url: withAnonHint(`${KB}/app/agent_builder/agents`) },
+        { label: 'Readiness Attestation (POA&M drafts)', url: dash('m_26_14-readiness-attestation-dash', 'now-30d') },
       ],
       demo: { title: 'Detection coverage click-through', status: 'planned', url: null },
       docs: [

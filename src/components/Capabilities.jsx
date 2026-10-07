@@ -11,6 +11,7 @@ import { LIVE_KIBANA_BASE, liveUrl } from '../data/liveLinks.js'
 import catalog from '../data/assetCatalog.json'
 import { CAPABILITIES, CAPABILITY_GROUPS } from '../data/capabilities.js'
 import DemoGuide from './DemoGuide.jsx'
+import { assetUrl } from '@app-content'
 
 const TYPE_LABEL = Object.fromEntries(catalog.types.map(t => [t.key, t.label]))
 const TYPE_ORDER = Object.fromEntries(catalog.types.map((t, i) => [t.key, i]))
@@ -68,7 +69,7 @@ function ShotGrid({ shots, onOpen }) {
             aria-label={`Enlarge screenshot: ${d?.name || id}`}
           >
             <img
-              src={`/screenshots/thumbs/${id}.jpg`}
+              src={assetUrl(`/screenshots/thumbs/${id}.jpg`)}
               alt={d?.name || id}
               loading="lazy"
               className="w-full aspect-[2/1] object-cover object-top group-hover:opacity-90"
@@ -115,7 +116,7 @@ function ShotModal({ shots, index, onClose, onStep }) {
           </button>
         </div>
         <div className="relative overflow-auto flex-1 bg-black/40">
-          <img src={`/screenshots/${id}.png`} alt={d?.name || id} className="w-full h-auto" />
+          <img src={assetUrl(`/screenshots/${id}.png`)} alt={d?.name || id} className="w-full h-auto" />
           {shots.length > 1 && (
             <>
               <button onClick={() => onStep(-1)} aria-label="Previous screenshot" className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-ink-900/80 border border-line px-3 py-2 text-text-primary hover:bg-ink-700" style={{ borderStyle: 'solid' }}>‹</button>

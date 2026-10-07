@@ -1,12 +1,28 @@
-# Regenerates the single-file HTML page for the Elastic Hub's "HTML Page" asset
-# type (see elastic/elastic-hub#123) on every push to main, and commits it to
-# hub/ when its content actually changed. The Hub library asset is created
-# manually from this file; its raw URL always reflects main:
-# https://raw.githubusercontent.com/elastic/m-26-14-logging-readiness/main/hub/m-26-14-reference-architecture-viewer.html
+# Builds the single-file HTML page (npm run build:hub) on every push to main,
+# proposes it for hub/ when its content changed, and publishes it to the two
+# Elastic Hub Atrium assets with the eh CLI.
 #
-# The build is deterministic (locked deps), so the diff check only fires on real
-# content changes. The bot commit touches only hub/**, which this workflow
-# ignores — no self-trigger loop.
+# Three jobs, so that npm's install and build steps never run with a token
+# that can write to the repository or reach a hub:
+#   build    contents: read only; uploads the page as an artifact.
+#   commit   contents: write + pull-requests: write; downloads the artifact
+#            and, if hub/ changed, opens or updates a pull request with it.
+#   publish  contents: read + id-token: write, behind the hub-publish
+#            environment; downloads the artifact and runs eh atrium push.
+#
+# This repository is public, so commit and publish run only for a push to main
+# (or a manual run on main) in this repository, never for a pull request or a
+# fork. The hub-publish environment must be restricted to main in the
+# repository settings: a manual run uses the workflow file from the branch it
+# is started on, so the environment rule, not the job condition, is what keeps
+# other branches away from the publisher identity.
+#
+# The file name and path must stay as they are: the TokenPolicy in
+# elastic/catalog-info that lets fetch-github-token read elastic/elastic-hub-cli
+# is bound to this workflow's ref.
+#
+# The build is deterministic (locked dependencies), so the commit job only
+# acts on real content changes.
 name: build-hub-asset
 
 on:
@@ -14,35 +30,198 @@ on:
     branches: [main]
     paths-ignore:
       - 'hub/**'
+  workflow_dispatch:
 
-permissions:
-  contents: write
+permissions: {}
+
+concurrency:
+  group: build-hub-asset
+  cancel-in-progress: false
+
+env:
+  EH_VERSION: v0.4.0
+  HUB_PAGE: m-26-14-reference-architecture-viewer.html
 
 jobs:
-  regenerate:
+  build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 20
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
           cache: npm
 
       - run: npm ci
 
       - run: npm run build:hub
 
-      - name: Commit regenerated asset if changed
+      - name: Stage the page
         run: |
-          mkdir -p hub
-          cp dist-hub/index.html hub/m-26-14-reference-architecture-viewer.html
+          mkdir -p out
+          cp dist-hub/index.html "out/$HUB_PAGE"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: hub-page
+          path: out/${{ env.HUB_PAGE }}
+          if-no-files-found: error
+          retention-days: 7
+
+  # main requires a pull request (org ruleset), so the regenerated page goes
+  # to a bot branch with a pull request rather than straight to main. Pull
+  # requests opened with GITHUB_TOKEN start no workflow runs, and merging one
+  # touches only hub/**, which this workflow ignores.
+  commit:
+    needs: build
+    if: github.repository == 'elastic/m-26-14-logging-readiness' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      BRANCH: bot/regenerate-hub-page
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: hub-page
+          path: hub
+
+      - name: Open or update a pull request if the page changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
           if git diff --quiet -- hub/; then
-            echo "Hub asset unchanged — nothing to commit."
+            echo "Hub page unchanged, nothing to commit."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$BRANCH"
           git add hub/
-          git commit -m "chore: regenerate Elastic Hub asset for ${GITHUB_SHA::7}"
-          git push
+          git commit -m "chore: regenerate Elastic Hub page for ${GITHUB_SHA::7}"
+          git push --force origin "$BRANCH"
+          open=$(gh pr list --head "$BRANCH" --base main --state open --json number --jq length)
+          if [ "$open" = "0" ]; then
+            gh pr create --base main --head "$BRANCH" \
+              --title "chore: regenerate Elastic Hub page" \
+              --body "Regenerated hub/$HUB_PAGE from main at $GITHUB_SHA by the build-hub-asset workflow. The Atrium assets are already published from the same build; this keeps the copy in the repository in step."
+          else
+            echo "Updated the open pull request from $BRANCH."
+          fi
+
+  publish:
+    needs: build
+    if: github.repository == 'elastic/m-26-14-logging-readiness' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: hub-publish
+    permissions:
+      contents: read
+      id-token: write # GitHub OIDC, for Vault (fetch-github-token) and Workload Identity Federation
+    env:
+      EH_NO_UPDATE_CHECK: '1'
+      FIELD_ASSET: 0037f023-05b5-4209-b9f2-3a53a694fcbc
+      GPS_ASSET: ebd24c25-e448-473c-9694-2eaf66dde671
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: hub-page
+          path: page
+
+      # elastic/elastic-hub-cli is private, so GITHUB_TOKEN cannot read its
+      # releases. The TokenPolicy in elastic/catalog-info grants this
+      # workflow, on main, contents: read on that repository.
+      - name: Fetch a short-lived token for elastic/elastic-hub-cli
+        id: ghtoken
+        uses: elastic/ci-gh-actions/fetch-github-token@f1837d5894f688eb909c1d777aaaf2f1df705cef # v1.5.4
+        with:
+          vault-instance: ci-prod
+
+      - name: Install eh ${{ env.EH_VERSION }}
+        env:
+          GH_TOKEN: ${{ steps.ghtoken.outputs.token }}
+        run: |
+          echo "::add-mask::$GH_TOKEN"
+          dir="$RUNNER_TEMP/eh"
+          mkdir -p "$dir/bin"
+          gh release download "$EH_VERSION" -R elastic/elastic-hub-cli \
+            -p eh_linux_amd64 -p checksums.txt -D "$dir"
+          (cd "$dir" && grep ' eh_linux_amd64$' checksums.txt | sha256sum --check --strict -)
+          install -m 0755 "$dir/eh_linux_amd64" "$dir/bin/eh"
+          echo "$dir/bin" >> "$GITHUB_PATH"
+          "$dir/bin/eh" version
+
+      # One ID token serves both hubs: they sit behind the same IAP client.
+      # Minted here, after the install, because it lasts an hour.
+      - name: Authenticate to Google as the publisher service account
+        id: google
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: projects/14485593664/locations/global/workloadIdentityPools/github-demos/providers/github
+          service_account: hubci-14531b55@elastic-ce-tools.iam.gserviceaccount.com
+          token_format: id_token
+          id_token_audience: 14485593664-posgkpann5ih6u07q84m9p5gom411scd.apps.googleusercontent.com
+          id_token_include_email: true
+
+      # Reads with the credentials file the auth step wrote (it impersonates
+      # the same service account), so no second auth step is needed.
+      - name: Read the Okta CI client secret
+        id: okta
+        uses: google-github-actions/get-secretmanager-secrets@bc9c54b29fdffb8a47776820a7d26e77b379d262 # v3.0.0
+        with:
+          secrets: |-
+            client_secret:projects/elastic-ce-tools/secrets/ebc-hosting-platform-okta-ci-publisher-client-secret
+
+      - name: Mask the credentials
+        env:
+          ID_TOKEN: ${{ steps.google.outputs.id_token }}
+          OKTA_SECRET: ${{ steps.okta.outputs.client_secret }}
+        run: |
+          echo "::add-mask::$ID_TOKEN"
+          echo "::add-mask::$OKTA_SECRET"
+
+      - name: Publish to the field hub
+        id: field
+        env:
+          EH_GOOGLE_ID_TOKEN: ${{ steps.google.outputs.id_token }}
+          EH_OKTA_CLIENT_ID: 0oa1ex621a0fCGpRU1t8
+          EH_OKTA_CLIENT_SECRET: ${{ steps.okta.outputs.client_secret }}
+        run: |
+          eh auth whoami --context field-hub
+          eh atrium push "page/$HUB_PAGE" --id "$FIELD_ASSET" --context field-hub
+
+      # Runs even when the field hub failed, so one hub's failure does not
+      # hide the other's result.
+      - name: Publish to the GPS hub
+        id: gps
+        if: ${{ !cancelled() && steps.okta.outcome == 'success' }}
+        env:
+          EH_GOOGLE_ID_TOKEN: ${{ steps.google.outputs.id_token }}
+          EH_OKTA_CLIENT_ID: 0oa1ex621a0fCGpRU1t8
+          EH_OKTA_CLIENT_SECRET: ${{ steps.okta.outputs.client_secret }}
+        run: |
+          eh auth whoami --context gps-hub
+          eh atrium push "page/$HUB_PAGE" --id "$GPS_ASSET" --context gps-hub
+
+      - name: Report both hubs
+        if: ${{ always() }}
+        env:
+          FIELD: ${{ steps.field.outcome }}
+          GPS: ${{ steps.gps.outcome }}
+        run: |
+          {
+            echo "### Atrium publish"
+            echo
+            echo "| Hub | Asset | Result |"
+            echo "| --- | --- | --- |"
+            echo "| field.elastic.dev | \`$FIELD_ASSET\` | ${FIELD:-not run} |"
+            echo "| hub.gps.elastic.dev | \`$GPS_ASSET\` | ${GPS:-not run} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "field: ${FIELD:-not run}, gps: ${GPS:-not run}"

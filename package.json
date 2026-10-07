@@ -11,6 +11,7 @@
     "dev": "vite",
     "prebuild": "node scripts/check-catalog.mjs",
     "build": "vite build",
+    "build:hub": "node scripts/build-hub-asset.mjs",
     "preview": "vite preview",
     "check": "node scripts/check-catalog.mjs"
   },
@@ -33,7 +34,9 @@
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
+    "sharp": "^0.35.5",
     "tailwindcss": "^3.4.17",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "vite-plugin-singlefile": "^2.3.3"
   }
 }

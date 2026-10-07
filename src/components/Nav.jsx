@@ -4,6 +4,7 @@ import { EuiToolTip } from '@elastic/eui'
 import { useTheme } from '../ThemeContext.jsx'
 import { ENABLEMENT_ON } from '../flags.js'
 import { liveUrl } from '../data/liveLinks.js'
+import { docHref } from '@app-content'
 import logoColor from '../img/logo-elastic-horizontal-color.svg'
 import logoReverse from '../img/logo-elastic-horizontal-color-reverse.svg'
 
@@ -248,20 +249,28 @@ const ExternalIcon = () => (
   </svg>
 )
 
-function DocCard({ item }) {
-  const linkProps = item.internal
-    ? {}
-    : { target: '_blank', rel: 'noopener noreferrer' }
+// The single-file Hub build routes in memory (see main.jsx), so an internal
+// card navigates through the router and closes the flyout instead of loading
+// a path the Hub does not serve. Site-hosted files (PDFs) resolve through
+// docHref, which points the Hub build at the source repo.
+function DocCard({ item, onNavigate }) {
+  const routed = item.internal && __HUB_BUILD__
+  const Anchor = routed ? Link : 'a'
+  const linkProps = routed
+    ? { to: item.href, onClick: onNavigate }
+    : item.internal
+      ? { href: item.href }
+      : { href: docHref(item.href), target: '_blank', rel: 'noopener noreferrer' }
   return (
     <div className="rounded-lg bg-ink-800 hover:bg-ink-700 transition-colors flex flex-col group">
-      <a href={item.href} {...linkProps} className="p-5 pb-3 flex flex-col gap-2 flex-1">
+      <Anchor {...linkProps} className="p-5 pb-3 flex flex-col gap-2 flex-1">
         <div className="flex items-start justify-between gap-3">
           <span className="text-sm font-semibold text-accent-blue group-hover:underline leading-snug">{item.title}</span>
           <ExternalIcon />
         </div>
         <p className="text-sm text-text-muted leading-relaxed">{item.description}</p>
         <p className="text-xs text-text-muted/60 italic mt-auto">{item.detail}</p>
-      </a>
+      </Anchor>
       {item.secondary && (
         <a
           href={item.secondary.href}
@@ -328,7 +337,7 @@ function PrintablesFlyout({ onClose }) {
               </div>
               <p className="text-xs text-text-muted mb-3 leading-relaxed">{g.blurb}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {g.items.map((item) => <DocCard key={item.title} item={item} />)}
+                {g.items.map((item) => <DocCard key={item.title} item={item} onNavigate={onClose} />)}
               </div>
             </section>
           ))}

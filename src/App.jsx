@@ -6,10 +6,6 @@ import MaturityView from './components/MaturityView.jsx'
 import Capabilities from './components/Capabilities.jsx'
 import CompliancePage from './components/CompliancePage.jsx'
 import DemoGuide from './components/DemoGuide.jsx'
-import EnablementHub from './components/EnablementHub.jsx'
-import SalesEnablement from './components/SalesEnablement.jsx'
-import SAEnablement from './components/SAEnablement.jsx'
-import { ENABLEMENT_ON } from './flags.js'
 
 function MaturitySizeRedirect() {
   const { size } = useParams()
@@ -46,13 +42,6 @@ export default function App() {
         <Route path="/demo-guide" element={<Navigate to="/capabilities/walkthrough" replace />} />
         {/* Living reference-architecture document (markdown, same file the PDF was printed from; the PDF stays the marketing-approved July 2026 copy). */}
         <Route path="/reference-architecture" element={<DemoGuide src="/docs/Elastic%20M-26-14%20Reference%20Architectures.md" />} />
-
-        {/* Field enablement — reached via the hidden logo link. Internal-only:
-            mounted when the build sets VITE_ENABLEMENT=on (design call DC-8);
-            the deployed customer build leaves it out and these paths fall to "/". */}
-        {ENABLEMENT_ON && <Route path="/enablement" element={<EnablementHub />} />}
-        {ENABLEMENT_ON && <Route path="/enablement/sales" element={<SalesEnablement />} />}
-        {ENABLEMENT_ON && <Route path="/enablement/sa" element={<SAEnablement />} />}
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

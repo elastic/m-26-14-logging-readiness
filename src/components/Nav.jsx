@@ -2,7 +2,6 @@ import React, { useRef, useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { EuiToolTip } from '@elastic/eui'
 import { useTheme } from '../ThemeContext.jsx'
-import { ENABLEMENT_ON } from '../flags.js'
 import { liveUrl } from '../data/liveLinks.js'
 import logoColor from '../img/logo-elastic-horizontal-color.svg'
 import logoReverse from '../img/logo-elastic-horizontal-color-reverse.svg'
@@ -66,9 +65,7 @@ export default function Nav() {
       <div className="mx-auto max-w-[1800px] px-8 py-4 flex items-center gap-6">
         {/* Logo + title */}
         <div className="flex items-center gap-3 shrink-0">
-          {/* Hidden entry point to field enablement — logo doubles as the door,
-              only in a build with VITE_ENABLEMENT=on (DC-8); otherwise the logo is home. */}
-          <Link to={ENABLEMENT_ON ? '/enablement' : '/'} aria-label={ENABLEMENT_ON ? 'Field enablement' : 'Home'} title="" className="shrink-0">
+          <Link to="/" aria-label="Home" className="shrink-0">
             <img
               src={theme === 'dark' ? logoReverse : logoColor}
               alt="Elastic"

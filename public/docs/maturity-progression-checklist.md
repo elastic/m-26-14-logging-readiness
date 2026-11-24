@@ -2,7 +2,7 @@
 
 **Purpose:** Step-by-step guide for agencies using the Elastic M-26-14 Readiness Pack to achieve and maintain each maturity level across all five Appendix C elements.
 
-**Scoring:** Overall maturity = lowest level across all five elements (lowest watermark). Advance the weakest element first.
+**Scoring:** Appendix C scores each information system. A system's overall level = lowest level across its five elements (lowest watermark); the agency reports the share of its systems at each level. Advance each system's limiting element first (the Maturity Overview per-system table names it).
 
 **Timelines (from CISA LRA publication, August 20, 2026):**
 - Level 1 (Initial): LRA + 120 days (December 18, 2026)

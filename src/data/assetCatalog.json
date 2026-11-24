@@ -1,12 +1,12 @@
 {
  "pack_version": "0.3.1",
- "generated": "2026-10-14",
+ "generated": "2026-11-24",
  "generator": "tools/gen-asset-catalog.py",
  "types": [
   {
    "key": "index_template",
    "label": "Index templates",
-   "count": 39,
+   "count": 41,
    "delivery": "Bootstrap",
    "list_path": "/app/management/data/index_management/templates",
    "stack_management": true
@@ -22,7 +22,7 @@
   {
    "key": "ingest_pipeline",
    "label": "Ingest pipelines",
-   "count": 50,
+   "count": 51,
    "delivery": "Bootstrap",
    "list_path": "/app/management/ingest/ingest_pipelines",
    "stack_management": true
@@ -30,7 +30,7 @@
   {
    "key": "transform",
    "label": "Transforms",
-   "count": 20,
+   "count": 21,
    "delivery": "Bootstrap",
    "list_path": "/app/management/data/transform",
    "stack_management": true
@@ -38,7 +38,7 @@
   {
    "key": "enrich_policy",
    "label": "Enrich policies",
-   "count": 14,
+   "count": 17,
    "delivery": "Bootstrap",
    "list_path": "/app/management/data/index_management/enrich_policies",
    "stack_management": true
@@ -94,7 +94,7 @@
   {
    "key": "rule",
    "label": "Detection and ML rules",
-   "count": 58,
+   "count": 59,
    "delivery": "EPR",
    "list_path": "/app/security/rules/management",
    "stack_management": false
@@ -134,13 +134,13 @@
   {
    "key": "workflow",
    "label": "Workflows",
-   "count": 15,
+   "count": 16,
    "delivery": "Bootstrap (Kibana API)",
    "list_path": "/app/workflows",
    "stack_management": false
   }
  ],
- "live_ids_resolved": false,
+ "live_ids_resolved": true,
  "assets": [
   {
    "id": "m_26_14-ai-audit",
@@ -348,6 +348,21 @@
    "live_path": "/app/management/data/index_management/templates/m_26_14-host-alert-summary"
   },
   {
+   "id": "m_26_14-information-systems",
+   "type": "index_template",
+   "name": "m_26_14-information-systems",
+   "description": "R-134 information-system registry, agency-maintained: one document per information system (44 U.S.C. 3502(8)) the agency reports on. Supplies the system name, FIPS 199 impact and target maturity level to the m_26_14-score-rollup-pipeline (via m_26_14-information-system-enrich) and the per-level denominator to the m_26_14-maturity-report workflow: a registered system with no attributed assets is reported at Level 0. Empty at install; document _id should equal information_system.id. Re-execute m_26_14-information-system-enrich after an edit (the maturity-report workflow also does on every run).",
+   "delivery": "bootstrap",
+   "facts": {
+    "index_patterns": [
+     "m_26_14-information-systems"
+    ],
+    "data_stream": false,
+    "priority": 200
+   },
+   "live_path": "/app/management/data/index_management/templates/m_26_14-information-systems"
+  },
+  {
    "id": "m_26_14-ingest-latency",
    "type": "index_template",
    "name": "m_26_14-ingest-latency",
@@ -435,6 +450,21 @@
     "priority": 299
    },
    "live_path": "/app/management/data/index_management/templates/m_26_14-logs-hva-data-streams"
+  },
+  {
+   "id": "m_26_14-maturity-reports",
+   "type": "index_template",
+   "name": "m_26_14-maturity-reports",
+   "description": "M-26-14 maturity report store (R-134): one document per UTC day ('report::<day>'), written by the m_26_14-maturity-report workflow after it re-runs the scope transforms. Carries the memo 'Measuring Maturity' figures: systems per Appendix C waterline level (level_count), their share (level_pct), share at or above each level (at_least_pct), modal level, systems below their registry target, systems whose waterline is incomplete, which element limits how many systems (limiting_count), and the unassigned-asset count (not in the distribution). drilldown names the m_26_14-scores-system rows of the same day. The default pipeline m_26_14-maturity-report-derive computes the percentages.",
+   "delivery": "bootstrap",
+   "facts": {
+    "index_patterns": [
+     "m_26_14-maturity-reports"
+    ],
+    "data_stream": false,
+    "priority": 500
+   },
+   "live_path": "/app/management/data/index_management/templates/m_26_14-maturity-reports"
   },
   {
    "id": "m_26_14-network-observed-devices",
@@ -702,7 +732,7 @@
    "id": "m_26_14-scores",
    "type": "index_template",
    "name": "m_26_14-scores",
-   "description": "Scoring output, written by the m_26_14 transforms. element is one of: asset (one doc per entity, score_inventory/score_coverage 0|1), dataset_retention (one doc per dataset, score = Appendix C retention level; searchable_days/retrievable_days/retention_basis say which basis produced it, score_policy and score_empirical carry both), rollup (one doc per component per UTC day in m_26_14-scores, the enterprise doc per day in m_26_14-scores-rollup-ent; score_inventory/score_coverage levels plus inventory_pct/coverage_pct), operations (Element 3, one enterprise doc: covered_categories of categories_total Appendix B categories with an alert in the last 30 days, operations_pct, score_operations), log_management (Element 5, one enterprise doc: hash_pct over the last 7 days of m_26_14-hash-coverage plus the operator attestations, score_log_management). score is the Appendix C level: 0 Ineffective, 1 Initial, 2 Intermediate, 3 Advanced, 4 Optimal. The overall level is the lowest element level. evidence holds the raw numbers behind every score; dashboards are pure presentation over this index.",
+   "description": "Scoring output, written by the m_26_14 transforms. element is one of: asset (one doc per entity: FACTS for the batch scope transforms, R-134/R-135: is_canonical, asset.information_system, has_logs, last_log, inventory_last_seen, log_datasets (inventory feeds excluded, R-136), retention_searchable_days/retention_retrievable_days; score_inventory/score_coverage 0|1 = captured / has logs), system (one doc per information system per UTC day in m_26_14-scores-system: the five Appendix C element levels, waterline = lowest, limiting_elements, waterline_complete, target_level/meets_target from the registry), dataset_retention (one doc per dataset, score = Appendix C retention level; searchable_days/retrievable_days/retention_basis say which basis produced it, score_policy and score_empirical carry both), rollup (one doc per component per UTC day in m_26_14-scores-rollup, the enterprise doc per day in m_26_14-scores-rollup-ent; score_inventory/score_coverage levels plus inventory_pct/coverage_pct), operations (Element 3, one enterprise doc: covered_categories of categories_total Appendix B categories with an alert in the last 30 days, operations_pct, score_operations), log_management (Element 5, one enterprise doc: hash_pct over the last 7 days of m_26_14-hash-coverage plus the operator attestations, score_log_management). score is the Appendix C level: 0 Ineffective, 1 Initial, 2 Intermediate, 3 Advanced, 4 Optimal. The overall level is the lowest element level. evidence holds the raw numbers behind every score; dashboards are pure presentation over this index.",
    "delivery": "bootstrap",
    "facts": {
     "index_patterns": [
@@ -871,7 +901,7 @@
    "description": "Runs on every document written to m_26_14-assets by the entity resolution Transform. Unwraps top_metrics wrapped values, normalizes null strings and boolean strings, stamps timestamp, evaluates Element 1/2 coverage criteria, computes baseline state hash for drift detection.",
    "delivery": "bootstrap",
    "facts": {
-    "processors": 14,
+    "processors": 15,
     "processor_types": [
      "append",
      "fingerprint",
@@ -940,11 +970,12 @@
    "description": "Normalize asset inventory events from any source (osquery, CrowdStrike, Tenable, Qualys, Intune, Jamf, ServiceNow) to the unified asset.* schema. Called by source-specific sub-pipelines after their own field extraction. DC-2 (2026-09-18): this pipeline no longer computes its own m_26_14.integrity_hash; every inventory stream composes m_26_14-log-integrity-settings, so the final chain's m_26_14-log-integrity-hash writes the one canonical event.hash over the stored document (and m_26_14.integrity_hash as a one-release copy).",
    "delivery": "bootstrap",
    "facts": {
-    "processors": 10,
+    "processors": 13,
     "processor_types": [
      "append",
      "fingerprint",
      "lowercase",
+     "pipeline",
      "remove",
      "reroute",
      "script"
@@ -1085,7 +1116,7 @@
    "id": "m_26_14-inventory-csv",
    "type": "ingest_pipeline",
    "name": "m_26_14-inventory-csv",
-   "description": "Parses CDM/CMDB CSV export lines into the m_26_14-inventory contract and derives host.name so the 9.4 Entity Store mints canonical 'expected' host entities (decision #21). Expected column order: asset_id,hostname,component,type,criticality,source,last_seen,ip(optional). Header lines, comments (#), and blank lines are dropped; rows without an asset_id are dropped. WHAT THE STORE USES (validated on-cluster): host.name (lowercased asset.hostname) is the host-engine identity field -- the only load-bearing field for extraction besides @timestamp; the store recomputes entity.id='host:<host.name>' (ignores any entity.id we set) and RETAINS asset.id + asset.criticality on the entity (that retained asset.id is the canonical/inventory link the scoring collector joins on). Do NOT stamp event.dataset here: entity.source on the stored entity is the OBSERVED data_stream.dataset axis, and a value would make every inventory host look 'observed' and erase the coverage-gap signal. (We deliberately set no entity.* fields -- the 9.4 host engine ignores them.) Every row is appended as a new event (the inventory target is the data stream logs-m_26_14_asset.inventory-default, which cannot update a document in place, R-133); the m_26_14-asset-entity-resolution transform keeps the latest values per asset.id in m_26_14-assets. Send CSV lines with ?pipeline=m_26_14-inventory-csv; the pipeline ends by calling the stream's default pipeline m_26_14-asset-normalize, which a request pipeline would otherwise replace. Shaped JSON documents go straight to the stream through that default pipeline and must carry @timestamp and host.name themselves.",
+   "description": "Parses CDM/CMDB CSV export lines into the m_26_14-inventory contract and derives host.name so the 9.4 Entity Store mints canonical 'expected' host entities (decision #21). Expected column order: asset_id,hostname,component,type,criticality,source,last_seen,ip(optional),system_id(optional; R-134: the agency's information-system identifier, e.g. the CSAM/FISMA system id, kept verbatim). Header lines, comments (#), and blank lines are dropped; rows without an asset_id are dropped. WHAT THE STORE USES (validated on-cluster): host.name (lowercased asset.hostname) is the host-engine identity field -- the only load-bearing field for extraction besides @timestamp; the store recomputes entity.id='host:<host.name>' (ignores any entity.id we set) and RETAINS asset.id + asset.criticality on the entity (that retained asset.id is the canonical/inventory link the scoring collector joins on). Do NOT stamp event.dataset here: entity.source on the stored entity is the OBSERVED data_stream.dataset axis, and a value would make every inventory host look 'observed' and erase the coverage-gap signal. (We deliberately set no entity.* fields -- the 9.4 host engine ignores them.) Every row is appended as a new event (the inventory target is the data stream logs-m_26_14_asset.inventory-default, which cannot update a document in place, R-133); the m_26_14-asset-entity-resolution transform keeps the latest values per asset.id in m_26_14-assets. Send CSV lines with ?pipeline=m_26_14-inventory-csv; the pipeline ends by calling the stream's default pipeline m_26_14-asset-normalize, which a request pipeline would otherwise replace. Shaped JSON documents go straight to the stream through that default pipeline and must carry @timestamp and host.name themselves.",
    "delivery": "bootstrap",
    "facts": {
     "processors": 15,
@@ -1134,6 +1165,22 @@
     ]
    },
    "live_path": "/app/management/ingest/ingest_pipelines?pipeline=m_26_14-log-management-to-scores"
+  },
+  {
+   "id": "m_26_14-maturity-report-derive",
+   "type": "ingest_pipeline",
+   "name": "m_26_14-maturity-report-derive",
+   "description": "Default pipeline of m_26_14-maturity-reports (R-134). The m_26_14-maturity-report workflow indexes one report doc per run carrying level_count.l0..l4 (systems per waterline level from the m_26_14-scores-system rows of the run day; workflow templating may deliver the counts as strings), registered_unscored (registry systems with no scored row: no assets attributed, counted at Level 0) and unassigned_assets. This pipeline normalizes the counts to integers and derives the memo 'Measuring Maturity' figures: systems_total, level_pct (share of systems at each level), at_least_pct (share at or above each level) and modal_level. The unassigned pseudo-system is not a system and is never in the distribution.",
+   "delivery": "bootstrap",
+   "facts": {
+    "processors": 5,
+    "processor_types": [
+     "append",
+     "script",
+     "set"
+    ]
+   },
+   "live_path": "/app/management/ingest/ingest_pipelines?pipeline=m_26_14-maturity-report-derive"
   },
   {
    "id": "m_26_14-netobserved-reroute",
@@ -1470,10 +1517,12 @@
    "description": "Dest pipeline for m_26_14-score-entity transform (Stage 1). Receives one entity-store doc per canonical or discovered host entity and scores it for inventory freshness and coverage. Enriches: (1) m_26_14-inventory by host.name -> asset.* (canonical marker: enrich succeeds IFF the entity maps back to an inventory row by hostname); (2) m_26_14-observed by host.name -> last_log, first_log, datasets, skew_exceeded; (3) m_26_14-config-enrich -> thresholds. Produces a combined element:'asset' doc per entity with score_inventory (0/1), score_coverage (0/1), effective_horizon_days, is_canonical, provenance, and quadrant. Deterministic _id = 'asset::<effective_asset_id>'. Phase 1 NOTE: spine IP-fold (folding observed-<ip>@collector entries into canonical entities via host.ip) is deferred to Phase 2 -- only exact host.name enrich matching is performed. Entities only discoverable via IP-keyed observed entries will appear as expected_silent until Phase 2. D-20: enriches the host's latest NTP sample (m_26_14-ntp-enrich) into evidence.ntp_attestation {synced, offset_ms, server, last_sample, threshold_ms, source}; synced is null (source none) when the System ntp data stream has no sample for the host. R-115 (2026-09-23): the reporting window is thresholds.inventory_fresh_days from m_26_14-config (default 1 day), no longer a hard-coded 7.",
    "delivery": "bootstrap",
    "facts": {
-    "processors": 11,
+    "processors": 15,
     "processor_types": [
      "append",
      "enrich",
+     "foreach",
+     "pipeline",
      "remove",
      "script",
      "set"
@@ -1485,10 +1534,10 @@
    "id": "m_26_14-score-rollup-pipeline",
    "type": "ingest_pipeline",
    "name": "m_26_14-score-rollup-pipeline",
-   "description": "Dest pipeline shared by m_26_14-score-rollup (per-component) and m_26_14-score-rollup-enterprise transforms (Stage 2). Receives a pivot aggregation doc with fields: n (entity count), reporting (sum score_inventory), covered (sum score_coverage), min_horizon (min effective_horizon_days), and either asset.component (component rollup) or run_id='engine' (enterprise rollup). Enriches config thresholds, runs level_from_pct for inventory/coverage and retention_level for retention (single-axis empirical horizon; the policy-basis retention level lives on the dataset_retention docs, R-114), and emits a combined element:'rollup' doc with typed inventory_pct/coverage_pct. Deterministic _id = 'rollup::<component|_enterprise>::<UTC day>' (R-112, 2026-09-23): each checkpoint upserts today's doc, so the store keeps one row per day and the Maturity Overview trend panels read a real history instead of a seeded metrics index.",
+   "description": "Dest pipeline for the three batch scope transforms (R-134/R-135): m_26_14-score-system (group asset.information_system.id), m_26_14-score-rollup (group asset.component) and m_26_14-score-rollup-enterprise (group run_id). Each receives per-scope FACT counts computed against the clock at run time: n_canonical (captured in inventory), n_unexpected (seen with logs in the last 30 days, not in inventory), n_inv_fresh (canonical with an inventory record updated in the last day), n_covered (canonical with a log in the last day, inventory feeds excluded, R-136), min_searchable_days / min_retrievable_days (minimum per-asset effective retention). The transform delivers its group key as a flat dotted field. The pipeline enriches the config thresholds, the two enterprise-inherited element levels (operations, log_management from m_26_14-scores) and, for a system scope, the registry row (name, FIPS 199 impact, target level), then levels the five memo Appendix C elements and takes the lowest watermark (fn 8). Inventory: L1 when captured_pct >= l1; L2-L4 additionally require the record to be updated daily, judged on fresh_pct (R-137). Coverage: covered over canonical. Retention: searchable and retrievable horizons against the l1..l4 day thresholds. A missing inherited level does not fail the doc: waterline_complete=false and missing_elements name it. Deterministic _id = 'system::<id>::<UTC day>' or 'rollup::<component|_enterprise>::<UTC day>' (R-112): one row per scope per day.",
    "delivery": "bootstrap",
    "facts": {
-    "processors": 7,
+    "processors": 11,
     "processor_types": [
      "append",
      "enrich",
@@ -1903,7 +1952,7 @@
    "id": "m_26_14-score-entity",
    "type": "transform",
    "name": "m_26_14-score-entity",
-   "description": "Stage 1b — per-entity inventory + coverage scoring (decisions #21/#22). Sources m_26_14-observed (the observed-host ledger built by m_26_14-observed-assets; canary documents excluded). A latest transform (unique_key: host.name) passes each host's newest ledger doc through the m_26_14-score-entity-pipeline dest pipeline, which: (1) enriches m_26_14-inventory-enrich by host.name to establish canonical status (provenance inventory, else a retained asset.id = store_retained, else an entity resolution target = resolution_target, else unexpected and is_canonical false); (2) enriches m_26_14-observed-enrich by host.name for last_log/first_log/datasets; (3) enriches m_26_14-config-enrich thresholds and m_26_14-ntp-enrich clock offset; (4) computes score_inventory (0/1: a log within thresholds.inventory_fresh_days, 1 as shipped, R-115), score_coverage (0/1 has datasets), effective_horizon_days (empirical retention from first_log), provenance, is_canonical, and the evidence object (quadrant, NTP attestation). Produces element:'asset' docs in m_26_14-scores with _id='asset::<effective_asset_id>'. IP-fold (folding observed-<ip>@collector into canonical entities) is deferred. See m_26_14-score-entity-pipeline _meta for details. Run AFTER enrich policies are executed and m_26_14-observed has data.",
+   "description": "Stage 1b — per-entity inventory + coverage scoring (decisions #21/#22). Sources m_26_14-observed (the observed-host ledger built by m_26_14-observed-assets; canary documents excluded). A latest transform (unique_key: host.name) passes each host's newest ledger doc through the m_26_14-score-entity-pipeline dest pipeline, which: (1) enriches m_26_14-inventory-enrich by host.name to establish canonical status (provenance inventory, else a retained asset.id = store_retained, else an entity resolution target = resolution_target, else unexpected and is_canonical false); (2) enriches m_26_14-observed-enrich by host.name for last_log/first_log/datasets; (3) enriches m_26_14-config-enrich thresholds and m_26_14-ntp-enrich clock offset; (4) writes clock-free FACTS (R-134/R-135): is_canonical, provenance, asset.information_system (attribution through the agency hook when the source carried none), has_logs, last_log, first_log, inventory_last_seen, log_datasets (inventory feeds excluded, R-136), retention_searchable_days / retention_retrievable_days (shortest across the asset's datasets, from m_26_14-dataset-retention-enrich), effective_horizon_days, score_inventory (0/1 = is_canonical), score_coverage (0/1 = has non-inventory logs), and the evidence object (quadrant from thresholds.inventory_fresh_days, NTP attestation). Levels are judged later, at run time, by the batch scope transforms. Produces element:'asset' docs in m_26_14-scores with _id='asset::<effective_asset_id>'. IP-fold (folding observed-<ip>@collector into canonical entities) is deferred. See m_26_14-score-entity-pipeline _meta for details. Run AFTER enrich policies are executed and m_26_14-observed has data.",
    "delivery": "bootstrap",
    "facts": {
     "kind": "latest",
@@ -1966,7 +2015,7 @@
    "id": "m_26_14-score-rollup",
    "type": "transform",
    "name": "m_26_14-score-rollup",
-   "description": "Stage 2 — per-component rollup. Reads canonical entity score docs from m_26_14-scores (element:asset, is_canonical:true, written in the last 2h), groups by asset.component, and aggregates n (entity count), reporting (sum score_inventory), covered (sum score_coverage), min_horizon (min effective_horizon_days). The m_26_14-score-rollup-pipeline dest pipeline enriches config thresholds, runs level_from_pct for inventory/coverage and retention_level for retention, and emits a combined element:'rollup' doc per component with score_inventory/score_coverage/score_retention (0-4 each). _id = 'rollup::<component>'. The 2h @timestamp range filter prevents stale entity docs from inflating the denominator (H3: entity-left-store staleness). Run AFTER m_26_14-score-entity completes its cycle.",
+   "description": "Per-component (bureau) rollup. Same facts and leveling as m_26_14-score-system, grouped by asset.component; element 'rollup', one doc per component per UTC day ('rollup::<component>::<day>'). 'component' here is the pack's bureau attribute, not the memo fn 8 sense (an Appendix C element). Facts are per-asset and time-independent (written by m_26_14-score-entity); every clock test runs HERE, at run time, through the filter aggregations: n_canonical (captured in inventory), n_unexpected (not in inventory, a log in the last 30 days), n_inv_fresh (canonical, inventory record updated in the last day: the memo's 'updated daily'), n_covered (canonical, a log other than an inventory feed in the last day: 'timely manner', R-136), min_searchable_days / min_retrievable_days (minimum per-asset effective retention). BATCH on purpose (R-135): a continuous transform recomputes only buckets whose source changed, and a host that went silent never changes, so its level would freeze. The m_26_14-maturity-report workflow re-runs it with _stop, _reset, _start. Its dest is pre-created by the loader (PRECREATE_STORES) so _reset keeps the per-day history; a dest the transform created itself (mapping _meta.created_by: transform) is DELETED by _reset.",
    "delivery": "bootstrap",
    "facts": {
     "kind": "pivot",
@@ -1975,11 +2024,10 @@
     ],
     "dest_index": "m_26_14-scores-rollup",
     "dest_pipeline": "m_26_14-score-rollup-pipeline",
-    "frequency": "1h",
     "group_by": [
      "asset.component"
     ],
-    "continuous": true
+    "continuous": false
    },
    "live_path": "/app/management/data/transform?_a=(transform:(queryText:'m_26_14-score-rollup'))"
   },
@@ -1987,7 +2035,7 @@
    "id": "m_26_14-score-rollup-enterprise",
    "type": "transform",
    "name": "m_26_14-score-rollup-enterprise",
-   "description": "Stage 2b — enterprise rollup. Same source and logic as m_26_14-score-rollup but groups by run_id (always 'engine' for in-stack docs) to produce a single enterprise-wide doc. The m_26_14-score-rollup-pipeline dest pipeline detects the absence of asset.component (enterprise case) and sets asset.id:'_rollup' with no component, _id='rollup::_enterprise'. score_inventory/score_coverage/score_retention (0-4) represent the enterprise-wide maturity levels across ALL canonical entities in all components. There is no waterline doc (out of scope for Phase 1 — operations and log_mgmt are deferred to separate efforts). Run AFTER m_26_14-score-entity completes its cycle; same offset as m_26_14-score-rollup.",
+   "description": "Enterprise rollup. Same facts and leveling grouped by run_id (always 'engine'), one doc per UTC day ('rollup::_enterprise::<day>'). This is a whole-estate view: the memo reports maturity as the distribution of SYSTEMS by level (m_26_14-maturity-reports), not as one enterprise level. Facts are per-asset and time-independent (written by m_26_14-score-entity); every clock test runs HERE, at run time, through the filter aggregations: n_canonical (captured in inventory), n_unexpected (not in inventory, a log in the last 30 days), n_inv_fresh (canonical, inventory record updated in the last day: the memo's 'updated daily'), n_covered (canonical, a log other than an inventory feed in the last day: 'timely manner', R-136), min_searchable_days / min_retrievable_days (minimum per-asset effective retention). BATCH on purpose (R-135): a continuous transform recomputes only buckets whose source changed, and a host that went silent never changes, so its level would freeze. The m_26_14-maturity-report workflow re-runs it with _stop, _reset, _start. Its dest is pre-created by the loader (PRECREATE_STORES) so _reset keeps the per-day history; a dest the transform created itself (mapping _meta.created_by: transform) is DELETED by _reset. Writes its own dest: two transforms must not share one.",
    "delivery": "bootstrap",
    "facts": {
     "kind": "pivot",
@@ -1996,13 +2044,33 @@
     ],
     "dest_index": "m_26_14-scores-rollup-ent",
     "dest_pipeline": "m_26_14-score-rollup-pipeline",
-    "frequency": "1h",
     "group_by": [
      "run_id"
     ],
-    "continuous": true
+    "continuous": false
    },
    "live_path": "/app/management/data/transform?_a=(transform:(queryText:'m_26_14-score-rollup-enterprise'))"
+  },
+  {
+   "id": "m_26_14-score-system",
+   "type": "transform",
+   "name": "m_26_14-score-system",
+   "description": "R-134 per-information-system maturity (memo Appendix C, scored per system; fn 8 lowest watermark). Pivots the m_26_14-scores asset fact docs by information system, and also reads the m_26_14-information-systems registry so a registered system with no attributed assets still gets a row (population 0, Level 0). The sys_id runtime field reads asset.information_system.id on asset docs and information_system.id on registry docs; the group key is named asset.information_system.id so the dest pipeline sees the same flat dotted key in every scope. Facts are per-asset and time-independent (written by m_26_14-score-entity); every clock test runs HERE, at run time, through the filter aggregations: n_canonical (captured in inventory), n_unexpected (not in inventory, a log in the last 30 days), n_inv_fresh (canonical, inventory record updated in the last day: the memo's 'updated daily'), n_covered (canonical, a log other than an inventory feed in the last day: 'timely manner', R-136), min_searchable_days / min_retrievable_days (minimum per-asset effective retention). BATCH on purpose (R-135): a continuous transform recomputes only buckets whose source changed, and a host that went silent never changes, so its level would freeze. The m_26_14-maturity-report workflow re-runs it with _stop, _reset, _start. Its dest is pre-created by the loader (PRECREATE_STORES) so _reset keeps the per-day history; a dest the transform created itself (mapping _meta.created_by: transform) is DELETED by _reset. The dest pipeline levels the five elements, takes the waterline and writes one doc per system per UTC day ('system::<id>::<day>').",
+   "delivery": "bootstrap",
+   "facts": {
+    "kind": "pivot",
+    "source": [
+     "m_26_14-scores",
+     "m_26_14-information-systems"
+    ],
+    "dest_index": "m_26_14-scores-system",
+    "dest_pipeline": "m_26_14-score-rollup-pipeline",
+    "group_by": [
+     "asset.information_system.id"
+    ],
+    "continuous": false
+   },
+   "live_path": "/app/management/data/transform?_a=(transform:(queryText:'m_26_14-score-system'))"
   },
   {
    "id": "m_26_14-software-latest",
@@ -2144,6 +2212,24 @@
    "live_path": "/app/management/data/index_management/enrich_policies?policy=m_26_14-config-enrich"
   },
   {
+   "id": "m_26_14-dataset-retention-enrich",
+   "type": "enrich_policy",
+   "name": "m_26_14-dataset-retention-enrich",
+   "description": "Serves each dataset's effective retention (searchable_days, retrievable_days, retention_basis from the element:\"dataset_retention\" rows in m_26_14-scores, matched on dataset) to m_26_14-score-entity-pipeline, which writes the shortest retention across an asset's log datasets onto its fact document (R-134). Re-executed hourly by the m_26_14-enrich-refresh workflow.",
+   "delivery": "bootstrap",
+   "facts": {
+    "kind": "match",
+    "source_indices": "m_26_14-scores",
+    "match_field": "dataset",
+    "enrich_fields": [
+     "searchable_days",
+     "retrievable_days",
+     "retention_basis"
+    ]
+   },
+   "live_path": "/app/management/data/index_management/enrich_policies?policy=m_26_14-dataset-retention-enrich"
+  },
+  {
    "id": "m_26_14-host-alert-lookup",
    "type": "enrich_policy",
    "name": "m_26_14-host-alert-lookup",
@@ -2162,6 +2248,39 @@
     ]
    },
    "live_path": "/app/management/data/index_management/enrich_policies?policy=m_26_14-host-alert-lookup"
+  },
+  {
+   "id": "m_26_14-information-system-enrich",
+   "type": "enrich_policy",
+   "name": "m_26_14-information-system-enrich",
+   "description": "Serves the agency's information-system registry (m_26_14-information-systems, matched on information_system.id: name, FIPS 199 impact, target level) to m_26_14-score-rollup-pipeline, which stamps each per-system row and computes meets_target (R-134). Re-executed by the m_26_14-maturity-report workflow before every run.",
+   "delivery": "bootstrap",
+   "facts": {
+    "kind": "match",
+    "source_indices": "m_26_14-information-systems",
+    "match_field": "information_system.id",
+    "enrich_fields": [
+     "information_system"
+    ]
+   },
+   "live_path": "/app/management/data/index_management/enrich_policies?policy=m_26_14-information-system-enrich"
+  },
+  {
+   "id": "m_26_14-inherited-levels-enrich",
+   "type": "enrich_policy",
+   "name": "m_26_14-inherited-levels-enrich",
+   "description": "Serves the enterprise Collection Operations and Log Management levels (the element:\"operations\" and element:\"log_management\" rows in m_26_14-scores, matched on element) to m_26_14-score-rollup-pipeline, so every information system inherits them (R-134). Re-executed by the m_26_14-maturity-report workflow before every run.",
+   "delivery": "bootstrap",
+   "facts": {
+    "kind": "match",
+    "source_indices": "m_26_14-scores",
+    "match_field": "element",
+    "enrich_fields": [
+     "score",
+     "@timestamp"
+    ]
+   },
+   "live_path": "/app/management/data/index_management/enrich_policies?policy=m_26_14-inherited-levels-enrich"
   },
   {
    "id": "m_26_14-inventory-enrich",
@@ -3109,10 +3228,10 @@
    "id": "m_26_14-maturity-overview",
    "type": "dashboard",
    "name": "M-26-14 Maturity Overview",
-   "description": "Executive summary of the five Appendix C elements from the pack's own scoring stores (m_26_14-scores, m_26_14-scores-rollup-ent, the alert-coverage stores, m_26_14-hash-coverage). The overall level is the lowest element; Elements 3 and 5 are scored by m_26_14-score-operations and m_26_14-score-log-management, and Element 5 stays at Initial until the operator attests encryption and access controls in m_26_14-config.",
+   "description": "Executive summary of the five Appendix C elements from the pack's own scoring stores (m_26_14-scores, m_26_14-scores-rollup-ent, the alert-coverage stores, m_26_14-hash-coverage). The overall level is the lowest element; Elements 3 and 5 are scored by m_26_14-score-operations and m_26_14-score-log-management, and Element 5 stays at Initial until the operator attests encryption and access controls in m_26_14-config. The top section is the memo's per-system measure (R-134): each registered information system's overall level is its lowest element, and the share of systems at each level comes from the daily m_26_14-maturity-report workflow (m_26_14-maturity-reports, m_26_14-scores-system).",
    "delivery": "epr",
    "facts": {
-    "panels": 9
+    "panels": 16
    },
    "live_path": "/app/dashboards#/view/m_26_14-maturity-overview?_g=(time:(from:now-30d,to:now))"
   },
@@ -3183,8 +3302,8 @@
      "kibana-audit"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/3df15376-4406-4072-b56f-332bfde3e6bb",
+   "live_note": null
   },
   {
    "id": "m_26_14-ai-connector-lifecycle",
@@ -3210,8 +3329,8 @@
      "kibana-audit"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/892eea29-f942-435f-8d1d-7eaaf7099a03",
+   "live_note": null
   },
   {
    "id": "m_26_14-ai-guardrail-indicators",
@@ -3234,8 +3353,8 @@
      "ai-audit"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/dc338bb5-7691-4c29-8ecf-586803764509",
+   "live_note": null
   },
   {
    "id": "m_26_14-appendixa-l-new-network-device",
@@ -3262,8 +3381,8 @@
      "Passive-Discovery"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/493d0887-d0d6-4706-a43c-f8915d1b7eaa",
+   "live_note": null
   },
   {
    "id": "m_26_14-appendixb-a-azure-credential-stuffing",
@@ -3289,8 +3408,8 @@
      "Brute Force"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/efcddb99-1ace-47e0-a384-ba2edd9c8e3a",
+   "live_note": null
   },
   {
    "id": "m_26_14-appendixb-a-linux-ssh-credential-stuffing",
@@ -3315,8 +3434,8 @@
      "Brute Force"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/017f94d7-cc6e-47ad-b1dc-38e102ea4fdf",
+   "live_note": null
   },
   {
    "id": "m_26_14-appendixb-a-okta-credential-stuffing",
@@ -3344,8 +3463,8 @@
      "Brute Force"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/34ac7e6f-3391-415c-93da-4790dcdd7cef",
+   "live_note": null
   },
   {
    "id": "m_26_14-appendixb-a-windows-credential-stuffing",
@@ -3375,8 +3494,8 @@
      "Brute Force"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/17cfda08-1042-4d1d-a36c-0255176bbf62",
+   "live_note": null
   },
   {
    "id": "m_26_14-appendixb-b-c2-beaconing",
@@ -3398,8 +3517,8 @@
      "THIRF"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/0635fe2c-0880-47e2-aaf8-829bbb022359",
+   "live_note": null
   },
   {
    "id": "m_26_14-appendixb-c-mass-file-access",
@@ -3421,8 +3540,8 @@
      "THIRF"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/b3760265-3f8b-4cf8-8f45-c36e1419928a",
+   "live_note": null
   },
   {
    "id": "m_26_14-appendixb-d-privilege-escalation-sequence",
@@ -3447,8 +3566,8 @@
      "THIRF"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/039a1fe6-48ac-4637-9d91-8a63e9553a3a",
+   "live_note": null
   },
   {
    "id": "m_26_14-appendixb-e-ot-config-change",
@@ -3474,8 +3593,8 @@
      "Dragos"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/f77fe529-ef13-4a12-a9f8-1fc420d35d02",
+   "live_note": null
   },
   {
    "id": "m_26_14-appendixb-e-ot-infra-changes",
@@ -3505,8 +3624,8 @@
      "Dragos"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/53cb9f8a-820d-4745-896c-78c9ab42e8f5",
+   "live_note": null
   },
   {
    "id": "m_26_14-appendixb-e-rogue-device-fleet-enrollment",
@@ -3532,8 +3651,8 @@
      "THIRF"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/3a45a2e3-e203-4b7c-aacf-c70e580f362f",
+   "live_note": null
   },
   {
    "id": "m_26_14-appendixb-f-edr-tamper",
@@ -3561,8 +3680,8 @@
      "THIRF"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/d8687f65-7b4a-4e9a-8df3-8843500b8db4",
+   "live_note": null
   },
   {
    "id": "m_26_14-appendixb-g-ioc-domain-match",
@@ -3595,8 +3714,8 @@
      "DNS"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/c186081a-d9f8-4b78-bb0b-7fb323451935",
+   "live_note": null
   },
   {
    "id": "m_26_14-appendixb-h-offhours-bulk-process-execution",
@@ -3618,8 +3737,8 @@
      "THIRF"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/f955f039-b58a-4d44-82a6-0a33d5f0075a",
+   "live_note": null
   },
   {
    "id": "m_26_14-appendixb-i-exfiltration-volume",
@@ -3641,8 +3760,8 @@
      "THIRF"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/8fa3099c-75f8-44df-9c53-4fcb870fb42d",
+   "live_note": null
   },
   {
    "id": "m_26_14-appendixb-j-apt-chain-2h",
@@ -3669,8 +3788,8 @@
      "THIRF"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/8a7ad535-bddc-489d-b849-f7645ae2f6b7",
+   "live_note": null
   },
   {
    "id": "m_26_14-appendixb-j-apt-chain-4h",
@@ -3697,8 +3816,8 @@
      "THIRF"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/a80c13dd-e53e-41c9-9c2a-10fdbaa22035",
+   "live_note": null
   },
   {
    "id": "m_26_14-appendixb-k-alert-presence",
@@ -3721,8 +3840,8 @@
      "Coverage-Health"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/2ae7c53b-0fe2-417c-aeab-50b6f77cfa78",
+   "live_note": null
   },
   {
    "id": "m_26_14-appendixb-k-silent-category",
@@ -3744,8 +3863,8 @@
      "Coverage-Gap"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/f76baa75-87c1-4052-8a2b-625a36d0200c",
+   "live_note": null
   },
   {
    "id": "m_26_14-appendixb-l-ot-protocol-egress",
@@ -3771,8 +3890,8 @@
      "OT-IoT"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/8982d818-f8cd-4234-9eaa-b9f468596ac0",
+   "live_note": null
   },
   {
    "id": "m_26_14-asset-baseline-drift",
@@ -3793,8 +3912,8 @@
      "config-drift"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/d29fbd43-46e0-4178-b2de-4ce05aac8fd7",
+   "live_note": null
   },
   {
    "id": "m_26_14-asset-critical-checkin-stopped",
@@ -3816,8 +3935,8 @@
      "agent-health"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/a9f35817-1e11-4149-beb6-ed1d4cf2f9dc",
+   "live_note": null
   },
   {
    "id": "m_26_14-asset-encryption-disabled",
@@ -3842,8 +3961,8 @@
      "compliance"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/d82fc2f8-664a-4fe9-8c88-9b04f1873de8",
+   "live_note": null
   },
   {
    "id": "m_26_14-asset-new-local-user",
@@ -3868,8 +3987,8 @@
      "persistence"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/128f2bcc-a7de-445d-8a29-0f88c3ad5d6d",
+   "live_note": null
   },
   {
    "id": "m_26_14-asset-new-network-interface",
@@ -3894,8 +4013,8 @@
      "config-drift"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/be14030f-b243-4c66-afed-e092a3ba7442",
+   "live_note": null
   },
   {
    "id": "m_26_14-asset-security-software-removed",
@@ -3918,8 +4037,8 @@
      "defense-evasion"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/413a1edd-1994-4f01-8c4f-c51a40048dc5",
+   "live_note": null
   },
   {
    "id": "m_26_14-asset-unauthorized-software",
@@ -3943,8 +4062,8 @@
      "software-inventory"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/ce792fd9-805c-4fca-b123-10e9c3451fb7",
+   "live_note": null
   },
   {
    "id": "m_26_14-canary-alert",
@@ -3969,8 +4088,8 @@
      "D-09"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/b9cce36d-2dba-44b1-88da-1365706cdcb4",
+   "live_note": null
   },
   {
    "id": "m_26_14-canary-stage-failure",
@@ -3992,8 +4111,8 @@
      "D-09"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/44a440ad-62e2-4dba-bd03-5d23c3925fb0",
+   "live_note": null
   },
   {
    "id": "m_26_14-data-retirement-gate1-pending",
@@ -4015,8 +4134,8 @@
      "compliance"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/5ba35944-49dc-43f0-a74b-8bbc1202ef9d",
+   "live_note": null
   },
   {
    "id": "m_26_14-data-retirement-gate2-pending",
@@ -4039,8 +4158,8 @@
      "deletion"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/24276256-ba30-4db0-a1e7-22f84f4a3e80",
+   "live_note": null
   },
   {
    "id": "m_26_14-hva-config-change",
@@ -4065,8 +4184,8 @@
      "Element-3"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/bceaeae2-0e68-4211-b265-7eed7e5cfed0",
+   "live_note": null
   },
   {
    "id": "m_26_14-hva-failed-auth",
@@ -4091,8 +4210,8 @@
      "Element-3"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/10622791-fbaf-48bb-8f8c-094cad11c6c6",
+   "live_note": null
   },
   {
    "id": "m_26_14-hva-new-process",
@@ -4117,8 +4236,8 @@
      "Element-3"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/a97fb009-ed77-4362-a547-e3e7c762e14f",
+   "live_note": null
   },
   {
    "id": "m_26_14-hva-retention-lock-drift",
@@ -4142,8 +4261,8 @@
      "App-D.9"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/0c260da4-f0f3-4cc5-8063-acf80abf380c",
+   "live_note": null
   },
   {
    "id": "m_26_14-ingest-latency-breach",
@@ -4166,8 +4285,8 @@
      "LRA-3.5"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/744027cb-b608-4492-b734-86c21ef5253f",
+   "live_note": null
   },
   {
    "id": "m_26_14-ml-cata-high-auth-failures",
@@ -4196,8 +4315,8 @@
      "m_26_14_auth_high_count_logon_fails_ea"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/64929ab8-baa8-4be0-ad41-caf10569d008",
+   "live_note": null
   },
   {
    "id": "m_26_14-ml-cata-rare-auth-ip",
@@ -4225,8 +4344,8 @@
      "m_26_14_auth_rare_source_ip_for_a_user_ea"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/fe7e3cee-54b9-4667-9a1f-199dfb9af0cd",
+   "live_note": null
   },
   {
    "id": "m_26_14-ml-cata-ueba-login",
@@ -4256,8 +4375,8 @@
      "m_26_14_suspicious_login_activity_ea"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/74240fca-3bc9-4459-8a10-15cd77a856e6",
+   "live_note": null
   },
   {
    "id": "m_26_14-ml-catb-dns-dga",
@@ -4284,8 +4403,8 @@
      "m_26_14-ml-catb-dns-entropy"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/42845b1d-89fe-487d-a5e5-db9b7c2ece3b",
+   "live_note": null
   },
   {
    "id": "m_26_14-ml-catb-rare-country",
@@ -4313,8 +4432,8 @@
      "m_26_14_rare_destination_country"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/ddb9d3fc-fa5b-43f7-bcfd-78a77ee8cac3",
+   "live_note": null
   },
   {
    "id": "m_26_14-ml-cath-host-silent",
@@ -4341,8 +4460,8 @@
      "m_26_14_low_count_events_for_a_host_name_ea"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/6a681f29-c5cc-4e94-834c-22e5a20cf659",
+   "live_note": null
   },
   {
    "id": "m_26_14-ml-cath-rare-process-linux",
@@ -4370,8 +4489,8 @@
      "m_26_14_v3_rare_process_by_host_linux_ea"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/43548e69-1857-4d8f-8bb1-060144fc5ed8",
+   "live_note": null
   },
   {
    "id": "m_26_14-ml-cath-rare-process-windows",
@@ -4399,8 +4518,8 @@
      "m_26_14_v3_rare_process_by_host_windows_ea"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/13805757-13a5-419d-8302-e687c5490a68",
+   "live_note": null
   },
   {
    "id": "m_26_14-ml-e1-coverage-drop",
@@ -4424,8 +4543,8 @@
      "m_26_14-ml-element1-asset-coverage"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/56071af6-9cae-4d95-9585-f70c19366438",
+   "live_note": null
   },
   {
    "id": "m_26_14-ml-e2-ingestion-drop",
@@ -4450,8 +4569,8 @@
      "m_26_14-ml-element2-ingestion-rate"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/8b74832f-56fb-42fa-80f1-d4c8ee6ed5cd",
+   "live_note": null
   },
   {
    "id": "m_26_14-ml-e3-rule-silence",
@@ -4477,8 +4596,8 @@
      "m_26_14-ml-element3-rule-silence"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/f23bc659-bbcb-4c6d-8cf2-4fd18287e4e0",
+   "live_note": null
   },
   {
    "id": "m_26_14-ml-e4-retention-anomaly",
@@ -4504,8 +4623,8 @@
      "m_26_14-ml-element4-ilm-anomaly"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/015eedef-7f53-4a78-9ba5-64e23918f98f",
+   "live_note": null
   },
   {
    "id": "m_26_14-ml-e5-hash-drop",
@@ -4530,8 +4649,8 @@
      "m_26_14-ml-element5-hash-coverage"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/e1f1c264-8671-4f1c-a308-2732ab9fe7c0",
+   "live_note": null
   },
   {
    "id": "m_26_14-ml-readiness-degradation",
@@ -4565,8 +4684,8 @@
      "m_26_14-ml-schema-drift"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/e3d3de56-87a2-4980-9a71-34a3f9f4b4a5",
+   "live_note": null
   },
   {
    "id": "m_26_14-ml-schema-drift",
@@ -4592,8 +4711,8 @@
      "m_26_14-ml-schema-drift"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/5f713fef-cdd6-4b56-a8fd-e5456ba21336",
+   "live_note": null
   },
   {
    "id": "m_26_14-ntp-offset-exceeded",
@@ -4615,8 +4734,8 @@
      "Element-5"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/7cc7dece-34c2-4a31-b0e0-3f5fd642d694",
+   "live_note": null
   },
   {
    "id": "m_26_14-ops-metrics-stale",
@@ -4638,8 +4757,8 @@
      "LRA-3.5"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/00fea40f-75a1-4d31-b146-604b0696427c",
+   "live_note": null
   },
   {
    "id": "m_26_14-pep-expired-exception",
@@ -4661,8 +4780,8 @@
      "D-07"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/58cd5bc6-d515-41f2-9bcf-d04accb9b05e",
+   "live_note": null
   },
   {
    "id": "m_26_14-pipeline-failure-spike",
@@ -4684,8 +4803,30 @@
      "D-04"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/security/rules/id/1a61f555-7c0e-497b-a62b-d8b8a20a0bf9",
+   "live_note": null
+  },
+  {
+   "id": "m_26_14-system-below-target",
+   "type": "rule",
+   "name": "M-26-14 Posture: Information System Below Target Maturity",
+   "description": "Alerts once per information system per day when the system's overall maturity level (memo Appendix C, the lowest of its five element levels, fn 8) is below the target level the agency set for it in the m_26_14-information-systems registry. Reads the per-system rows the m_26_14-maturity-report workflow writes to m_26_14-scores-system (one row per system per UTC day). Severity follows the system's FIPS 199 impact. The unassigned pseudo-system (assets no source or agency hook attributed) is never alerted; its asset count is on the maturity report. Posture rule: it reads the pack's own evidence store, not telemetry (R-134).",
+   "delivery": "epr",
+   "facts": {
+    "rule_type": "esql",
+    "severity": "medium",
+    "risk_score": 47,
+    "ships_enabled": false,
+    "tags": [
+     "M-26-14",
+     "readiness-health",
+     "posture",
+     "Appendix-C",
+     "R-134"
+    ]
+   },
+   "live_path": "/app/security/rules/id/8284e591-57f0-422b-b70a-491bb0b354c3",
+   "live_note": null
   },
   {
    "id": "m_26_14-dv-alerts",
@@ -4810,8 +4951,8 @@
      "m_26_14_network_interfaces"
     ]
    },
-   "live_path": null,
-   "live_note": "object id is minted at install; open the list page"
+   "live_path": "/app/osquery/packs/010058eb-eb16-4fb0-8e35-ce1a7178f89d",
+   "live_note": null
   },
   {
    "id": "m_26_14-aar-agent",
@@ -5101,7 +5242,7 @@
    "id": "m-26-14-enrich-refresh",
    "type": "workflow",
    "name": "M-26-14 Enrich Refresh",
-   "description": "Hourly re-execute of the seven enrich policies whose source index is written by transforms or ingest (assets, observed, baselines, host-alert summary), so enrich-backed pipelines such as the D-18 HVA feeder serve current data instead of the install-time snapshot.",
+   "description": "Hourly re-execute of the eight enrich policies whose source index is written by transforms or ingest (assets, observed, baselines, host-alert summary, dataset retention scores), so enrich-backed pipelines such as the D-18 HVA feeder serve current data instead of the install-time snapshot.",
    "delivery": "bootstrap",
    "facts": {
     "source_file": "m_26_14-enrich-refresh",
@@ -5143,6 +5284,22 @@
     "ships_enabled": false
    },
    "live_path": "/app/workflows/m-26-14-mapping-conflict-check"
+  },
+  {
+   "id": "m-26-14-maturity-report",
+   "type": "workflow",
+   "name": "M-26-14 Maturity Report",
+   "description": "Daily per-information-system maturity report (memo Appendix C, lowest watermark per system): refreshes the scoring lookups, re-runs the batch scope transforms, and writes the distribution of systems by level to m_26_14-maturity-reports.",
+   "delivery": "bootstrap",
+   "facts": {
+    "source_file": "m_26_14-maturity-report",
+    "triggers": [
+     "scheduled",
+     "manual"
+    ],
+    "ships_enabled": false
+   },
+   "live_path": "/app/workflows/m-26-14-maturity-report"
   },
   {
    "id": "m-26-14-ops-metrics-snapshot",

@@ -1,183 +1,130 @@
-# M-26-14 Maturity Overview Dashboard — User Guide
+# M-26-14 Maturity Overview Dashboard: User Guide
 
 ## 1. Overview
 
-The **M-26-14 Maturity Overview** dashboard (`m_26_14-maturity-overview`) is the executive hub of the Elastic M-26-14 readiness pack. It answers, on a single screen, the question that frames every maturity self-assessment under OMB Memorandum M-26-14: *"Where does the agency stand on each of the five readiness elements, and which elements are blocking advancement to the next maturity level?"*
+The **M-26-14 Maturity Overview** dashboard (`m_26_14-maturity-overview`) is the executive hub of the Elastic M-26-14 Readiness Pack. It answers the question the memo's "Measuring Maturity" section asks an agency to report: *what share of our information systems is at each Appendix C level, and what holds each system back?*
 
-The deployed demo configuration models a representative federal civilian agency progressing from **Event Logging Level 2 (L2) to Level 3 (L3)**. The dashboard's own description summarizes the posture it displays: Elements 1 and 4 are at L3; Elements 2, 3, and 5 are blocking L3 advancement. Every number on the dashboard ties back to one of the five M-26-14 readiness elements:
+Appendix C scores maturity **per information system**. Each system gets a level from 0 to 4 on five elements, and its overall level is the **lowest** of the five (memo footnote 8, the "lowest watermark"):
 
-| Element | Requirement Area |
-|---------|------------------|
-| Element 1 | Hardware asset management — inventory coverage |
-| Element 2 | Software asset management — log collection coverage |
-| Element 3 | Detection and alerting — Appendix B category coverage (A–K) |
-| Element 4 | Log retention — active and cold-tier retention periods |
-| Element 5 | Log integrity — tamper-evident hashing and violation detection |
+| Element | What the pack measures |
+|---------|------------------------|
+| Inventory Visibility | Share of a system's assets captured in the inventory (unexpected devices count against it); from Level 2, the share whose inventory record was updated in the last day |
+| Collection Coverage | Share of inventoried assets with a log, other than the inventory feed itself, in the last day |
+| Collection Operations | Appendix B categories with an alert in the last 30 days, of eleven (enterprise-wide, inherited by every system) |
+| Data Retention | Shortest configured searchable and retrievable retention across the system's assets |
+| Log Management | Hash coverage plus the operator's attestations (enterprise-wide, inherited by every system) |
 
-This is the **entry point** for the entire dashboard suite. Every panel carries a click-through drilldown, and the navigation bar at the top links to all six detail dashboards. Start here; drill down only where a score is yellow or red.
+Levels: 0 Ineffective, 1 Initial, 2 Intermediate, 3 Advanced, 4 Optimal. The thresholds are the memo's, held in the `default` document of `m_26_14-config`.
 
-### Who Uses This Dashboard
+Scores are evidence for the agency's self-assessment, not an official maturity determination.
 
-| Role | Primary Use |
+### Who uses this dashboard
+
+| Role | Primary use |
 |------|-------------|
-| **ISSO** | Daily posture check across all five elements; identifies which element-level dashboards need investigation; sources numbers for POA&M entries |
-| **CISO** | Executive maturity-level view (L2 → L3 progress); briefing artifact for OMB/CISA reporting cycles; prioritizes remediation investment by element |
-| **Authorizing Official (AO)** | Single-screen confirmation of maturity posture before signing attestation; launch point to the Attestation Report dashboard |
-| **SOC Lead** | Monitors Element 3 category coverage and Element 5 integrity violations for degradation between reporting cycles |
-
-### Where It Fits
-
-The maturity overview sits at the top of a hub-and-spoke layout. Pre-aggregated metrics indices (populated by Elasticsearch Transforms, or by seeded demo data in the demo deployment) feed this hub and all six spokes. Detail and evidence live in the spokes; the hub shows only the element-level scores and their 30-day direction of travel.
+| **CISO** | The share of systems at each level, the trend, and how many systems sit below their target; the briefing figure for OMB and CISA reporting |
+| **System owner / ISSO** | Their system's row in the per-system table: its level, its target, and the limiting element to fix first |
+| **Authorizing Official** | Confirmation of the system's level before signing; launch point to the Readiness Attestation dashboard |
+| **SOC lead** | The Element 3 and Element 5 tiles in the lower section, which move between reporting cycles |
 
 ---
 
-## 2. Dashboard Layout
+## 2. Dashboard layout
 
-The dashboard contains **nine panels**: one navigation links bar, six ES|QL-driven metric panels (three per row, two rows of element scores), and two 30-day trend charts. All metric panels read pre-aggregated metrics indices — never raw alert or event stores — so load time is constant regardless of log volume.
+![M-26-14 Maturity Overview: per-system section at the top (share of systems at Level 1 and 2 or higher, systems below target, unassigned assets, systems by level, daily trend, per-system table), enterprise element tiles and trends below](../screenshots/m_26_14-maturity-overview.png)
 
-![M-26-14 Maturity Overview dashboard — navigation links bar at top, six element score metrics in the center, and two 30-day coverage trend charts at the bottom](../screenshots/m_26_14-maturity-overview.png)
+The dashboard has two sections under a navigation bar.
 
-| # | Panel | Type | Source Index | What It Computes |
-|---|-------|------|--------------|------------------|
-| 1 | Navigation links bar | Links (horizontal) | n/a | Six dashboard links to the detail dashboards (see Section 3) |
-| 2 | **Element 1: Inventory Coverage %** | Lens metric (ES\|QL) | `m_26_14-metrics-asset-coverage` | `MAX(m_26_14.value)` where `m_26_14.element == "element_1_inventory"`. Subtitle states the measure and the threshold: managed share of inventoried assets, L3 ≥ 90%. Value-click opens the score's per-day history |
-| 3 | **Element 2: Collection Coverage %** | Lens metric (ES\|QL) | `m_26_14-metrics-asset-coverage` | `MAX(m_26_14.value)` where `m_26_14.element == "element_2_collection"`. Subtitle: software-inventoried share of managed assets, L2 ≥ 80%, L3 ≥ 90%. Value-click opens the per-day history |
-| 4 | **Element 3: Appendix B Categories Covered** | Lens metric (ES\|QL) | `m_26_14-metrics-alert-coverage` | Categories whose latest snapshot has `m_26_14.coverage_status == "covered"`. Subtitle states the target: L3 ≥ 8 of 11. Value-click lists the covered categories |
-| 5 | **Element 4: L3-Compliant Data Streams** | Lens metric (ES\|QL) | `m_26_14-metrics-retention` | `COUNT_DISTINCT(m_26_14.data_stream)` where `m_26_14.retention.l3_compliant == true`. Subtitle states the L3 rule: ≥90d searchable and ≥365d retrievable. Value-click lists the streams |
-| 6 | **Element 5: Hashed Log Documents** | Lens metric (ES\|QL) | `m_26_14-demo-logs` | `COUNT(*)` where `event.integrity.hashed == true`. Subtitle states the target: L3 ≥ 80% of documents hashed |
-| 7 | **Element 5: Integrity Violations (30d)** | Lens metric (ES\|QL) | `m_26_14-integrity-violations-default` | `COUNT(*)` of recorded hash-mismatch events. Subtitle names the source (the verify job); red because any non-zero value warrants investigation |
-| 8 | **Element 1 — Inventory Coverage Trend (30d)** | Lens XY area (ES\|QL) | `m_26_14-metrics-asset-coverage` | Daily `MAX(m_26_14.value)` for `element_1_inventory`, bucketed with `DATE_TRUNC(1 day, @timestamp)` |
-| 9 | **Element 2 — Collection Coverage Trend (30d)** | Lens XY area (ES\|QL) | `m_26_14-metrics-asset-coverage` | Daily `MAX(m_26_14.value)` for `element_2_collection`, same daily bucketing |
+### Per-system section (top): the memo's measure
 
-Panel colors are deliberate, not decorative: teal/green (`#00BFB3`) marks elements meeting their L3 threshold, yellow (`#FEC514`) marks elements at L2 but below the L3 threshold, and red (`#E7664C`) marks active findings (the integrity violations counter). The subtitle under each metric states the applicable threshold, so the panel is self-documenting in screenshots and exported evidence.
+All seven panels read the output of the daily **M-26-14 Maturity Report** workflow.
 
----
+| Panel | Source | What it shows | Drilldown |
+|-------|--------|---------------|-----------|
+| **Systems at Level 1 or higher** | `m_26_14-maturity-reports` | `at_least_pct.l1` from the latest daily report: the percentage of registered systems whose overall level is 1 or more | Per-day history of the figure |
+| **Systems at Level 2 or higher** | same | `at_least_pct.l2` | Per-day history |
+| **Systems below target level** | same | `systems_below_target`: systems whose overall level is under the `target_level` in the registry | Per-day history |
+| **Assets not attributed to a system** | same | `unassigned_assets`: inventoried assets and unexpected devices that neither the source nor the agency's attribution rules placed in a system | Per-day history |
+| **Information systems by overall level (latest day)** | `m_26_14-scores-system` | Bar per level, count of systems on the most recent day | The latest system rows with level, target and limiting element |
+| **Systems per level, daily report trend** | `m_26_14-maturity-reports` | Stacked bar per day, `level_count.l0` to `l4` | The daily report history |
+| **Per-system maturity (latest day)** | `m_26_14-scores-system` | One row per system: id, name, FIPS 199 impact, assets, target, overall level, target met, limiting element, and the five element levels | Every system's daily history |
 
-## 3. Navigation & Drill-downs
+The unassigned pseudo-system is never part of the distribution; its asset count sits beside it so an attribution gap stays visible.
 
-Two navigation layers are built into the dashboard:
+### Enterprise section (below): element tiles and trends
 
-**Layer 1 — the links bar (top of dashboard).** Six dashboard links, each configured to carry the current time range and filters into the target dashboard:
+These panels give the whole-estate view of each element. They are context for the per-system figure, not a substitute for it.
 
-| Link Label | Target Dashboard | Question It Answers |
-|------------|------------------|---------------------|
-| Elements 1 & 2 — Asset Coverage | `m_26_14-asset-coverage` | Which hardware assets and software sources are inventoried and actually shipping logs? Where are the collection gaps? |
-| Element 3 — Appendix B Matrix | `m_26_14-appendix-b-coverage` | Category by category (A–K): which required log types are being collected, and to what depth? |
-| Element 3 — Alert Coverage | `m_26_14-alert-coverage` | Which Appendix B categories have active detection rules and recent alert activity? Which are `partial` or `none`? |
-| Element 4 — Retention Readiness | `m_26_14-retention-readiness` | Per data stream: do active and cold-tier retention periods meet the L3 requirements? Which streams fall short? |
-| Element 5 — Log Integrity | `m_26_14-log-management` | What fraction of log documents carry integrity hashes, and what produced the recorded violations? |
-| Attestation Report | `m_26_14-readiness-attestation-dash` | Is the evidence package complete and current for AO sign-off? |
-
-**Layer 2 — value-click drilldowns.** Every score panel has a value-click drilldown into Discover on the rows behind the number: Element 1 and 2 open the score's per-day history, Element 3 lists the covered categories, Element 4 the compliant streams, and the two Element 5 panels the hashed documents and the recorded violations. The two trend charts drill into the Asset Coverage dashboard with a fixed 30-day window. Click any number you do not like and the evidence is one page away.
+| Panel | Source | What it computes |
+|-------|--------|------------------|
+| **Element 1: Inventory Coverage %** | `m_26_14-scores-rollup-ent` | Latest `inventory_pct`: assets whose inventory record was updated in the last day |
+| **Element 2: Collection Coverage %** | `m_26_14-scores-rollup-ent` | Latest `coverage_pct`: inventoried assets with a non-inventory log in the last day |
+| **Element 3: Appendix B Categories Covered** | `m_26_14-metrics-alert-coverage-latest` | Categories whose newest tagged alert is within 30 days |
+| **Element 4: L3-Compliant Data Streams** | `m_26_14-scores` | Datasets whose retention score is 3 or more on the configured basis |
+| **Element 5: Hash Coverage %** | `m_26_14-hash-coverage` | Hashed share of `logs-*` documents in the hourly rollup |
+| **Element 5: Hash Coverage Drop Alert** | `m_26_14-metrics-alert-coverage-latest` | 1 when the hash-coverage-drop ML rule has alerted |
+| **Element 1 / Element 2 trend** | `m_26_14-scores-rollup-ent` | One point per daily enterprise rollup |
 
 ---
 
-## 4. How to Read It
+## 3. Navigation and drilldowns
 
-**Read top-to-bottom: scores first, trends second.**
-
-1. **Scan the six score panels.** Each subtitle states what the panel measures and its L2/L3 threshold, so green/yellow status is verifiable at a glance — no external scoring rubric required.
-2. **Check the Integrity Violations counter specifically.** Unlike the other five panels, this is a *findings* counter, not a coverage score. The target is always **0**. Any non-zero value represents documents whose stored hash failed re-verification — an audit-significant event regardless of overall maturity level. Drill into Log Integrity and document the disposition.
-3. **Use the trend charts to distinguish degradation from stagnation.** A yellow Element 2 score with a rising 30-day trend is a maturity program on track; the same score with a flat or falling trend is a stalled program and belongs in the POA&M with a revised target date.
-
-**What "good" looks like (ready to claim L3 on all elements):**
-
-| Panel | Healthy State |
-|-------|---------------|
-| Element 1: Inventory Coverage % | ≥ 90%, trend flat or rising |
-| Element 2: Collection Coverage % | ≥ 90% (the demo sits in the L2 band, ≥ 80%) |
-| Element 3: Categories Covered | ≥ 8 of 11 for L3; 11 of 11 is the end state |
-| Element 4: L3-Compliant Streams | All in-scope data streams (10 of 10 in the demo model) |
-| Element 5: Hashed Documents | ≥ 80% of log documents hashed |
-| Element 5: Integrity Violations | 0 |
-
-**What "degraded" looks like:** any score that was green in the prior reporting period and is now yellow, a downward slope on either trend chart, or a violations count that has increased since the last review. Degradation between attestation cycles is exactly what continuous monitoring under M-26-14 is meant to surface — capture the date observed, drill down, and open a POA&M entry rather than waiting for the next formal assessment.
-
-**Time range note:** the score panels run ES|QL `STATS` over the dashboard's selected time range. Keep the global time picker at **Last 30 days** (the panel drilldowns also pin to 30 days) so the scores align with the 30-day basis used in the metrics indices. Narrowing the window can drop the most recent metrics snapshot and produce misleadingly low or empty values.
+The links bar at the top opens the detail dashboards (Asset Coverage, Appendix B Matrix, Alert Coverage, Retention Readiness, Log Integrity, Readiness Attestation) and carries the time range and filters with it. Every metric tile has a value-click drilldown into Discover on the rows behind the number; each per-system tile drills into the per-day history of that figure.
 
 ---
 
-## 5. Data Sources
+## 4. How to read it
 
-All panels read pre-aggregated metrics indices, not raw alert stores or live event streams. The pre-aggregation layer is what keeps the hub fast and what makes the displayed numbers reproducible as audit evidence.
+1. **Start with the distribution.** The two percentage tiles and the bar chart give the figure the memo asks for. The Level 1 deadline is 18 December 2026, so a system at Level 0 is the first thing to explain.
+2. **Read the per-system table by its limiting element.** A system's level is its weakest element, so raising any other element does not move it. The limiting column names where the work goes.
+3. **Check the unassigned count.** A non-zero value means some assets are not in any system's denominator. Fix attribution (the inventory's system id, or the agency's attribution rules) before trusting the distribution.
+4. **A registered system with no assets shows at Level 0.** That is deliberate: the system exists and nothing proves it is logged.
+5. **Use the trend to separate stalled from improving.** A flat count at Level 1 after a remediation sprint belongs in the POA&M with a revised date.
 
-| Index | Feeds Panels | Populated By | Key Fields Used |
-|-------|--------------|--------------|-----------------|
-| `m_26_14-metrics-asset-coverage` | Element 1 and 2 scores; both trend charts | Asset-coverage transform / seeded demo data | `m_26_14.element`, `m_26_14.value`, `@timestamp` |
-| `m_26_14-metrics-alert-coverage` | Element 3 score | Alert-coverage transform (aggregates rule and alert activity per Appendix B category) | `m_26_14.category`, `m_26_14.category_label`, `m_26_14.rules_active`, `m_26_14.alerts_30d`, `m_26_14.coverage_status` |
-| `m_26_14-metrics-retention` | Element 4 score | Retention transform / seeded demo data | `m_26_14.retention.l3_compliant` |
-| `m_26_14-demo-logs` | Element 5 hashed-documents score | Demo log generator with integrity-hash ingest pipeline | `event.integrity.hashed` |
-| `m_26_14-integrity-violations-default` | Element 5 violations counter | Integrity re-verification job (writes one document per hash mismatch) | `@timestamp` |
+---
 
-**Refresh cadence.** In a production deployment the metrics indices are kept current by continuously running Elasticsearch Transforms, and the dashboard reflects each transform's last sync (typically within the hour). In the demo deployment the same indices are seeded by the pack's setup scripts, so values are static until the seed is re-run. Either way, the dashboard never queries `.alerts-security.*` or raw log data streams directly, so dashboard load is independent of total log volume.
+## 5. Data sources and refresh
+
+| Index | Written by | Refresh |
+|-------|-----------|---------|
+| `m_26_14-maturity-reports` | `m_26_14-maturity-report` workflow, one document per UTC day (`report::<day>`) | Daily at 06:00 UTC once the workflow is enabled; it ships disabled |
+| `m_26_14-scores-system` | `m_26_14-score-system` batch transform, one row per system per day | Re-run by the workflow each day |
+| `m_26_14-scores-rollup-ent` | `m_26_14-score-rollup-enterprise` batch transform | Re-run by the workflow each day |
+| `m_26_14-scores` | Continuous scoring transforms (per-asset facts, per-dataset retention, Elements 3 and 5) | Hourly |
+| `m_26_14-information-systems` | The agency: one registry document per system (name, FIPS 199 impact, target level) | On edit |
+
+Every clock test ("updated daily", "a log in the last day") is evaluated when the workflow runs, so a host that stops logging lowers its system's level at the next daily run instead of keeping its last score.
 
 ---
 
 ## 6. Troubleshooting
 
-### A score panel shows "No results found"
+### The per-system tiles are empty
 
-The backing metrics index is empty, missing, or has no documents inside the selected time range.
-
-1. Confirm the time picker is set to **Last 30 days** or wider. Metrics documents are timestamped at write time; a narrow window can exclude them all.
-2. Check that each index exists and has documents (Dev Tools):
+The workflow has not written a report yet. Check that it is enabled (Kibana, Workflows, **M-26-14 Maturity Report**), run it manually once, then:
 
 ```
-GET m_26_14-metrics-asset-coverage/_count
-GET m_26_14-metrics-alert-coverage/_count
-GET m_26_14-metrics-retention/_count
-GET m_26_14-demo-logs/_count
-GET m_26_14-integrity-violations-default/_count
+GET m_26_14-maturity-reports/_search?size=1&sort=@timestamp:desc
+GET m_26_14-scores-system/_count
 ```
 
-3. A `404` means the readiness pack's setup (index templates plus seed/transform) has not been run for that component. Re-run the pack installation for the affected asset.
+### Every system is at Level 0, or there are no systems
 
-### Counts exist but a score looks wrong or stale
-
-Verify the transform feeding the index is running and healthy:
+The registry is empty or attribution placed no assets in it.
 
 ```
-GET _transform/m_26_14-metrics-alert-coverage/_stats
-GET _transform/_all/_stats?size=100
+GET m_26_14-information-systems/_count
+POST m_26_14-scores/_search
+{ "size": 0, "query": { "term": { "element": "asset" } },
+  "aggs": { "by": { "terms": { "field": "asset.information_system.attribution" } } } }
 ```
 
-Check `state` (`started`/`indexing` is healthy; `stopped` or `failed` is not) and the checkpoint timestamps. To restart a stopped transform:
+Mostly `unassigned` means the inventory carries no system id and no agency hook (`m_26_14-information-system@custom`) is installed. The pack's `docs/maturity-measurement.md` shows hook examples for network ranges and hostname conventions.
 
-```
-POST _transform/m_26_14-metrics-alert-coverage/_start
-```
+### A system's level looks incomplete
 
-If the transform is healthy but values look outdated, compare the latest document timestamp against the current time:
+`waterline_complete: false` on a system row means an inherited level (operations or log management) was missing at scoring time; `missing_elements` names it. Check that `m_26_14-score-operations` and `m_26_14-score-log-management` are running, then re-run the workflow.
 
-```
-POST m_26_14-metrics-asset-coverage/_search
-{
-  "size": 1,
-  "sort": [{ "@timestamp": "desc" }],
-  "_source": ["@timestamp", "m_26_14.element", "m_26_14.value"]
-}
-```
+### Coverage reads near zero right after a reseed
 
-### Element 3 shows 0 categories covered but detection rules are enabled
-
-The score counts categories with `m_26_14.coverage_status == "covered"` in the metrics index — it does not query rules directly. Inspect the status distribution:
-
-```
-POST m_26_14-metrics-alert-coverage/_search
-{
-  "size": 0,
-  "aggs": {
-    "by_status": { "terms": { "field": "m_26_14.coverage_status" } }
-  }
-}
-```
-
-If all documents show `partial` or `none`, the rules exist but have produced no qualifying alert activity in the 30-day window. Investigate on the **Element 3 — Alert Coverage** dashboard rather than here.
-
-### Integrity Violations panel shows "No results found" instead of 0
-
-An empty `m_26_14-integrity-violations-default` index renders as no-data, not as zero. This is the expected *clean* state when the index exists with zero documents. Confirm with `GET m_26_14-integrity-violations-default/_count` and record the count of 0 as evidence; only treat it as a fault if the index itself is missing (404), which means the integrity-verification component was never installed.
-
-### Navigation links open but the target dashboard is empty
-
-The links bar passes the hub's time range and filters into the target. A filter pill applied on the hub (for example, a stray `m_26_14.element` filter) will follow you into the drill-down and may exclude all of its data. Clear filter pills on the hub, or open the target from the Dashboards list directly to compare.
+`m_26_14-score-entity` syncs with a 120-second delay. If it was reset sooner than that after the `m_26_14-observed-assets` checkpoint, it skipped the freshest hosts. Wait, reset it again, then re-run the workflow.
